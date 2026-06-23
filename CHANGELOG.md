@@ -2,6 +2,15 @@
 
 All notable changes are tracked here. The Settings screen shows **Version** from `package.json`.
 
+## [7.3.12] — 2026-06-23
+
+### Features
+- **Dashboard** — eye toggle on net profit blurs net and gross profit; hidden by default on every app load/reload; mobile-friendly tap target.
+
+App version **7.3.12**; service worker cache **v88**.
+
+---
+
 ## [7.3.11] — 2026-06-23
 
 ### Improvements

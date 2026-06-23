@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   compareRecordsByRecency,
   currentMonthStr,
@@ -11,6 +11,8 @@ import {
 import {
   IcBell,
   IcBook,
+  IcEye,
+  IcEyeOff,
   IcPlus,
   IcSearch,
   IcSpend,
@@ -93,6 +95,11 @@ export function HomeTab({
   notifPerm,
   onRequestNotifPerm,
 }) {
+  const [profitHidden, setProfitHidden] = useState(true);
+  const toggleProfitHidden = useCallback(() => {
+    setProfitHidden((hidden) => !hidden);
+  }, []);
+
   const recentSales = useMemo(
     () => [...dashSales].sort(compareRecordsByRecency).slice(0, RECENT_LIMIT),
     [dashSales],
@@ -262,7 +269,9 @@ export function HomeTab({
         </div>
 
         <section className="home-md3-kpi-grid" aria-label="Key metrics">
-          {kpiTiles.map((tile) => (
+          {kpiTiles.map((tile) => {
+            const maskProfit = profitHidden && (tile.key === "profit" || tile.key === "gross");
+            return (
             <div
               key={tile.key}
               className={[
@@ -273,13 +282,47 @@ export function HomeTab({
               ]
                 .filter(Boolean)
                 .join(" ")}
-              title={`${tile.label}: ${tile.value}`}
+              title={maskProfit ? tile.label : `${tile.label}: ${tile.value}`}
             >
-              <span className="home-md3-kpi-lbl">{tile.label}</span>
-              <span className="home-md3-kpi-val">{tile.value}</span>
-              {tile.sub ? <span className="home-md3-kpi-sub">{tile.sub}</span> : null}
+              {tile.hero ? (
+                <>
+                  <div className="home-md3-kpi-hero-body">
+                    <span className="home-md3-kpi-lbl">{tile.label}</span>
+                    <span className={`home-md3-kpi-val${maskProfit ? " home-md3-kpi-val--masked" : ""}`}>
+                      {tile.value}
+                    </span>
+                    {tile.sub ? (
+                      <span className={`home-md3-kpi-sub${maskProfit ? " home-md3-kpi-val--masked" : ""}`}>
+                        {tile.sub}
+                      </span>
+                    ) : null}
+                  </div>
+                  <button
+                    type="button"
+                    className="home-md3-kpi-eye"
+                    onClick={toggleProfitHidden}
+                    aria-label={profitHidden ? "Show net and gross profit" : "Hide net and gross profit"}
+                    aria-pressed={profitHidden}
+                  >
+                    {profitHidden ? <IcEyeOff /> : <IcEye />}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <span className="home-md3-kpi-lbl">{tile.label}</span>
+                  <span className={`home-md3-kpi-val${maskProfit ? " home-md3-kpi-val--masked" : ""}`}>
+                    {tile.value}
+                  </span>
+                  {tile.sub ? (
+                    <span className={`home-md3-kpi-sub${maskProfit ? " home-md3-kpi-val--masked" : ""}`}>
+                      {tile.sub}
+                    </span>
+                  ) : null}
+                </>
+              )}
             </div>
-          ))}
+            );
+          })}
         </section>
 
         <div className="home-md3-actions">

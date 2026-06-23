@@ -1391,7 +1391,9 @@ kbd {
 
 .home-md3-kpi--hero {
   grid-column: 1 / -1;
-  padding: clamp(14px, 3.2vw, 20px) clamp(14px, 3vw, 18px);
+  position: relative;
+  overflow: visible;
+  padding: clamp(14px, 3.2vw, 20px) calc(var(--tap-min) + 6px) clamp(14px, 3.2vw, 20px) clamp(14px, 3vw, 18px);
   border-radius: clamp(20px, 4vw, 28px);
   background: color-mix(in srgb, var(--primary) 12%, var(--card));
   border-color: color-mix(in srgb, var(--primary) 10%, var(--line2));
@@ -1456,6 +1458,76 @@ kbd {
   color: var(--muted2);
 }
 
+.home-md3-kpi-hero-body {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: clamp(2px, 0.8vw, 5px);
+  min-width: 0;
+}
+
+.home-md3-kpi-eye {
+  position: absolute;
+  top: 50%;
+  right: 4px;
+  z-index: 2;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: var(--tap-min);
+  height: var(--tap-min);
+  min-width: var(--tap-min);
+  min-height: var(--tap-min);
+  padding: 0;
+  margin: 0;
+  border: none;
+  border-radius: 999px;
+  color: var(--text2);
+  background: color-mix(in srgb, var(--text) 5%, transparent);
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.home-md3-kpi-eye svg {
+  width: 15px;
+  height: 15px;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+
+.home-md3-kpi-eye:hover {
+  color: var(--text);
+  background: color-mix(in srgb, var(--text) 9%, transparent);
+}
+
+.home-md3-kpi-eye:active {
+  color: var(--text);
+  background: color-mix(in srgb, var(--text) 14%, transparent);
+}
+
+.home-md3-kpi-eye:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--primary) 55%, transparent);
+  outline-offset: 1px;
+}
+
+.home-md3-kpi-eye[aria-pressed="true"] {
+  color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
+}
+
+.home-md3-kpi-val--masked {
+  filter: blur(7px);
+  user-select: none;
+  pointer-events: none;
+}
+
 .home-md3-kpi.tone-good .home-md3-kpi-val { color: var(--success); }
 .home-md3-kpi.tone-bad .home-md3-kpi-val { color: var(--danger); }
 .home-md3-kpi.tone-warn .home-md3-kpi-val { color: var(--warning); }
@@ -1506,7 +1578,7 @@ kbd {
     border-radius: 12px;
   }
   .home-md3-kpi--hero {
-    padding: 12px 10px;
+    padding: 12px calc(var(--tap-min) + 4px) 12px 10px;
     border-radius: 18px;
   }
   .home-md3-kpi-val {
