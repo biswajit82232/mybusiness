@@ -2,6 +2,8 @@
  * Supabase cloud sync: ensure business, restore when local is empty, push outbox when online.
  * Reliability: serialized passes, keyset pagination for large pulls, exponential backoff on push/transient errors.
  */
+import { normServicingCompletions } from "../../domain/appModel.js";
+import { mergeServicingCompletions } from "../../domain/servicing.js";
 import { readSupabaseSessionSafely } from "../auth/supabaseSession.js";
 import { supabase } from "../supabase/client.js";
 import {
@@ -157,6 +159,7 @@ function toLocalPayloadShape(raw) {
   return {
     settings: base.settings ?? null,
     balance: base.balance ?? null,
+    servicingCompletions: Array.isArray(base.servicingCompletions) ? base.servicingCompletions : [],
     sales: Array.isArray(base.sales) ? base.sales : [],
     expenses: Array.isArray(base.expenses) ? base.expenses : [],
     otherIncomes: Array.isArray(base.otherIncomes) ? base.otherIncomes : [],
@@ -208,7 +211,11 @@ async function seedEntityRecordsFromPayload(client, businessId, payload) {
     business_id: businessId,
     entity_type: "settings",
     record_id: "__settings__",
-    payload: { settings: payload?.settings ?? null, balance: payload?.balance ?? null },
+    payload: {
+      settings: payload?.settings ?? null,
+      balance: payload?.balance ?? null,
+      servicingCompletions: Array.isArray(payload?.servicingCompletions) ? payload.servicingCompletions : [],
+    },
     deleted: false,
     updated_at: ts,
   });
@@ -339,13 +346,23 @@ async function mergeRemoteRowsIntoLocal(userId, rows) {
         recordId: "settings",
       });
       const currentSettingsPayload = currentSettingsRow?.payload ?? {};
+      const remotePayload = row.deleted || t !== "settings" ? {} : row.payload ?? {};
       const nextSettings = row.deleted
         ? (t === "settings" ? null : currentSettingsPayload.settings ?? null)
-        : (t === "settings" ? row.payload?.settings ?? null : currentSettingsPayload.settings ?? null);
+        : (t === "settings" ? remotePayload.settings ?? null : currentSettingsPayload.settings ?? null);
       const nextBalance = row.deleted
         ? (t === "balance" ? null : currentSettingsPayload.balance ?? null)
-        : (t === "balance" ? row.payload?.balance ?? row.payload ?? null : row.payload?.balance ?? null);
-      const payload = { settings: nextSettings, balance: nextBalance };
+        : (t === "balance" ? remotePayload.balance ?? row.payload?.balance ?? null : row.payload?.balance ?? null);
+      const localCompletions = currentSettingsPayload.servicingCompletions ?? [];
+      const remoteHasCompletions = Array.isArray(remotePayload.servicingCompletions);
+      const nextCompletions = remoteHasCompletions
+        ? mergeServicingCompletions(localCompletions, remotePayload.servicingCompletions)
+        : normServicingCompletions(localCompletions);
+      const payload = {
+        settings: nextSettings,
+        balance: nextBalance,
+        servicingCompletions: nextCompletions,
+      };
       await putLocalEntityRowWithoutOutbox({
         userId,
         entityType: "settings",
@@ -583,7 +600,15 @@ async function upsertEntityRow(client, businessId, row) {
     const a = await upsertViaRpc(
       "settings",
       recordId,
-      row.op === "delete" ? {} : { settings: row.payload?.settings ?? null, balance: row.payload?.balance ?? null },
+      row.op === "delete"
+        ? {}
+        : {
+            settings: row.payload?.settings ?? null,
+            balance: row.payload?.balance ?? null,
+            servicingCompletions: Array.isArray(row.payload?.servicingCompletions)
+              ? row.payload.servicingCompletions
+              : [],
+          },
     );
     const b = await upsertViaRpc(
       "balance",

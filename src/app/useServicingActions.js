@@ -1,5 +1,8 @@
 import { useCallback } from "react";
 import { makeId, normServicingCompletions, todayStr } from "@/domain/index.js";
+import { deriveServicingSlotsForSale } from "@/domain/servicing.js";
+
+const MAX_DISMISSED_ALERTS = 200;
 
 export function useServicingActions({ state, setState, showToast, persistWholeStateImmediate, lastPersistedStateRef }) {
   const markServicingComplete = useCallback(
@@ -19,9 +22,17 @@ export function useServicingActions({ state, setState, showToast, persistWholeSt
         completedDate: todayStr(),
         note: String(note || "").trim(),
       };
+      const sale = (state.sales || []).find((s) => s && String(s.id) === sid);
+      const slot = sale ? deriveServicingSlotsForSale(sale, [...existing, entry]).find((s) => s.serviceNum === sn) : null;
+      const alertId =
+        slot?.dueDate != null ? `svc-alert-${sid}-${sn}-${String(slot.dueDate).slice(0, 10)}` : null;
+      const dismissedAlertIds = alertId
+        ? [...new Set([...(state.dismissedAlertIds || []), alertId])].slice(-MAX_DISMISSED_ALERTS)
+        : state.dismissedAlertIds || [];
       const next = {
         ...state,
         servicingCompletions: [entry, ...existing],
+        dismissedAlertIds,
       };
       const persisted = await persistWholeStateImmediate(next);
       if (persisted) {

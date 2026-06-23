@@ -20,6 +20,17 @@ assert.equal(isTransientSyncError({ message: "invalid input" }), false);
 
 const rows = [
   {
+    entity_type: "settings",
+    record_id: "__settings__",
+    deleted: false,
+    payload: {
+      settings: { businessName: "Co" },
+      balance: null,
+      servicingCompletions: [{ saleId: "s1", serviceNum: 1, completedDate: "2026-03-01" }],
+    },
+    updated_at: "2026-01-01T00:00:00Z",
+  },
+  {
     entity_type: "sales",
     record_id: "a",
     deleted: false,
@@ -35,6 +46,8 @@ const rows = [
   },
 ];
 const payload = entityRowsToLocalPayload(rows);
+assert.equal(payload.servicingCompletions?.length, 1);
+assert.equal(payload.servicingCompletions[0].serviceNum, 1);
 assert.equal(payload.sales.length, 1);
 assert.equal(payload.sales[0].id, "a");
 assert.equal(payload.sales[0].totalSale, 200);

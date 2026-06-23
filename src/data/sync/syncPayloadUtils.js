@@ -42,9 +42,13 @@ export function isPayloadEffectivelyEmpty(p) {
 export function normalizeEntityPayloadWithRecordId(entityType, recordId, payload) {
   const rid = String(recordId ?? "").trim();
   if (entityType === "settings") {
-    if (payload == null) return { settings: null, balance: null };
+    if (payload == null) return { settings: null, balance: null, servicingCompletions: [] };
     if (typeof payload !== "object") return null;
-    return { settings: payload.settings ?? null, balance: payload.balance ?? null };
+    return {
+      settings: payload.settings ?? null,
+      balance: payload.balance ?? null,
+      servicingCompletions: Array.isArray(payload.servicingCompletions) ? payload.servicingCompletions : [],
+    };
   }
   if (entityType === "balance") {
     if (payload == null) return { balance: null };
@@ -95,6 +99,7 @@ export function entityRowsToLocalPayload(rows) {
   const syncConflictQueue = new Map();
   let settings = null;
   let balance = null;
+  let servicingCompletions = null;
 
   const putById = (map, entityType, row) => {
     const normalized = normalizeEntityPayloadWithRecordId(entityType, row.record_id, row.payload ?? null);
@@ -107,6 +112,7 @@ export function entityRowsToLocalPayload(rows) {
     if (t === "settings" && !r.deleted && r.payload && typeof r.payload === "object") {
       settings = r.payload.settings ?? null;
       balance = r.payload.balance ?? null;
+      servicingCompletions = Array.isArray(r.payload.servicingCompletions) ? r.payload.servicingCompletions : null;
     }
     if (t === "balance" && !r.deleted && r.payload && typeof r.payload === "object") {
       balance = r.payload.balance ?? r.payload ?? null;
@@ -133,6 +139,7 @@ export function entityRowsToLocalPayload(rows) {
   return {
     settings,
     balance,
+    servicingCompletions,
     sales: [...sales.values()],
     expenses: [...expenses.values()],
     otherIncomes: [...otherIncomes.values()],

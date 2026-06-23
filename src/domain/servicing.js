@@ -24,6 +24,18 @@ function completionKey(saleId, serviceNum) {
   return `${String(saleId)}-${serviceNum}`;
 }
 
+/** Union local + remote completion rows; remote wins when the same visit appears in both. */
+export function mergeServicingCompletions(local, remote) {
+  const map = new Map();
+  for (const c of normServicingCompletions(local)) {
+    map.set(completionKey(c.saleId, c.serviceNum), c);
+  }
+  for (const c of normServicingCompletions(remote)) {
+    map.set(completionKey(c.saleId, c.serviceNum), c);
+  }
+  return [...map.values()];
+}
+
 export function isServicingVisitComplete(completions, saleId, serviceNum) {
   const key = completionKey(saleId, serviceNum);
   return (Array.isArray(completions) ? completions : []).some(

@@ -2,6 +2,17 @@
 
 All notable changes are tracked here. The Settings screen shows **Version** from `package.json`.
 
+## [7.0.1] — 2026-06-23
+
+### Fixes
+
+- **Servicing “Done” not sticking** — marking a free service visit complete was lost on cloud sync because `servicingCompletions` was stripped from settings upload/download. Completions now sync end-to-end; local completions are preserved when merging older remote settings rows.
+- **Bell alert after Done** — marking a visit complete now also dismisses its servicing notification immediately.
+
+App version **7.0.1**; service worker cache **v54**.
+
+---
+
 ## [7.0.0] — 2026-06-23
 
 ### Features & Improvements
