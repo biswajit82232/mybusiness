@@ -125,7 +125,6 @@ export function buildServicingWhatsAppMessage(slot, { businessName } = {}) {
     head,
     "",
     `Your complimentary service visit ${visit} of 3 is scheduled around ${dueLabel}.`,
-    slot?.item ? `Product: ${slot.item}` : "",
     slot?.invoiceNo ? `Invoice: ${slot.invoiceNo}` : "",
     "",
   ].filter(Boolean);

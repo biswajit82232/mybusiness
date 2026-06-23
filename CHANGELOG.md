@@ -2,6 +2,15 @@
 
 All notable changes are tracked here. The Settings screen shows **Version** from `package.json`.
 
+## [7.3.11] — 2026-06-23
+
+### Improvements
+- **Servicing WhatsApp** — product name removed from the reminder message text.
+
+App version **7.3.11**; service worker cache **v87**.
+
+---
+
 ## [7.3.10] — 2026-06-23
 
 ### Features
