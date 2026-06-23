@@ -59,6 +59,11 @@ let _db = null;
 let _dbPromise = null;
 const DB_OPEN_TIMEOUT_MS = 8000;
 
+/** Warm the IndexedDB connection during boot (no-op if already open). */
+export function prefetchIndexedDb() {
+  return getDb();
+}
+
 async function getDb() {
   if (_db) return _db;
   if (_dbPromise) return _dbPromise;

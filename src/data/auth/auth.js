@@ -18,6 +18,9 @@ const LS_PREFER_LOCAL = "mb_auth_local";
 const LS_CLOUD_UID = "mb_cloud_uid";
 const BOOT_SESSION_TIMEOUT_MS = 3000;
 
+/** Cached result from a single boot-time session read (cleared on sign-out). */
+let bootAuthSnapshot = null;
+
 function rememberCloudUid(uid) {
   try {
     if (uid) window.localStorage.setItem(LS_CLOUD_UID, String(uid));
@@ -34,6 +37,15 @@ function rememberedCloudUid() {
   } catch {
     return null;
   }
+}
+
+/** Last known cloud user id — used to open IndexedDB in parallel with session refresh. */
+export function getRememberedCloudUid() {
+  return rememberedCloudUid();
+}
+
+export function clearBootAuthSnapshot() {
+  bootAuthSnapshot = null;
 }
 
 /** User chose “this device only” on the login screen (even if Supabase env exists). */
@@ -64,25 +76,48 @@ export function isCloudAuthEnabled() {
   return isSupabaseConfigured && supabase != null && !preferLocalAuth();
 }
 
-/** Whether the user may enter the app (session present). */
-export async function getAuthSessionReady() {
+/**
+ * Single session read for app boot — avoids duplicate Supabase getSession calls.
+ * @returns {Promise<{ ready: boolean, userId: string|null }>}
+ */
+export async function resolveBootAuth() {
+  if (bootAuthSnapshot) return bootAuthSnapshot;
+
   if (preferLocalAuth()) {
-    return hasLocalSession();
+    const ready = hasLocalSession();
+    bootAuthSnapshot = { ready, userId: ready ? "local-user" : null };
+    return bootAuthSnapshot;
   }
+
   if (isSupabaseConfigured && supabase) {
     const { timedOut, session } = await readSupabaseSessionSafely(supabase, {
       timeoutMs: BOOT_SESSION_TIMEOUT_MS,
     });
-    // Offline / locked: trust the remembered session so the app still opens.
-    if (timedOut) return !!rememberedCloudUid();
-    rememberCloudUid(session?.user?.id ?? null);
-    return !!session;
+    if (timedOut) {
+      const uid = rememberedCloudUid();
+      bootAuthSnapshot = { ready: !!uid, userId: uid };
+      return bootAuthSnapshot;
+    }
+    const uid = session?.user?.id ?? null;
+    rememberCloudUid(uid);
+    bootAuthSnapshot = { ready: !!session, userId: uid };
+    return bootAuthSnapshot;
   }
-  return hasLocalSession();
+
+  const ready = hasLocalSession();
+  bootAuthSnapshot = { ready, userId: ready ? "local-user" : null };
+  return bootAuthSnapshot;
+}
+
+/** Whether the user may enter the app (session present). */
+export async function getAuthSessionReady() {
+  if (bootAuthSnapshot) return bootAuthSnapshot.ready;
+  return (await resolveBootAuth()).ready;
 }
 
 /** User id for IndexedDB: Supabase UUID or fixed local id. */
 export async function getResolvedUserId() {
+  if (bootAuthSnapshot) return bootAuthSnapshot.userId;
   if (preferLocalAuth()) {
     return hasLocalSession() ? "local-user" : null;
   }
@@ -158,6 +193,7 @@ export async function authSignUp(email, password, passwordConfirm) {
 }
 
 export async function authSignOut() {
+  clearBootAuthSnapshot();
   rememberCloudUid(null);
   if (isSupabaseConfigured && supabase) {
     await supabase.auth.signOut();

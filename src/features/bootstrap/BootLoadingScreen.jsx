@@ -71,11 +71,11 @@ export function BootLoadingScreen({ phase, progressPct, progressLabel, onFinishC
     };
 
     // Never leave the splash up if the finish animation is interrupted.
-    safetyId = window.setTimeout(done, 2200);
+    safetyId = window.setTimeout(done, 1500);
 
     if (reduceMotion) {
       setFinishPct(100);
-      timeoutId = window.setTimeout(done, 120);
+      timeoutId = window.setTimeout(done, 80);
       return () => {
         clearTimeout(timeoutId);
         clearTimeout(safetyId);
@@ -84,7 +84,7 @@ export function BootLoadingScreen({ phase, progressPct, progressLabel, onFinishC
 
     setFinishPct(from);
     const t0 = performance.now();
-    const duration = 460;
+    const duration = 300;
 
     const tick = (now) => {
       const t = Math.min(1, (now - t0) / duration);
@@ -93,7 +93,7 @@ export function BootLoadingScreen({ phase, progressPct, progressLabel, onFinishC
       if (t < 1) {
         rafRef.current = requestAnimationFrame(tick);
       } else {
-        timeoutId = window.setTimeout(done, 120);
+        timeoutId = window.setTimeout(done, 80);
       }
     };
     rafRef.current = requestAnimationFrame(tick);

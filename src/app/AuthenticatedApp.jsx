@@ -4,7 +4,7 @@ import { MainStage } from "@/features/main-stage/index.js";
 import { mergeAuthenticatedMainStageProps } from "./authenticatedAppMainStagePropBundles.js";
 import { MobileAppBar } from "@/features/mobile-appbar/index.js";
 import { AuthenticatedShell, AppSidebarColumn, AuthenticatedMainColumn } from "@/features/app-shell/index.js";
-import { authSignOut, getResolvedUserId } from "@/data/auth/auth.js";
+import { authSignOut, clearBootAuthSnapshot, getResolvedUserId, resolveBootAuth } from "@/data/auth/auth.js";
 import { APP_VERSION } from "@/appVersion.js";
 import {
   loadUserLocalState,
@@ -393,19 +393,27 @@ export default function AuthenticatedApp() {
     }));
   }, []);
 
-  const hydrateLocalApp = useCallback(async (onProgress) => {
+  const hydrateLocalApp = useCallback(async (onProgress, bootOpts = {}) => {
     const report = typeof onProgress === "function" ? onProgress : reportBootProgress;
+    const bootUserId = bootOpts?.userId;
+    const preloadedPayload = bootOpts?.preloadedPayload;
     report(20, "Resolving account");
-    const resolved = await getResolvedUserId();
+    const resolved = bootUserId ?? (await getResolvedUserId());
     const localUserId = resolved ?? "local-user";
     currentUserIdRef.current = localUserId;
     try {
       report(38, "Reading local data");
-      const localPayload = await withTimeout(
-        loadUserLocalState(localUserId),
-        10_000,
-        "idb-load",
-      ).catch(() => null);
+      let localPayload = preloadedPayload ?? null;
+      if (localPayload && bootUserId && resolved !== bootUserId) {
+        localPayload = null;
+      }
+      if (!localPayload) {
+        localPayload = await withTimeout(
+          loadUserLocalState(localUserId),
+          10_000,
+          "idb-load",
+        ).catch(() => null);
+      }
       const looksEmpty =
         !localPayload?.settings &&
         !localPayload?.balance &&
@@ -467,10 +475,13 @@ export default function AuthenticatedApp() {
   useSocialPreviewImageMeta();
 
   const handleAuthenticated = useCallback(async () => {
+    clearBootAuthSnapshot();
     setAuthState("checking");
     setBootProgress({ pct: 4, label: "Starting…" });
-    await hydrateLocalApp(reportBootProgress);
+    const auth = await resolveBootAuth();
+    await hydrateLocalApp(reportBootProgress, { userId: auth.userId });
     reportBootProgress(90, "Almost ready");
+    clearBootAuthSnapshot();
     setAuthState("ready");
   }, [hydrateLocalApp, reportBootProgress]);
 
@@ -1344,7 +1355,7 @@ export default function AuthenticatedApp() {
   /* Safety: never keep splash over the app if finish animation does not fire. */
   useEffect(() => {
     if (authState !== "ready") return;
-    const id = window.setTimeout(() => setBootVisible(false), 2500);
+    const id = window.setTimeout(() => setBootVisible(false), 1600);
     return () => clearTimeout(id);
   }, [authState]);
 

@@ -1,5 +1,11 @@
 import { useEffect, useRef } from "react";
-import { getAuthSessionReady } from "@/data/auth/auth.js";
+import {
+  clearBootAuthSnapshot,
+  getRememberedCloudUid,
+  isCloudAuthEnabled,
+  resolveBootAuth,
+} from "@/data/auth/auth.js";
+import { loadUserLocalState, prefetchIndexedDb } from "@/data/local/indexedDbStore.js";
 import { withTimeout } from "@/app/withTimeout.js";
 
 /** Hard cap so the splash never blocks the app indefinitely (offline / IDB / auth edge cases). */
@@ -8,6 +14,7 @@ const BOOT_STEP_TIMEOUT_MS = 12_000;
 
 /**
  * On mount: if session is ready, hydrate IndexedDB then set auth to `"ready"`; else `"needsAuth"`.
+ * @param {(pct: number, label?: string, opts?: { userId?: string|null, preloadedPayload?: object|null }) => Promise<void>|void} hydrateLocalApp
  * @param {(pct: number, label?: string) => void} [reportBootProgress]
  */
 export function useAuthSessionBootstrap(hydrateLocalApp, setAuthState, reportBootProgress) {
@@ -20,6 +27,7 @@ export function useAuthSessionBootstrap(hydrateLocalApp, setAuthState, reportBoo
     const finish = (state) => {
       if (cancelled || bootDoneRef.current) return;
       bootDoneRef.current = true;
+      clearBootAuthSnapshot();
       setAuthState(state);
     };
 
@@ -33,15 +41,35 @@ export function useAuthSessionBootstrap(hydrateLocalApp, setAuthState, reportBoo
     (async () => {
       try {
         reportBootProgress?.(6, "Checking session");
-        const ok = await withTimeout(getAuthSessionReady(), BOOT_STEP_TIMEOUT_MS, "session-check");
+
+        const rememberedUid = getRememberedCloudUid();
+        const prefetchDbPromise = prefetchIndexedDb().catch(() => null);
+        const optimisticPayloadPromise =
+          rememberedUid && isCloudAuthEnabled()
+            ? withTimeout(loadUserLocalState(rememberedUid), 10_000, "idb-optimistic").catch(() => null)
+            : null;
+
+        const auth = await withTimeout(resolveBootAuth(), BOOT_STEP_TIMEOUT_MS, "session-check");
         if (cancelled) return;
-        if (!ok) {
+        if (!auth.ready) {
           finish("needsAuth");
           return;
         }
+
+        await prefetchDbPromise;
+        if (cancelled) return;
+
+        let preloadedPayload = null;
+        if (optimisticPayloadPromise && auth.userId === rememberedUid) {
+          preloadedPayload = await optimisticPayloadPromise;
+        }
+
         reportBootProgress?.(14, "Opening workspace");
         await withTimeout(
-          hydrateLocalApp(reportBootProgress),
+          hydrateLocalApp(reportBootProgress, {
+            userId: auth.userId,
+            preloadedPayload,
+          }),
           BOOT_STEP_TIMEOUT_MS,
           "local-hydrate",
         );

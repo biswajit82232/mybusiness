@@ -2,6 +2,15 @@
 
 All notable changes are tracked here. The Settings screen shows **Version** from `package.json`.
 
+## [7.3.17] — 2026-06-24
+
+### Improvements
+- **Boot / loading screen** — Faster startup: one Supabase session read instead of two, IndexedDB opens in parallel with auth, local data prefetched when a remembered account exists, and a shorter finish animation.
+
+App version **7.3.17**; service worker cache **v93**.
+
+---
+
 ## [7.3.16] — 2026-06-23
 
 ### Fixes
