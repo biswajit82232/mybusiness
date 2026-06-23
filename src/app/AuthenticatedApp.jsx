@@ -903,6 +903,7 @@ export default function AuthenticatedApp() {
       )
         return false;
       if (prefs.notifyEmiDueThreeDays === false && n.kind === "emi-due-3d") return false;
+      if (prefs.notifyServicingDueTwoDays === false && n.kind === "servicing-due-2d") return false;
       if (
         prefs.notifyServicingDue === false &&
         (n.kind === "servicing-due-3d" ||

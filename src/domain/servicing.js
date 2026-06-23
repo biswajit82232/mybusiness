@@ -15,6 +15,7 @@ import {
 
 export const SERVICING_VISIT_NUMBERS = [1, 2, 3];
 export const SERVICING_REMINDER_DAYS_BEFORE = 3;
+export const SERVICING_REMINDER_DAYS_TWO_BEFORE = 2;
 
 export function servicingSlotId(saleId, serviceNum) {
   return `svc-${String(saleId || "")}-${serviceNum}`;
@@ -132,6 +133,8 @@ export function buildServicingWhatsAppMessage(slot, { businessName } = {}) {
     lines.push(`This visit is overdue — please book at your earliest convenience.`, "");
   } else if (diff === SERVICING_REMINDER_DAYS_BEFORE) {
     lines.push(`Please book your free service in the next ${SERVICING_REMINDER_DAYS_BEFORE} days.`, "");
+  } else if (diff === SERVICING_REMINDER_DAYS_TWO_BEFORE) {
+    lines.push(`Please book your free service in the next ${SERVICING_REMINDER_DAYS_TWO_BEFORE} days.`, "");
   } else if (diff === 0) {
     lines.push(`Your free service window is today — please visit or call to schedule.`, "");
   } else {
@@ -144,12 +147,13 @@ export function buildServicingWhatsAppMessage(slot, { businessName } = {}) {
 export function classifyServicingReminderDiff(diff) {
   if (diff == null || !Number.isFinite(diff)) return null;
   if (diff === SERVICING_REMINDER_DAYS_BEFORE) return "three-days";
+  if (diff === SERVICING_REMINDER_DAYS_TWO_BEFORE) return "two-days";
   if (diff === 0) return "today";
   if (diff < 0) return "overdue";
   return null;
 }
 
-/** Bell alerts for pending servicing visits (T-3, due today, overdue). */
+/** Bell alerts for pending servicing visits (T-3, T-2, due today, overdue). */
 export function buildServicingAlerts(slots, { businessName } = {}) {
   const out = [];
   for (const slot of Array.isArray(slots) ? slots : []) {
@@ -165,6 +169,10 @@ export function buildServicingAlerts(slots, { businessName } = {}) {
       title = `Free service in ${SERVICING_REMINDER_DAYS_BEFORE} days`;
       pri = -275000;
       kind = "servicing-due-3d";
+    } else if (bucket === "two-days") {
+      title = `Free service in ${SERVICING_REMINDER_DAYS_TWO_BEFORE} days`;
+      pri = -272000;
+      kind = "servicing-due-2d";
     } else if (bucket === "today") {
       title = "Free service due today";
       pri = -340000;

@@ -2,6 +2,15 @@
 
 All notable changes are tracked here. The Settings screen shows **Version** from `package.json`.
 
+## [7.3.10] — 2026-06-23
+
+### Features
+- **Settings → Notifications** — separate toggle for free service reminder **2 days before** due date (in addition to existing 3-day, today, and overdue alerts).
+
+App version **7.3.10**; service worker cache **v86**.
+
+---
+
 ## [7.3.9] — 2026-06-23
 
 ### Improvements

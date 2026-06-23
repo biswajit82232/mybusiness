@@ -211,7 +211,7 @@ export function SettingsScreen({
           icon: <IcBell />,
           title: "Notifications",
           subtitle: "Bell alerts & browser reminders",
-          keywords: ["notification", "bell", "alert", "reminder", "overdue", "emi", "stock", "due"],
+          keywords: ["notification", "bell", "alert", "reminder", "overdue", "emi", "stock", "due", "servicing", "service"],
         },
       ],
     },
@@ -797,13 +797,32 @@ export function SettingsScreen({
               <div className="toggle-row">
                 <div>
                   <div className="toggle-label">Free servicing due</div>
-                  <p className="settings-notif-hint">Visits 1–3 at months 1, 2, 3 after each sale</p>
+                  <p className="settings-notif-hint">
+                    3 days before, due today, and overdue for visits 1–3 (months 1, 2, 3 after each sale)
+                  </p>
                 </div>
                 <label className="toggle-switch" aria-label="Servicing due alerts">
                   <input
                     type="checkbox"
                     checked={settings.notifyServicingDue !== false}
                     onChange={(e) => onSavePartial({ notifyServicingDue: e.target.checked }, { silent: true })}
+                    disabled={settings.notificationsEnabled === false}
+                  />
+                  <span className="toggle-track" />
+                </label>
+              </div>
+              <div className="toggle-row">
+                <div>
+                  <div className="toggle-label">Free service reminder (2 days before)</div>
+                  <p className="settings-notif-hint">
+                    One alert per pending visit, exactly 2 days before the service due date, with WhatsApp message
+                  </p>
+                </div>
+                <label className="toggle-switch" aria-label="Free service reminder 2 days before due">
+                  <input
+                    type="checkbox"
+                    checked={settings.notifyServicingDueTwoDays !== false}
+                    onChange={(e) => onSavePartial({ notifyServicingDueTwoDays: e.target.checked }, { silent: true })}
                     disabled={settings.notificationsEnabled === false}
                   />
                   <span className="toggle-track" />

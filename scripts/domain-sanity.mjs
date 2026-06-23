@@ -152,7 +152,13 @@ import {
   waHref,
   waMessageHref,
 } from "../src/domain/appModel.js";
-import { buildServicingAlerts, deriveServicingSlots } from "../src/domain/servicing.js";
+import {
+  buildServicingAlerts,
+  classifyServicingReminderDiff,
+  deriveServicingSlots,
+  SERVICING_REMINDER_DAYS_BEFORE,
+  SERVICING_REMINDER_DAYS_TWO_BEFORE,
+} from "../src/domain/servicing.js";
 import {
   BACKUP_SCHEMA_VERSION,
   wrapStateForBackup,
@@ -1645,6 +1651,49 @@ ok("normServicingCompletions: drops invalid rows", () => {
   assert.equal(out.length, 2);
   assert.equal(out[0].serviceNum, 2);
   assert.equal(out[1].serviceNum, 3);
+});
+
+ok("classifyServicingReminderDiff: T-3, T-2, today, overdue only", () => {
+  assert.equal(classifyServicingReminderDiff(SERVICING_REMINDER_DAYS_BEFORE), "three-days");
+  assert.equal(classifyServicingReminderDiff(SERVICING_REMINDER_DAYS_TWO_BEFORE), "two-days");
+  assert.equal(classifyServicingReminderDiff(0), "today");
+  assert.equal(classifyServicingReminderDiff(-1), "overdue");
+  assert.equal(classifyServicingReminderDiff(1), null);
+  assert.equal(classifyServicingReminderDiff(4), null);
+  assert.equal(classifyServicingReminderDiff(null), null);
+});
+
+ok("buildServicingAlerts: one alert at T-2 with WhatsApp link", () => {
+  const due = addDaysStr(todayStr(), SERVICING_REMINDER_DAYS_TWO_BEFORE);
+  const slots = [
+    {
+      id: "svc-s1-1",
+      saleId: "s1",
+      invoiceNo: "MB-0001",
+      customerName: "Ravi",
+      customerNo1: "9876543210",
+      phone: "9876543210",
+      item: "Widget",
+      serviceNum: 1,
+      dueDate: due,
+      completed: false,
+    },
+  ];
+  const alerts = buildServicingAlerts(slots, { businessName: "Acme Traders" });
+  assert.equal(alerts.length, 1);
+  assert.equal(alerts[0].kind, "servicing-due-2d");
+  assert.match(alerts[0].title, /2 days/);
+  assert.ok(alerts[0].waHref?.includes("wa.me"));
+});
+
+ok("mergePersistedPayload: notifyServicingDueTwoDays defaults on", () => {
+  const m = mergePersistedPayload({ settings: { businessName: "Co" } });
+  assert.equal(m.settings.notifyServicingDue, true);
+  assert.equal(m.settings.notifyServicingDueTwoDays, true);
+  const off = mergePersistedPayload({
+    settings: { notifyServicingDueTwoDays: false },
+  });
+  assert.equal(off.settings.notifyServicingDueTwoDays, false);
 });
 
 ok("backup envelope: wrap and unwrap versioned export", () => {

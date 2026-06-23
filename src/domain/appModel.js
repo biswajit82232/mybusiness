@@ -4279,6 +4279,7 @@ export const defaultState = applyComputedBankBalances({
     notifyRecurringDue:true,
         notifyEmiDueThreeDays:true,
         notifyServicingDue: true,
+        notifyServicingDueTwoDays: true,
         notifyLowStock:true,
     branches: normBranchesList([{ id: BRANCH_MAIN_ID, name: "Main" }]),
     bundles: [],
@@ -4350,6 +4351,10 @@ export function mergePersistedPayload(p) {
           settingsIn?.notifyServicingDue !== undefined
             ? settingsIn?.notifyServicingDue !== false
             : true,
+        notifyServicingDueTwoDays:
+          settingsIn?.notifyServicingDueTwoDays !== undefined
+            ? settingsIn?.notifyServicingDueTwoDays !== false
+            : settingsIn?.notifyServicingDue !== false,
         notifyLoanMonthMilestone: settingsIn?.notifyLoanMonthMilestone !== false,
         branches: normBranchesList(settingsIn?.branches),
         bundles: normBundlesList(settingsIn?.bundles),

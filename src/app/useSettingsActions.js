@@ -75,6 +75,8 @@ export function useSettingsActions({
       if ("notifyRecurringDueToday" in updates) s.notifyRecurringDueToday = !!updates.notifyRecurringDueToday;
       if ("notifyRecurringDue" in updates) s.notifyRecurringDue = !!updates.notifyRecurringDue;
       if ("notifyEmiDueThreeDays" in updates) s.notifyEmiDueThreeDays = !!updates.notifyEmiDueThreeDays;
+      if ("notifyServicingDue" in updates) s.notifyServicingDue = !!updates.notifyServicingDue;
+      if ("notifyServicingDueTwoDays" in updates) s.notifyServicingDueTwoDays = !!updates.notifyServicingDueTwoDays;
       if ("notifyLowStock" in updates) s.notifyLowStock = !!updates.notifyLowStock;
       if ("notifyLoanMonthMilestone" in updates)
         s.notifyLoanMonthMilestone = !!updates.notifyLoanMonthMilestone;
