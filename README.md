@@ -1,6 +1,6 @@
 # MyBusiness (React + Vite)
 
-**Current version: 6.0.4** (shown in **Settings**; sourced from `package.json` via `src/appVersion.js`.)
+**Current version: 7.3.9** (shown in **Settings**; sourced from `package.json` via `src/appVersion.js`.)
 
 Simple, responsive business management web app: local-first data with optional Supabase cloud sync.
 

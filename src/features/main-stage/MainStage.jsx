@@ -155,6 +155,7 @@ export function MainStage(props) {
     removeFixed,
     saveFixed,
     patchInventoryProductCategory,
+    renameInventoryProduct,
     saveOtherBalance,
     saveOwnerCapitalInvested,
     exportBackup,
@@ -678,6 +679,7 @@ export function MainStage(props) {
           branches={state.settings?.branches}
           stockCategorySuggestions={stockCategorySuggestions}
           onSaveProductCategory={patchInventoryProductCategory}
+          onRenameProduct={renameInventoryProduct}
           onClose={closeInventoryItemDetail}
           onEditEntry={(id) => openEditInventoryEntry(id, "inventoryItem")}
           openAddStock={(type, item, br) => openAddStock(type, item, br, "inventoryItem")}

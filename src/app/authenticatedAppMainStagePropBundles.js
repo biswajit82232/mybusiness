@@ -147,6 +147,7 @@ export function mergeAuthenticatedMainStageProps(c) {
       removeFixed: c.removeFixed,
       saveFixed: c.saveFixed,
       patchInventoryProductCategory: c.patchInventoryProductCategory,
+      renameInventoryProduct: c.renameInventoryProduct,
       saveOtherBalance: c.saveOtherBalance,
       saveOwnerCapitalInvested: c.saveOwnerCapitalInvested,
       saveSettingsPartial: c.saveSettingsPartial,

@@ -74,62 +74,82 @@ export function FixedAssetsTab({ state, patchFixed, addFixed, removeFixed, saveF
                     {fixed.map((acc) => (
                       <li key={acc.id} role="row">
                         <div className="fixed-asset-row" role="group" aria-label={`${acc.name || "Asset"} row`}>
-                          <input
-                            type="text"
-                            className="fixed-asset-inp fixed-asset-inp--name"
-                            value={acc.name}
-                            onChange={(e) => patchFixed(acc.id, { name: e.target.value })}
-                            placeholder="Asset name"
-                            aria-label="Asset name"
-                          />
-                          <input
-                            type="number"
-                            className="fixed-asset-inp fixed-asset-inp--amt"
-                            min="0"
-                            step="0.01"
-                            inputMode="decimal"
-                            value={acc.amount}
-                            onChange={(e) => patchFixed(acc.id, { amount: num(e.target.value) })}
-                            aria-label="Book value"
-                          />
-                          <input
-                            type="date"
-                            className="fixed-asset-inp fixed-asset-inp--date"
-                            value={acc.purchaseDate || ""}
-                            onChange={(e) => patchFixed(acc.id, { purchaseDate: e.target.value })}
-                            aria-label="Purchase date"
-                          />
-                          <input
-                            type="number"
-                            className="fixed-asset-inp fixed-asset-inp--pct"
-                            min="0"
-                            max="100"
-                            step="0.1"
-                            inputMode="decimal"
-                            placeholder="0"
-                            value={acc.depreciationRatePct ?? ""}
-                            onChange={(e) => patchFixed(acc.id, { depreciationRatePct: num(e.target.value) })}
-                            aria-label="Depreciation percent per year"
-                          />
-                          <input
-                            type="number"
-                            className="fixed-asset-inp fixed-asset-inp--amt"
-                            min="0"
-                            step="0.01"
-                            inputMode="decimal"
-                            placeholder="0"
-                            value={acc.accumulatedDepreciation ?? ""}
-                            onChange={(e) => patchFixed(acc.id, { accumulatedDepreciation: num(e.target.value) })}
-                            aria-label="Accumulated depreciation"
-                          />
-                          <button
-                            type="button"
-                            className="icon-btn icon-btn-sm fixed-asset-del"
-                            onClick={() => onRemove(acc.id)}
-                            aria-label={`Delete ${(acc.name || "").trim() || "asset"}`}
-                          >
-                            <IcTrash />
-                          </button>
+                          <div className="fixed-asset-cell fixed-asset-cell--name">
+                            <span className="fixed-asset-cell-lbl">Asset</span>
+                            <input
+                              type="text"
+                              className="fixed-asset-inp fixed-asset-inp--name"
+                              value={acc.name}
+                              onChange={(e) => patchFixed(acc.id, { name: e.target.value })}
+                              placeholder="Asset name"
+                              aria-label="Asset name"
+                            />
+                          </div>
+                          <div className="fixed-asset-cell fixed-asset-cell--book">
+                            <span className="fixed-asset-cell-lbl">Book value</span>
+                            <input
+                              type="number"
+                              className="fixed-asset-inp fixed-asset-inp--amt"
+                              min="0"
+                              step="0.01"
+                              inputMode="decimal"
+                              value={acc.amount}
+                              onChange={(e) => patchFixed(acc.id, { amount: num(e.target.value) })}
+                              aria-label="Book value"
+                            />
+                          </div>
+                          <div className="fixed-asset-cell fixed-asset-cell--purchase">
+                            <span className="fixed-asset-cell-lbl">Purchase</span>
+                            <input
+                              type="date"
+                              className="fixed-asset-inp fixed-asset-inp--date"
+                              value={acc.purchaseDate || ""}
+                              onChange={(e) => patchFixed(acc.id, { purchaseDate: e.target.value })}
+                              aria-label="Purchase date"
+                            />
+                          </div>
+                          <div className="fixed-asset-cell fixed-asset-cell--pct">
+                            <span className="fixed-asset-cell-lbl">Dep. % p.a.</span>
+                            <input
+                              type="number"
+                              className="fixed-asset-inp fixed-asset-inp--pct"
+                              min="0"
+                              max="100"
+                              step="0.1"
+                              inputMode="decimal"
+                              placeholder="0"
+                              value={acc.depreciationRatePct ?? ""}
+                              onChange={(e) => patchFixed(acc.id, { depreciationRatePct: num(e.target.value) })}
+                              aria-label="Depreciation percent per year"
+                            />
+                          </div>
+                          <div className="fixed-asset-cell fixed-asset-cell--depr">
+                            <span className="fixed-asset-cell-lbl">Acc. depreciation</span>
+                            <input
+                              type="number"
+                              className="fixed-asset-inp fixed-asset-inp--amt"
+                              min="0"
+                              step="0.01"
+                              inputMode="decimal"
+                              placeholder="0"
+                              value={acc.accumulatedDepreciation ?? ""}
+                              onChange={(e) => patchFixed(acc.id, { accumulatedDepreciation: num(e.target.value) })}
+                              aria-label="Accumulated depreciation"
+                            />
+                          </div>
+                          <div className="fixed-asset-cell fixed-asset-cell--del">
+                            <span className="fixed-asset-cell-lbl" aria-hidden="true">
+                              Remove
+                            </span>
+                            <button
+                              type="button"
+                              className="icon-btn icon-btn-sm fixed-asset-del"
+                              onClick={() => onRemove(acc.id)}
+                              aria-label={`Delete ${(acc.name || "").trim() || "asset"}`}
+                            >
+                              <IcTrash />
+                            </button>
+                          </div>
                         </div>
                       </li>
                     ))}

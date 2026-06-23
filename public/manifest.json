@@ -1,7 +1,7 @@
 {
   "id": "/",
   "name": "MyBusiness",
-  "short_name": "MyBiz",
+  "short_name": "MyBusiness",
   "description": "Invoicing, inventory, expenses, and banking for small businesses. Works offline; optional cloud sync.",
   "start_url": "/",
   "scope": "/",

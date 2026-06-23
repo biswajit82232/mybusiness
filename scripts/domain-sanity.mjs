@@ -113,6 +113,7 @@ import {
   normSalesList,
   normServicingCompletions,
   num,
+  renameInventoryProductInState,
   recognizedCogsForPaymentsAll,
   recognizedCogsForPaymentsInFy,
   recognizedCogsForPaymentsInMonth,
@@ -130,6 +131,10 @@ import {
   stableStringify,
   stockInCashAmount,
   sumAccounts,
+  computeTotalLiquid,
+  sumBankAccountBalances,
+  bankAccountCountsInBalanceSheet,
+  bankAccountCountsInLiquidTotal,
   sumExpenseCashOutInMonth,
   sumExpenseCashOutOnDay,
   sumPurchaseCreditOutstanding,
@@ -299,6 +304,38 @@ ok("normSalesList: legacy received + default bank synthesizes one payment line",
 
 ok("sumAccounts sums amount fields", () => {
   assert.equal(roundMoney2(sumAccounts([{ amount: 1.1 }, { amount: 2.2 }])), 3.3);
+});
+
+ok("bank account exclude flags filter balance totals", () => {
+  const accounts = [
+    { id: "a", amount: 100, excludeFromBalanceSheet: false, excludeFromLiquid: false },
+    { id: "b", amount: 50, excludeFromBalanceSheet: true, excludeFromLiquid: false },
+    { id: "c", amount: 25, excludeFromBalanceSheet: false, excludeFromLiquid: true },
+  ];
+  assert.equal(sumBankAccountBalances(accounts, bankAccountCountsInBalanceSheet), 125);
+  assert.equal(sumBankAccountBalances(accounts, bankAccountCountsInLiquidTotal), 150);
+  assert.equal(sumBankAccountBalances(accounts, (a) => bankAccountCountsInBalanceSheet(a) && bankAccountCountsInLiquidTotal(a)), 100);
+});
+
+ok("computeTotalLiquid: sums liquid account book balances", () => {
+  const accounts = [
+    { id: "cash", openingBalance: 100000, amount: 100000, excludeFromLiquid: false },
+    { id: "profit", openingBalance: 13897, amount: 13897, excludeFromLiquid: false },
+    { id: "hidden", openingBalance: 999, amount: 999, excludeFromLiquid: true },
+  ];
+  assert.equal(
+    computeTotalLiquid({
+      bankAccounts: accounts,
+      transfers: [],
+      expenses: [],
+      sales: [],
+      inventoryEntries: [],
+      otherIncomes: [],
+      purchases: [],
+      loansGiven: [],
+    }),
+    113897,
+  );
 });
 
 ok("sumSalePaymentsInMonth: payment lines by date", () => {
@@ -1524,6 +1561,21 @@ ok("normalizeItemKey + findInvRowByItemName: case and space insensitive", () => 
   assert.ok(hit);
   assert.equal(hit.item, "Widget Pro");
   assert.equal(findInvRowByItemName(rows, "missing"), null);
+});
+
+ok("renameInventoryProductInState: updates inventory, sales, bundles", () => {
+  const state = {
+    inventoryEntries: [{ id: "1", item: "Old Bat", qty: 2, type: "in" }],
+    sales: [{ id: "s1", item: "Old Bat", lineItems: [{ id: "l1", item: "Old Bat", qty: 1 }] }],
+    bundles: [{ id: "b1", name: "Pack", lines: [{ item: "Old Bat", qty: 1 }] }],
+    purchases: [{ id: "p1", lines: [{ item: "Old Bat", qty: 1, costPerUnit: 10 }] }],
+  };
+  const next = renameInventoryProductInState(state, "old bat", "30AH lithium battery");
+  assert.equal(next.inventoryEntries[0].item, "30AH lithium battery");
+  assert.equal(next.sales[0].item, "30AH lithium battery");
+  assert.equal(next.sales[0].lineItems[0].item, "30AH lithium battery");
+  assert.equal(next.bundles[0].lines[0].item, "30AH lithium battery");
+  assert.equal(next.purchases[0].lines[0].item, "30AH lithium battery");
 });
 
 ok("compareSalesByInvoiceNo: higher sequence sorts first", () => {

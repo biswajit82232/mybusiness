@@ -2,6 +2,325 @@
 
 All notable changes are tracked here. The Settings screen shows **Version** from `package.json`.
 
+## [7.3.9] — 2026-06-23
+
+### Improvements
+- **Banking** — activity rows stack on narrow screens; account list edge-to-edge on phone; bank account overlay centered on desktop.
+- **Fixed assets** — mobile card layout replaces horizontal table scroll.
+
+App version **7.3.9**; service worker cache **v85**.
+
+---
+
+## [7.3.8] — 2026-06-23
+
+### Improvements
+- **Responsive lists** — all list screens comfortable on narrow phones through desktop: flush overlay lists, edge-to-edge tab lists on mobile, stacked row layouts under 380px, loan 3-column rows stack under 420px, centered 720px column on desktop.
+
+App version **7.3.8**; service worker cache **v84**.
+
+---
+
+## [7.3.7] — 2026-06-23
+
+### Improvements
+- **Search** — responsive layout for all screen sizes: centered panel on tablet/desktop, full-width scroll on phone, tighter rows on narrow screens, truncated subtitles, safe-area padding.
+
+App version **7.3.7**; service worker cache **v83**.
+
+---
+
+## [7.3.6] — 2026-06-23
+
+### Improvements
+- **Net Worth** — removed “Ahead of what you put in…” verdict text under Invested vs book equity.
+
+App version **7.3.6**; service worker cache **v82**.
+
+---
+
+## [7.3.5] — 2026-06-23
+
+### Improvements
+- **Reports** — removed Top customers and Top products sections.
+- **Growth** — removed redundant Net profit / Cumulative KPI strip (charts and table remain).
+- **Balance sheet** — business name header moved below snapshot strip; removed equation hint, section intros, and profit-kept footnote.
+- **New Sale** — removed product search box; payment section separated; responsive layout polish for all screen sizes.
+- **Sidebar** — removed Light/Dark theme toggle (theme still in Settings).
+
+App version **7.3.5**; service worker cache **v81**.
+
+---
+
+## [7.3.4] — 2026-06-23
+
+### Improvements
+- **Dark theme readability** — softened body text (`#b8b8b8`), labels, accents, and toasts for less eye strain; black backgrounds unchanged. Muted primary, semantic colors, toggles, KPI chips, and focus rings.
+
+App version **7.3.4**; service worker cache **v80**.
+
+---
+
+## [7.3.3] — 2026-06-23
+
+### Improvements
+- **Dark theme** — shifted from blue-tinted navy to neutral near-black surfaces (`#0a0a0a` page, `#161616` cards, `#000` sidebar). PWA status bar, login, and report headers updated to match.
+
+App version **7.3.3**; service worker cache **v79**.
+
+---
+
+## [7.3.2] — 2026-06-23
+
+### Fixes
+- **PWA home-screen name** — changed from “MyBiz” to “MyBusiness” (`manifest.json` `short_name` and iOS `apple-mobile-web-app-title`).
+
+App version **7.3.2**; service worker cache **v78**.
+
+---
+
+## [7.3.1] — 2026-06-23
+
+### Improvements
+- **App logo & icons** — replaced PWA icons (favicon, Apple touch, manifest sizes 48–512) with the new MyBusiness brand artwork from app store assets. Sidebar, login, and boot splash now show the updated logo.
+
+App version **7.3.1**; service worker cache **v77**.
+
+---
+
+## [7.3.0] — 2026-06-23
+
+### Performance
+- **Memoized `mergedMainStageProps`** — `useMemo` with full dep array prevents `MainStage` from re-rendering on unrelated parent state ticks.
+- **`React.memo` on `MobileAppBar` and `AppSidebar`** — both are pure display components that now skip renders when their props are unchanged.
+
+### Animation / Motion
+- **Removed `nw-pulse` infinite animation** — net-worth live dot is now a static indicator; no unnecessary infinite RAF usage.
+- **Removed `slideUp` animation on overlay screens** — overlays open instantly; no janky slide on low-end devices.
+- **Removed decorative tap-scale transforms** — `.home-md3-action:active`, `.fab:active`, `.kpi-card:active`, `.qa-btn:active`, `.action-btn:active` no longer apply `translateY`/`scale`; interactions feel crisp and consistent.
+- **Single authoritative `prefers-reduced-motion` block** — consolidated from 3 competing blocks into one in `premium-ui.css`; sidebar and scroll fallbacks merged in.
+
+### CSS Fixes
+- **Duplicate `-webkit-backdrop-filter`** on `.modal-overlay` removed; correct `blur(8px) saturate(1.2)` retained.
+- **Duplicate `transition` on `.seg-btn`** removed; single token-based rule applies.
+- **`scroll-behavior: auto`** on all main list scrollports (`.main-stage`, `.overlay-scroll`, `.overlay-screen > .list-area`) — programmatic scroll-to calls are now instant, preventing laggy "rewind" feel on low-end Android.
+- **`home-md3-action` transition** simplified to `box-shadow + background` only; `transform` removed since active scale was already disabled.
+
+### Typography
+- **Font-size floor raised** — all sub-0.65 rem labels (`sidebar-section-label` 0.58→0.66rem, `bank-tx-num-lbl` 0.55→0.65rem, loan pills, growth-table headers, invoice summary labels) meet the minimum legible threshold for small Android screens.
+
+### Spacing / Safe-area
+- **`CustomerDetailScreen` and `VendorDetailScreen`** — inline `style={{ padding: 0 }}` on `.overlay-scroll` removed; replaced with `.overlay-scroll--flush` CSS variant that zeroes top/horizontal padding while preserving the bottom safe-area inset.
+
+### Tokens
+- **Z-index scale added to `app-tokens.css`** — `--z-appbar`, `--z-sidebar`, `--z-overlay`, `--z-modal`, `--z-toast`, `--z-banner`, `--z-welcome`, `--z-skip-link`; prevents future stacking context surprises.
+
+App version **7.3.0**; service worker cache **v76**.
+
+---
+
+## [7.2.3] — 2026-06-23
+
+### Improvements
+
+- **Dashboard sales target** — all-caps display font styling (scoped MD3 tokens; no layout bleed).
+
+App version **7.2.3**; service worker cache **v75**.
+
+---
+
+## [7.2.2] — 2026-06-23
+
+### Improvements
+
+- **Monthly sales target** — count of sales (e.g. `3 / 10 sales`), not rupees; dashboard line is slightly larger and bold. Re-save your target in Settings → Invoice settings if it was set as an amount.
+
+App version **7.2.2**; service worker cache **v74**.
+
+---
+
+## [7.2.1] — 2026-06-23
+
+### Fixes
+
+- **Monthly sales target** — value saved from Settings → Invoice settings now persists and shows on the dashboard.
+
+App version **7.2.1**; service worker cache **v73**.
+
+---
+
+## [7.2.0] — 2026-06-23
+
+### Features
+
+- **Dashboard** — **Total liquid** KPI (same figure as Banking → Total liquid; respects exclude-from-liquid accounts).
+
+App version **7.2.0**; service worker cache **v72**.
+
+---
+
+## [7.1.9] — 2026-06-23
+
+### Features
+
+- **Dashboard** — monthly sales target progress shown left of the month filter (set in Settings → Invoice settings).
+
+App version **7.1.9**; service worker cache **v71**.
+
+---
+
+## [7.1.8] — 2026-06-23
+
+### Improvements
+
+- **Sidebar** — removed Search from the menu (search remains on the mobile app bar and keyboard shortcut).
+
+App version **7.1.8**; service worker cache **v70**.
+
+---
+
+## [7.1.7] — 2026-06-23
+
+### Features
+
+- **Stock product rename** — on the product detail screen, edit the product name (header edit icon or “Product name” row). Renames all stock entries, sales lines, bundles, and purchase lines for that SKU.
+
+App version **7.1.7**; service worker cache **v69**.
+
+---
+
+## [7.1.6] — 2026-06-23
+
+### Features
+
+- **Bank account settings** — exclude an account from the balance sheet and/or Banking “Total liquid” (for profit, personal, or tracking accounts). Toggles under Account settings on the account detail screen.
+
+App version **7.1.6**; service worker cache **v68**.
+
+---
+
+## [7.1.5] — 2026-06-23
+
+### Fixes
+
+- **Banking KPIs** — stopped amounts and meta text from clipping (removed nowrap/ellipsis on MD3 tiles); banking tab stacks Total / In / Out full-width on mobile.
+
+App version **7.1.5**; service worker cache **v67**.
+
+---
+
+## [7.1.4] — 2026-06-23
+
+### Features
+
+- **Stock item detail** — summary shows On hand, Avg cost, Stock value, and Category in one grid; edit icon on category; add (+) in header and movements show edit icons.
+- **Inventory list** — each row has add (+), edit, and delete icon buttons for quick stock in / open detail / remove.
+
+App version **7.1.4**; service worker cache **v66**.
+
+---
+
+## [7.1.3] — 2026-06-23
+
+### Improvements
+
+- **Mobile layout polish** — banking page: KPI strip uses hero + 2-column layout on phones, month picker right-aligned, action buttons in a 2-column grid (Add account full width), account rows stack In/Out cleanly on narrow screens.
+- **App-wide mobile spacing** — tighter section headers, reduced filter-bar padding, consistent card margins, balance sheet rows stack on small screens, KPI grids collapse to 1–2 columns on very small phones.
+
+App version **7.1.3**; service worker cache **v65**.
+
+---
+
+## [7.1.2] — 2026-06-23
+
+### Fixes
+
+- **Invoices** — customer initials avatar on invoice rows now uses the shared `avatar` styles (circle, color, centered text); was broken after MD3 list update.
+
+App version **7.1.2**; service worker cache **v64**.
+
+---
+
+## [7.1.1] — 2026-06-23
+
+### Improvements
+
+- **App-wide MD3 polish** — extended dashboard styling to banking, balance sheet, net worth, reports, customer/vendor detail heroes, nested list areas (expenses, overlays), banking account & transaction lists, recurring expense blocks, loans/inventory/product rows, and settings hub as grouped cards.
+
+App version **7.1.1**; service worker cache **v63**.
+
+---
+
+## [7.1.0] — 2026-06-23
+
+### Improvements
+
+- **App-wide Material 3 theme** — dashboard design applied globally: flat backgrounds, flat headers, right-aligned month filter, KPI tiles as rounded cards, list areas in 24px rounded surfaces, MD3 list row spacing, flat FAB and filter pills (no glow), detail/form cards at 24px radius, settings hub rows as elevated tiles.
+
+App version **7.1.0**; service worker cache **v62**.
+
+---
+
+## [7.0.8] — 2026-06-23
+
+### Improvements
+
+- **Dashboard** — removed glow shadow from New sale shortcut button.
+
+App version **7.0.8**; service worker cache **v61**.
+
+---
+
+## [7.0.7] — 2026-06-23
+
+### Improvements
+
+- **Dashboard** — month filter aligned to the right.
+
+App version **7.0.7**; service worker cache **v60**.
+
+---
+
+## [7.0.6] — 2026-06-23
+
+### Improvements
+
+- **Dashboard** — removed redundant mobile greeting block (Dashboard / business name / date) that duplicated the app bar; KPI grid starts sooner.
+
+App version **7.0.6**; service worker cache **v59**.
+
+---
+
+## [7.0.5] — 2026-06-23
+
+### Improvements
+
+- **Dashboard** — net profit tile shows other income as small subtext (`incl. ₹X OI`) when OI is non-zero.
+
+App version **7.0.5**; service worker cache **v58**.
+
+---
+
+## [7.0.4] — 2026-06-23
+
+### Improvements
+
+- **Dashboard KPIs** — all six metrics in one responsive grid (no horizontal scroll): 2×2 on small phones, 3-column on medium screens, 5-column row on tablet, compact bento layout on desktop. Fluid `clamp()` typography and ellipsis so large amounts fit on every screen width.
+
+App version **7.0.4**; service worker cache **v57**.
+
+---
+
+## [7.0.3] — 2026-06-23
+
+### Improvements
+
+- **Dashboard — Material 3 / modern Android** — hero net-profit card with 28px rounded corners and tonal primary surface; revenue + receivables split below; horizontally scrollable metric chips (COGS, gross, expenses, receivables); filled + tonal action buttons; list sections with 40px avatars and clean dividers (Google Pay / Android 14 style). Flat background, no gradient KPI grid.
+
+App version **7.0.3**; service worker cache **v56**.
+
+---
+
 ## [7.0.2] — 2026-06-23
 
 ### Fixes

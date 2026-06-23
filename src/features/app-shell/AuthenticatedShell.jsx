@@ -3,7 +3,7 @@
  */
 export function AuthenticatedShell({ sidebar, children }) {
   return (
-    <div className="shell">
+    <div className="shell app-md3">
       <a href="#main-content" className="skip-link">
         Skip to main content
       </a>

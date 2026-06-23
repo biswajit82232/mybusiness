@@ -25,13 +25,13 @@ html, body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .main-stage,
-  .overlay-scroll,
-  .detail-scroll,
-  .sidebar,
-  .notif-panel-body,
-  .tab-page-scroll,
-  .overlay-screen > .list-area {
+.main-stage,
+.overlay-scroll,
+.detail-scroll,
+.sidebar,
+.notif-panel-body,
+.tab-page-scroll,
+.overlay-screen > .list-area {
     scroll-behavior: auto;
   }
 }
@@ -1197,7 +1197,7 @@ kbd {
 }
 
 /* ══════════════════════════════════════════════════════════════
-   REDUCED MOTION
+   REDUCED MOTION — single authoritative block (loads last)
 ══════════════════════════════════════════════════════════════ */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
@@ -1206,7 +1206,13 @@ kbd {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
-  .is-skeleton { background: color-mix(in srgb, var(--line2) 86%, var(--line)); }
+  .is-skeleton {
+    background: color-mix(in srgb, var(--line2) 86%, var(--line));
+  }
+  .sidebar,
+  .sidebar-overlay {
+    transition: none !important;
+  }
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -1287,133 +1293,397 @@ kbd {
   color: var(--primary);
 }
 
-/* ── Home page: richer gradient ─────────────────────────── */
-.home-page {
+/* ── Home page: Material 3 / modern Android ─────────────── */
+.home-page--md3 {
+  background: var(--bg);
+}
+
+.home-page--md3 .home-md3-scroll {
+  padding-bottom: max(24px, env(safe-area-inset-bottom, 12px));
+}
+
+/* Period filter — sales target left, month picker right */
+.home-md3-period {
+  padding: 10px var(--page-pad) 4px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px 14px;
+}
+.home-md3-period .month-filter-compact {
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+/* Sales target — scoped under home MD3; display font + caps (matches banking KPI labels) */
+.home-page--md3 .home-md3-target {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35em 0.55em;
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-caps);
+  line-height: 1.25;
+}
+.home-page--md3 .home-md3-target-lbl {
+  font-size: clamp(0.58rem, 2vw, 0.68rem);
+  font-weight: var(--fw-bold);
+  color: var(--muted);
+  white-space: nowrap;
+}
+.home-page--md3 .home-md3-target-val {
+  font-size: clamp(0.78rem, 2.7vw, 0.92rem);
+  font-weight: var(--fw-heavy);
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+.home-page--md3 .home-md3-target-pct {
+  font-size: clamp(0.64rem, 2.2vw, 0.76rem);
+  font-weight: var(--fw-bold);
+  color: color-mix(in srgb, var(--primary) 72%, var(--text));
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+@media (max-width: 400px) {
+  .home-page--md3 .home-md3-target {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+  }
+  .home-page--md3 .home-md3-target-val {
+    font-size: clamp(0.82rem, 3.2vw, 0.94rem);
+  }
+}
+.home-md3-target-spacer {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Unified KPI grid — all tiles visible, no horizontal scroll */
+.home-md3-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(6px, 1.6vw, 10px);
+  padding: 8px var(--page-pad) 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.home-md3-kpi {
+  min-width: 0;
+  padding: clamp(10px, 2.4vw, 14px) clamp(10px, 2.2vw, 14px);
+  border-radius: clamp(14px, 3vw, 18px);
+  background: var(--card);
+  border: 1px solid var(--line2);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: clamp(2px, 0.8vw, 5px);
+  overflow: hidden;
+}
+
+.home-md3-kpi--hero {
+  grid-column: 1 / -1;
+  padding: clamp(14px, 3.2vw, 20px) clamp(14px, 3vw, 18px);
+  border-radius: clamp(20px, 4vw, 28px);
+  background: color-mix(in srgb, var(--primary) 12%, var(--card));
+  border-color: color-mix(in srgb, var(--primary) 10%, var(--line2));
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06), 0 4px 14px rgba(15, 23, 42, 0.04);
+}
+
+.home-md3-kpi--hero.tone-bad {
+  background: color-mix(in srgb, var(--danger) 10%, var(--card));
+  border-color: color-mix(in srgb, var(--danger) 12%, var(--line2));
+}
+
+.home-md3-kpi--wide-mobile {
+  grid-column: 1 / -1;
+}
+
+.home-md3-kpi-lbl {
+  font-size: clamp(0.62rem, 2.1vw, 0.74rem);
+  font-weight: 500;
+  line-height: 1.25;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.home-md3-kpi-val {
+  font-size: clamp(0.82rem, 3vw, 1.02rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.home-md3-kpi--hero .home-md3-kpi-lbl {
+  font-size: clamp(0.72rem, 2.4vw, 0.84rem);
+  font-weight: 600;
+  color: var(--text2);
+}
+
+.home-md3-kpi--hero .home-md3-kpi-val {
+  font-size: clamp(1.5rem, 6.5vw, 2.35rem);
+  letter-spacing: -0.035em;
+  line-height: 1.05;
+}
+
+.home-md3-kpi-sub {
+  font-size: clamp(0.62rem, 2vw, 0.72rem);
+  font-weight: 500;
+  line-height: 1.3;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.home-md3-kpi--hero .home-md3-kpi-sub {
+  margin-top: 2px;
+  color: var(--muted2);
+}
+
+.home-md3-kpi.tone-good .home-md3-kpi-val { color: var(--success); }
+.home-md3-kpi.tone-bad .home-md3-kpi-val { color: var(--danger); }
+.home-md3-kpi.tone-warn .home-md3-kpi-val { color: var(--warning); }
+.home-md3-kpi.tone-accent .home-md3-kpi-val { color: var(--purple); }
+.home-md3-kpi.tone-primary .home-md3-kpi-val { color: var(--primary); }
+
+/* ≥360px: slightly roomier tiles */
+@media (min-width: 360px) {
+  .home-md3-kpi--wide-mobile {
+    grid-column: auto;
+  }
+}
+
+/* ≥480px: 3-column grid — 5 tiles = 3 + 2 neat rows */
+@media (min-width: 480px) {
+  .home-md3-kpi-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .home-md3-kpi--hero {
+    grid-column: 1 / -1;
+  }
+}
+
+/* ≥640px: 3×2 grid for secondary KPIs under hero */
+@media (min-width: 640px) {
+  .home-md3-kpi-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* ≥768px: hero full width, 5 secondary KPIs in one row */
+@media (min-width: 768px) {
+  .home-md3-kpi-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+  .home-md3-kpi--hero {
+    grid-column: 1 / -1;
+  }
+}
+
+/* Tiny phones: tighten padding so large amounts still fit */
+@media (max-width: 339px) {
+  .home-md3-kpi-grid {
+    gap: 5px;
+  }
+  .home-md3-kpi {
+    padding: 8px 8px;
+    border-radius: 12px;
+  }
+  .home-md3-kpi--hero {
+    padding: 12px 10px;
+    border-radius: 18px;
+  }
+  .home-md3-kpi-val {
+    font-size: 0.78rem;
+  }
+  .home-md3-kpi--hero .home-md3-kpi-val {
+    font-size: 1.35rem;
+  }
+}
+
+/* Action buttons — M3 filled + tonal */
+.home-md3-actions {
+  display: flex;
+  gap: 10px;
+  padding: 16px var(--page-pad) 8px;
+}
+.home-md3-action {
+  flex: 1;
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: none;
+  border-radius: 16px;
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: box-shadow 0.12s ease, background 0.12s ease;
+}
+.home-md3-action svg {
+  width: 20px;
+  height: 20px;
+  stroke: currentColor;
+  stroke-width: 2;
+  fill: none;
+  flex-shrink: 0;
+}
+.home-md3-action--filled {
+  background: var(--primary);
+  color: #fff;
+  box-shadow: none;
+}
+.home-md3-action--tonal {
+  background: color-mix(in srgb, var(--primary) 12%, var(--card));
+  color: var(--primary);
+}
+
+/* List sections — single elevated surface per block */
+.home-md3-section {
+  margin: 12px var(--page-pad) 0;
+  border-radius: 24px;
+  background: var(--card);
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05), 0 2px 8px rgba(15, 23, 42, 0.03);
+}
+.home-md3-section-hd {
+  padding: 16px 18px 10px;
+}
+.home-md3-section-title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+.home-md3-section-body {
+  padding-bottom: 4px;
+}
+.home-md3-empty {
+  margin: 0;
+  padding: 8px 18px 18px;
+  font-size: 0.84rem;
+  color: var(--muted);
+  line-height: 1.45;
+}
+.home-md3-list-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 18px;
+  border: none;
+  border-top: 1px solid var(--line2);
+  background: transparent;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.1s ease;
+}
+.home-md3-list-row:first-child { border-top: none; }
+.home-md3-list-row:active { background: var(--line2); }
+.home-md3-list-av {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+}
+.home-md3-list-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.home-md3-list-title {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.home-md3-list-sub {
+  font-size: 0.76rem;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.home-md3-list-end {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+.home-md3-list-amt {
+  font-size: 0.92rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+/* Hide legacy home grid on md3 dashboard */
+.home-page--md3 .kpi-grid-home,
+.home-page--md3 .quick-actions,
+.home-page--md3 .home-recent-area,
+.home-page--md3 .period-bar {
+  display: none !important;
+}
+
+[data-theme="dark"] .home-md3-kpi--hero {
+  background: color-mix(in srgb, var(--primary) 18%, var(--card));
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.22);
+}
+[data-theme="dark"] .home-md3-kpi--hero.tone-bad {
+  background: color-mix(in srgb, var(--danger) 14%, var(--card));
+}
+[data-theme="dark"] .home-md3-section {
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+}
+[data-theme="dark"] .home-md3-action--filled {
+  box-shadow: none;
+}
+
+@media (min-width: 768px) {
+  .home-md3-actions { max-width: 420px; }
+}
+
+/* Legacy KPI styles — other screens still use kpi-card */
+.home-page:not(.home-page--md3) {
   background: linear-gradient(
     180deg,
     color-mix(in srgb, var(--primary) 9%, var(--bg)) 0%,
     var(--bg) 200px
   );
-}
-
-/* ── KPI cards: colored top accent + icon support ───────── */
-.kpi-card {
-  position: relative;
-  overflow: hidden;
-}
-.kpi-card::before {
-  content: "";
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 3px;
-  background: var(--line-strong);
-  border-radius: var(--radius-md) var(--radius-md) 0 0;
-}
-.kpi-sales::before    { background: var(--primary); }
-.kpi-cost::before     { background: var(--warning); }
-.kpi-gross::before    { background: var(--success); }
-.kpi-gross-neg::before { background: var(--danger); }
-.kpi-expense::before  { background: var(--danger); }
-.kpi-profit::before   { background: var(--success); }
-.kpi-loss::before     { background: var(--danger); }
-.kpi-due::before      { background: var(--purple); }
-.kpi-card--hero::before { height: 4px; }
-
-/* KPI header: label + icon side-by-side */
-.kpi-hd {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 4px;
-}
-.kpi-icon {
-  width: 26px; height: 26px;
-  border-radius: 8px;
-  display: grid; place-items: center;
-  flex-shrink: 0;
-  background: var(--line2);
-  color: var(--muted2);
-}
-.kpi-icon svg {
-  width: 13px; height: 13px;
-  stroke: currentColor;
-  stroke-width: 2;
-  fill: none;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-.kpi-sales   .kpi-icon { background: var(--primary-bg); color: var(--primary); }
-.kpi-cost    .kpi-icon { background: var(--warning-bg); color: var(--warning); }
-.kpi-gross   .kpi-icon { background: var(--success-bg); color: var(--success); }
-.kpi-gross-neg .kpi-icon { background: var(--danger-bg); color: var(--danger); }
-.kpi-expense .kpi-icon { background: var(--danger-bg);  color: var(--danger);  }
-.kpi-profit  .kpi-icon { background: var(--success-bg); color: var(--success); }
-.kpi-loss    .kpi-icon { background: var(--danger-bg);  color: var(--danger);  }
-.kpi-due     .kpi-icon { background: var(--purple-bg);  color: var(--purple);  }
-
-/* ── Quick actions: gradient primary, equal height ───────── */
-.qa-primary {
-  background: linear-gradient(135deg, var(--primary-dk), var(--primary));
-  box-shadow: 0 4px 16px color-mix(in srgb, var(--primary) 40%, transparent);
-  min-height: 50px;
-  font-size: 0.92rem;
-  letter-spacing: -0.01em;
-}
-.qa-primary:hover:not(:disabled) {
-  background: linear-gradient(135deg, var(--primary), var(--primary-hov));
-  box-shadow: 0 6px 20px color-mix(in srgb, var(--primary) 48%, transparent);
-}
-.qa-secondary {
-  min-height: 50px;
-  font-size: 0.92rem;
-}
-
-/* ── Sale row: avatar initial circle ───────────────────── */
-.sr-av {
-  width: 36px; height: 36px;
-  border-radius: 50%;
-  display: grid; place-items: center;
-  font-size: 0.76rem;
-  font-weight: 800;
-  flex-shrink: 0;
-  letter-spacing: 0.02em;
-  color: #fff;
-  align-self: center;
-}
-
-/* ── Home recent sections: card-style ──────────────────── */
-.home-recent-area {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 0 var(--page-pad) max(32px, env(safe-area-inset-bottom, 8px));
-}
-.home-recent-area .home-section {
-  margin-top: 0 !important;
-  border-top: none !important;
-  border-radius: var(--radius-lg) !important;
-  border: 1px solid var(--line);
-  box-shadow: var(--shadow-sm);
-  overflow: hidden;
-}
-.home-recent-area .sale-row {
-  border-radius: 0;
-}
-.home-section-hdr {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 11px 16px 9px;
-  border-bottom: 1px solid var(--line2);
-  background: color-mix(in srgb, var(--card) 100%, transparent);
-}
-.home-section-hd {
-  padding: 0 !important;
-  font-size: 0.65rem;
-  font-weight: 800;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--muted2);
 }
 
 /* ── Notification panel: colored left border per kind ───── */
@@ -1886,5 +2156,865 @@ kbd {
 [data-theme="dark"] .period-bar { background: var(--card); }
 [data-theme="dark"] .sort-bar { background: var(--bg); }
 [data-theme="dark"] .fab {
-  box-shadow: 0 6px 28px color-mix(in srgb, var(--primary) 60%, transparent), 0 2px 8px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   APP-WIDE MD3 — dashboard design language on every screen
+══════════════════════════════════════════════════════════════ */
+
+.app-md3 .main-stage,
+.app-md3 .tab-page,
+.app-md3 .tab-page-scroll,
+.app-md3 .overlay-screen {
+  background: var(--bg);
+}
+
+/* Flat headers (no gradient) */
+.app-md3 .tab-appbar,
+.app-md3 .mobile-appbar,
+.app-md3 .page-hdr {
+  background: var(--card);
+  box-shadow: 0 1px 0 var(--line);
+}
+
+/* Month filter — right on all tab pages */
+.app-md3 .period-bar {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  background: transparent;
+  border-bottom: none;
+  padding: 8px var(--page-pad) 4px;
+}
+.app-md3 .period-bar .month-filter-compact {
+  margin-left: auto;
+}
+
+/* KPI strips → dashboard-style tiles */
+.app-md3 .receivables-summary,
+.app-md3 .overlay-kpi-strip,
+.app-md3 .purchases-kpi-strip,
+.app-md3 .cg-kpi-band {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100px, 100%), 1fr));
+  gap: clamp(6px, 1.6vw, 10px);
+  margin: 8px var(--page-pad) 0;
+  padding: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+.app-md3 .recv-kpi,
+.app-md3 .cg-kpi,
+.app-md3 .overlay-kpi-strip .recv-kpi {
+  min-width: 0;
+  padding: clamp(10px, 2.4vw, 14px);
+  border-radius: clamp(14px, 3vw, 18px);
+  background: var(--card);
+  border: 1px solid var(--line2);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  border-right: none;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: clamp(2px, 0.8vw, 5px);
+}
+
+.app-md3 .recv-kpi-lbl,
+.app-md3 .cg-kpi-lbl {
+  font-size: clamp(0.62rem, 2.1vw, 0.72rem);
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--muted);
+  line-height: 1.25;
+}
+
+.app-md3 .recv-kpi-val,
+.app-md3 .cg-kpi-val {
+  font-size: clamp(0.88rem, 3vw, 1.08rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+
+/* Filter bars — flat, pill controls */
+.app-md3 .seg-bar,
+.app-md3 .sort-bar,
+.app-md3 .overlay-search-strip {
+  background: var(--bg);
+  border-bottom: none;
+  padding: 8px var(--page-pad);
+}
+
+.app-md3 .seg-btn.active,
+.app-md3 .sort-chip.active,
+.app-md3 .sub-tab.active {
+  box-shadow: none;
+}
+
+/* List containers — rounded cards (tab pages; overlay scroll lists stay flush — see below) */
+.app-md3 .tab-page > .list-area,
+.app-md3 .tab-page .list-area,
+.app-md3 .tab-page-scroll > .list-area,
+.app-md3 .tab-page-scroll .list-area,
+.app-md3 .overlay-screen > .list-area,
+.app-md3 .list-area.exp-cat-nav-list {
+  margin: 10px var(--page-pad) 0;
+  border-radius: 24px;
+  overflow: hidden;
+  background: var(--card);
+  border: 1px solid var(--line2);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+/* Overlay scroll lists: full-width flush (customer/vendor detail, expense category, loan directories) */
+.app-md3 .overlay-scroll .list-area,
+.app-md3 .overlay-screen--search .search-results-scroll {
+  margin: 0;
+  border-radius: 0;
+  border: none;
+  box-shadow: none;
+  overflow: visible;
+}
+
+/* Phone: tab lists edge-to-edge — more room for row content */
+@media (max-width: 599px) {
+  .app-md3 .tab-page > .list-area,
+  .app-md3 .tab-page .list-area:not(.exp-cat-nav-list),
+  .app-md3 .tab-page-scroll > .list-area,
+  .app-md3 .tab-page-scroll .list-area {
+    margin-left: 0;
+    margin-right: 0;
+    margin-top: 0;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    box-shadow: none;
+  }
+
+  /* Banking: account + transaction lists full width on phone */
+  .app-md3 .banking-acct-list,
+  .app-md3 .bank-tx-list {
+    margin-left: 0;
+    margin-right: 0;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    box-shadow: none;
+  }
+
+  .app-md3 .form-card.bank-acct-activity-card {
+    margin-left: 0;
+    margin-right: 0;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+  }
+
+  .app-md3 .overlay-screen--bank-acct .banking-summary--overlay {
+    border-radius: 0;
+  }
+}
+
+/* Global search: full-width scroll list, not a floating card */
+.app-md3 .overlay-screen--search .search-results-scroll {
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.app-md3 .exp-spend-overview {
+  margin: 10px var(--page-pad) 0;
+}
+.app-md3 .exp-spend-overview-hd {
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text);
+  padding: 0 4px 8px;
+}
+
+/* List rows — MD3 spacing */
+.app-md3 .sale-row,
+.app-md3 .customer-row,
+.app-md3 .activity-row,
+.app-md3 .exp-cat-nav-row,
+.app-md3 .exp-row,
+.app-md3 .svc-row,
+.app-md3 .settings-hub-row {
+  padding: 12px 18px;
+  gap: 12px;
+  align-items: center;
+}
+
+.app-md3 .sale-row,
+.app-md3 .customer-row,
+.app-md3 .activity-row,
+.app-md3 .exp-cat-nav-row,
+.app-md3 .exp-row {
+  border-bottom: 1px solid var(--line2);
+}
+.app-md3 .sale-row:last-child,
+.app-md3 .customer-row:last-child,
+.app-md3 .activity-row:last-child,
+.app-md3 .exp-cat-nav-row:last-child,
+.app-md3 .exp-row:last-child {
+  border-bottom: none;
+}
+
+.app-md3 .list-area .sale-row {
+  padding-left: calc(18px + 3px);
+}
+.app-md3 .list-area .sale-row::before {
+  border-radius: 0 2px 2px 0;
+}
+
+.app-md3 .sr-av,
+.app-md3 .sale-row .avatar,
+.app-md3 .customer-row .avatar {
+  width: 40px;
+  height: 40px;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.app-md3 .activity-icon-wrap {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+}
+
+/* Detail & form surfaces */
+.app-md3 .detail-card,
+.app-md3 .detail-card-v2,
+.app-md3 .form-card {
+  border-radius: 24px;
+  border: 1px solid var(--line2);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  margin-left: var(--page-pad);
+  margin-right: var(--page-pad);
+}
+
+.app-md3 .detail-hero-v2 {
+  border-radius: 24px;
+  margin-left: var(--page-pad);
+  margin-right: var(--page-pad);
+  background: color-mix(in srgb, var(--primary) 10%, var(--card));
+  border: 1px solid color-mix(in srgb, var(--primary) 8%, var(--line2));
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.app-md3 .rep-kpi,
+.app-md3 .rep-kpi-grid .rep-kpi {
+  border-radius: 18px;
+  border: 1px solid var(--line2);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.app-md3 .settings-hub-section .settings-hub-list {
+  margin: 0 var(--page-pad);
+  border-radius: 24px;
+  overflow: hidden;
+  background: var(--card);
+  border: 1px solid var(--line2);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  gap: 0;
+}
+
+.app-md3 .settings-hub-row {
+  border-radius: 0;
+  margin: 0;
+  border: none;
+  border-bottom: 1px solid var(--line2);
+  box-shadow: none;
+  background: transparent;
+}
+
+.app-md3 .settings-hub-row:last-child {
+  border-bottom: none;
+}
+
+.app-md3 .home-md3-section {
+  margin-left: var(--page-pad);
+  margin-right: var(--page-pad);
+}
+
+/* Section titles — match dashboard */
+.app-md3 .home-section-hd,
+.app-md3 .exp-recurring-hd {
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  text-transform: none;
+  color: var(--text);
+  padding: 16px var(--page-pad) 8px;
+}
+
+/* Banking / net worth / balance sheet KPI strips */
+.app-md3 .banking-summary,
+.app-md3 .bs-summary-strip,
+.app-md3 .nw-snapshot,
+.app-md3 .nw-invest-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100px, 100%), 1fr));
+  gap: clamp(6px, 1.6vw, 10px);
+  margin: 8px var(--page-pad) 0;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-bottom: none;
+  box-shadow: none;
+}
+
+.app-md3 .banking-sum-cell {
+  flex: unset;
+  min-width: 0;
+  padding: clamp(10px, 2.4vw, 14px);
+  border-radius: clamp(14px, 3vw, 18px);
+  background: var(--card);
+  border: 1px solid var(--line2);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  overflow: visible;
+}
+
+.app-md3 .banking-summary .banking-sum-lbl,
+.app-md3 .banking-summary .banking-sum-val,
+.app-md3 .banking-summary .banking-sum-meta,
+.app-md3 .bs-summary-strip .banking-sum-lbl,
+.app-md3 .bs-summary-strip .banking-sum-val,
+.app-md3 .bs-summary-strip .banking-sum-meta,
+.app-md3 .nw-snapshot .banking-sum-lbl,
+.app-md3 .nw-snapshot .banking-sum-val,
+.app-md3 .nw-snapshot .banking-sum-meta {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: unset;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  line-height: 1.25;
+  max-width: 100%;
+}
+
+.app-md3 .banking-sum-lbl {
+  font-size: clamp(0.62rem, 2.1vw, 0.72rem);
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--muted);
+}
+
+.app-md3 .banking-sum-val {
+  font-size: clamp(0.82rem, 2.8vw, 1.08rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.app-md3 .banking-sum-meta {
+  font-size: 0.68rem;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--muted2);
+}
+
+.app-md3 .nw-live-strip,
+.app-md3 .bs-live-strip {
+  margin: 8px var(--page-pad) 0;
+  padding: 8px 12px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--primary) 8%, var(--card));
+  border: 1px solid color-mix(in srgb, var(--primary) 10%, var(--line2));
+}
+
+.app-md3 .bs-equation-hint {
+  margin: 8px var(--page-pad) 0;
+  padding: 10px 12px;
+  border-radius: 14px;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  background: var(--card);
+  border: 1px solid var(--line2);
+}
+
+/* Balance sheet & finance sections */
+.app-md3 .fin-overview {
+  padding-bottom: 24px;
+}
+
+.app-md3 .bs-hdr-card {
+  margin: 10px var(--page-pad) 0;
+  padding: 14px 18px;
+  border-radius: 24px;
+  border: 1px solid var(--line2);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  border-bottom: 1px solid var(--line2);
+}
+
+.app-md3 .bs-section {
+  margin: 10px var(--page-pad) 0;
+  border-radius: 24px;
+  overflow: hidden;
+  border: 1px solid var(--line2);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  border-top: none;
+  border-bottom: none;
+}
+
+.app-md3 .bs-section-hd {
+  padding: 14px 18px 6px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  text-transform: none;
+  color: var(--text);
+  background: transparent;
+}
+
+.app-md3 .bs-section-intro,
+.app-md3 .bs-sub-hd {
+  padding-left: 18px;
+  padding-right: 18px;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.app-md3 .bs-row {
+  padding-left: 18px;
+  padding-right: 18px;
+}
+
+/* Reports KPI grids */
+.app-md3 .rep-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100px, 100%), 1fr));
+  gap: clamp(6px, 1.6vw, 10px);
+  margin: 8px var(--page-pad) 0;
+  padding: 0;
+}
+
+.app-md3 .rep-kpi-l {
+  font-size: clamp(0.62rem, 2.1vw, 0.72rem);
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--muted);
+}
+
+.app-md3 .rep-kpi-v {
+  font-size: clamp(0.88rem, 3vw, 1.08rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+/* Detail hero & KPI tiles */
+.app-md3 .customer-detail-hero,
+.app-md3 .customer-detail-kpis {
+  margin-left: var(--page-pad);
+  margin-right: var(--page-pad);
+}
+
+.app-md3 .customer-detail-hero {
+  padding: 16px 18px;
+  border-radius: 24px;
+  background: color-mix(in srgb, var(--primary) 10%, var(--card));
+  border: 1px solid color-mix(in srgb, var(--primary) 8%, var(--line2));
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.app-md3 .customer-detail-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(120px, 100%), 1fr));
+  gap: clamp(6px, 1.6vw, 10px);
+}
+
+.app-md3 .customer-kpi-card,
+.app-md3 .kpi-grid-loans-given .kpi-card,
+.app-md3 .detail-kpi-grid .kpi-card {
+  border-radius: clamp(14px, 3vw, 18px);
+  border: 1px solid var(--line2);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  background: var(--card);
+}
+
+.app-md3 .customer-kpi-card-lbl,
+.app-md3 .kpi-grid-loans-given .kpi-lbl {
+  font-size: clamp(0.62rem, 2.1vw, 0.72rem);
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.app-md3 .kpi-grid-loans-given {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100px, 100%), 1fr));
+  gap: clamp(6px, 1.6vw, 10px);
+  margin: 8px var(--page-pad) 0;
+  padding: 0;
+}
+
+/* Banking account lists & transaction lists */
+.app-md3 .banking-acct-list,
+.app-md3 .bank-tx-list {
+  margin: 0 var(--page-pad) 8px;
+  border-radius: 24px;
+  border: 1px solid var(--line2);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  overflow: hidden;
+}
+
+.app-md3 .banking-acct-row,
+.app-md3 .bank-tx-list--interactive > li {
+  padding: 12px 18px;
+}
+
+.app-md3 .banking-acct-row {
+  background: transparent;
+  align-items: center;
+}
+
+.app-md3 .banking-acct-row-name {
+  font-size: clamp(0.88rem, 3.6vw, 0.94rem);
+  line-height: 1.25;
+}
+
+.app-md3 .banking-acct-row-bal {
+  font-size: clamp(0.9rem, 3.8vw, 1rem);
+  white-space: nowrap;
+}
+
+.app-md3 .banking-acct-row-flow {
+  font-size: clamp(0.68rem, 2.8vw, 0.74rem);
+}
+
+.app-md3 .banking-period-bar {
+  background: transparent;
+  border-bottom: none;
+  padding: 4px var(--page-pad) 8px;
+  justify-content: flex-end;
+}
+
+.app-md3 .banking-month-filter {
+  justify-content: flex-end;
+  width: auto;
+  max-width: 100%;
+}
+
+.app-md3 .banking-accounts-section {
+  padding-top: 0;
+  gap: 4px;
+}
+
+.app-md3 .banking-empty-hint {
+  margin: 4px var(--page-pad) 12px;
+  padding: 0 2px;
+}
+
+.app-md3 .fin-section {
+  padding: 6px 0 16px;
+  gap: 6px;
+}
+
+.app-md3 .tab-page-scroll {
+  padding-bottom: max(12px, env(safe-area-inset-bottom, 0px));
+}
+
+.app-md3 .tab-page--split-scroll > .tab-page-scroll {
+  padding-bottom: max(16px, env(safe-area-inset-bottom, 0px));
+}
+
+/* Quick actions — dashboard-style chips */
+.app-md3 .quick-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0 var(--page-pad) 10px;
+}
+
+.app-md3 .banking-quick-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.app-md3 .banking-quick-actions .qa-primary {
+  grid-column: 1 / -1;
+}
+
+.app-md3 .banking-quick-actions--single {
+  grid-template-columns: 1fr;
+}
+
+.app-md3 .qa-btn {
+  border-radius: 16px;
+  font-weight: 600;
+  font-size: 0.84rem;
+}
+
+/* Recurring expenses block */
+.app-md3 .exp-recurring-block {
+  margin: 10px var(--page-pad) 0;
+  border-radius: 24px;
+  overflow: hidden;
+  background: var(--card);
+  border: 1px solid var(--line2);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.app-md3 .exp-recurring-block .exp-row {
+  border-bottom: 1px solid var(--line2);
+  padding: 12px 18px;
+}
+
+.app-md3 .exp-recurring-block .exp-row:last-child {
+  border-bottom: none;
+}
+
+.app-md3 .exp-recurring-hd {
+  padding: 14px 18px 8px;
+}
+
+/* Inventory & product rows inside list cards */
+.app-md3 .inv-row,
+.app-md3 .product-row,
+.app-md3 .loan-given-list-row {
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--line2);
+}
+
+.app-md3 .inv-row:last-child,
+.app-md3 .product-row:last-child,
+.app-md3 .loan-given-list-row:last-child {
+  border-bottom: none;
+}
+
+/* FAB — flat primary, no glow */
+.app-md3 .fab {
+  background: var(--primary);
+  box-shadow: none;
+}
+
+.app-md3 .qa-primary {
+  background: var(--primary);
+  box-shadow: none;
+}
+
+/* Empty states in scroll areas */
+.app-md3 .empty-state {
+  padding: clamp(36px, 8vh, 56px) var(--page-pad);
+}
+
+[data-theme="dark"] .app-md3 .recv-kpi,
+[data-theme="dark"] .app-md3 .cg-kpi,
+[data-theme="dark"] .app-md3 .list-area,
+[data-theme="dark"] .app-md3 .banking-sum-cell,
+[data-theme="dark"] .app-md3 .bs-section,
+[data-theme="dark"] .app-md3 .bs-hdr-card,
+[data-theme="dark"] .app-md3 .banking-acct-list,
+[data-theme="dark"] .app-md3 .bank-tx-list,
+[data-theme="dark"] .app-md3 .exp-recurring-block,
+[data-theme="dark"] .app-md3 .customer-detail-hero,
+[data-theme="dark"] .app-md3 .customer-kpi-card,
+[data-theme="dark"] .app-md3 .detail-card,
+[data-theme="dark"] .app-md3 .detail-card-v2,
+[data-theme="dark"] .app-md3 .form-card,
+[data-theme="dark"] .app-md3 .settings-hub-section .settings-hub-list {
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.18);
+}
+
+[data-theme="dark"] .app-md3 .fab {
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
+}
+
+@media (min-width: 768px) {
+  .app-md3 .receivables-summary,
+  .app-md3 .purchases-kpi-strip,
+  .app-md3 .overlay-kpi-strip,
+  .app-md3 .banking-summary,
+  .app-md3 .bs-summary-strip {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .app-md3 .banking-quick-actions {
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    max-width: 720px;
+  }
+
+  .app-md3 .banking-quick-actions .qa-primary {
+    grid-column: auto;
+  }
+}
+
+/* ── Mobile spacing & layout (app-md3) ─────────────────────── */
+@media (max-width: 640px) {
+  .app-md3 .home-section-hd,
+  .app-md3 .exp-recurring-hd {
+    padding: 10px var(--page-pad) 6px;
+    font-size: 0.92rem;
+  }
+
+  .app-md3 .receivables-summary,
+  .app-md3 .purchases-kpi-strip,
+  .app-md3 .overlay-kpi-strip,
+  .app-md3 .cg-kpi-band,
+  .app-md3 .bs-summary-strip,
+  .app-md3 .nw-snapshot,
+  .app-md3 .nw-invest-strip {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 6px;
+  }
+
+  .app-md3 .bs-summary-strip .banking-sum-cell:first-child,
+  .app-md3 .nw-snapshot .banking-sum-cell:first-child {
+    grid-column: 1 / -1;
+  }
+
+  /* Banking tab: one KPI per row on phones — amounts never clip */
+  .app-md3 .tab-page--banking > .banking-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .app-md3 .banking-sum-meta {
+    font-size: 0.64rem;
+    line-height: 1.3;
+  }
+
+  .app-md3 .banking-sum-val,
+  .app-md3 .recv-kpi-val,
+  .app-md3 .cg-kpi-val,
+  .app-md3 .rep-kpi-v {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .app-md3 .seg-bar,
+  .app-md3 .sort-bar {
+    padding: 6px var(--page-pad);
+    gap: 5px;
+  }
+
+  .app-md3 .period-bar,
+  .app-md3 .banking-period-bar {
+    padding: 4px var(--page-pad) 6px;
+  }
+
+  .app-md3 .tab-page > .list-area,
+  .app-md3 .tab-page .list-area,
+  .app-md3 .tab-page-scroll .list-area,
+  .app-md3 .banking-acct-list,
+  .app-md3 .bank-tx-list,
+  .app-md3 .exp-recurring-block,
+  .app-md3 .bs-section,
+  .app-md3 .bs-hdr-card {
+    margin-top: 8px;
+  }
+
+  .app-md3 .banking-acct-list,
+  .app-md3 .bank-tx-list {
+    margin-bottom: 12px;
+  }
+
+  .app-md3 .rep-kpi-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .app-md3 .customer-detail-kpis {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .app-md3 .kpi-grid-loans-given {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .app-md3 .bs-equation-hint {
+    font-size: 0.76rem;
+    padding: 8px 10px;
+    line-height: 1.4;
+  }
+
+  .app-md3 .bs-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 3px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+  }
+
+  .app-md3 .bs-row__val {
+    max-width: none;
+    text-align: right;
+  }
+}
+
+@media (max-width: 480px) {
+  .app-md3 .banking-acct-row {
+    flex-wrap: wrap;
+    row-gap: 8px;
+  }
+
+  .app-md3 .banking-acct-row-left {
+    flex: 1 1 calc(100% - 88px);
+    min-width: 0;
+  }
+
+  .app-md3 .banking-acct-row-right {
+    flex: 0 0 auto;
+    align-self: flex-start;
+  }
+
+  .app-md3 .banking-acct-row-meta {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  .app-md3 .banking-acct-flow-sep {
+    display: none;
+  }
+
+  .app-md3 .banking-acct-row-flow {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+  }
+
+  .app-md3 .qa-btn {
+    min-height: 42px;
+    font-size: 0.82rem;
+    padding: 0 10px;
+  }
+
+  .app-md3 .recv-kpi,
+  .app-md3 .cg-kpi,
+  .app-md3 .banking-sum-cell,
+  .app-md3 .rep-kpi {
+    padding: 10px;
+  }
+}
+
+@media (max-width: 380px) {
+  .app-md3 .receivables-summary,
+  .app-md3 .purchases-kpi-strip,
+  .app-md3 .rep-kpi-grid,
+  .app-md3 .customer-detail-kpis,
+  .app-md3 .kpi-grid-loans-given {
+    grid-template-columns: 1fr;
+  }
+
+  .app-md3 .banking-summary,
+  .app-md3 .bs-summary-strip,
+  .app-md3 .nw-snapshot {
+    grid-template-columns: 1fr;
+  }
+
+  .app-md3 .banking-summary .banking-sum-cell:first-child,
+  .app-md3 .bs-summary-strip .banking-sum-cell:first-child,
+  .app-md3 .nw-snapshot .banking-sum-cell:first-child {
+    grid-column: auto;
+  }
 }

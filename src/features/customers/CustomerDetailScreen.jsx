@@ -57,7 +57,7 @@ export function CustomerDetailScreen({
           ) : undefined
         }
       />
-      <div className="overlay-scroll" style={{ padding: 0 }}>
+      <div className="overlay-scroll overlay-scroll--flush">
         <div className="customer-detail-hero">
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
             <div className={`avatar ${avatarColor(customerName)}`} style={{ width: 52, height: 52, fontSize: "1.1rem" }}>

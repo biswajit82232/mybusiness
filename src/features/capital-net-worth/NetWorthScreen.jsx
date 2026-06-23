@@ -13,17 +13,6 @@ export function NetWorthScreen({ balSum, balance, onSaveInvested, onOpenSidebar 
   const roiPct = investedSaved > 0 ? (gain / investedSaved) * 100 : null;
   const asOf = dateHuman(todayStr());
 
-  let verdict = null;
-  if (investedSaved > 0) {
-    if (gain > 0.005) {
-      verdict = { tone: "ok", text: `Ahead of what you put in by ${moneyFull(gain)} (book equity vs your number).` };
-    } else if (gain < -0.005) {
-      verdict = { tone: "bad", text: `Book equity is below your investment by ${moneyFull(Math.abs(gain))}.` };
-    } else {
-      verdict = { tone: "mid", text: "Book equity is about equal to what you entered as invested." };
-    }
-  }
-
   return (
     <TabPageChrome title="Net Worth" onOpenSidebar={onOpenSidebar} className="tab-page--split-scroll tab-page--net-worth">
       <div className="nw-live-strip">
@@ -117,7 +106,6 @@ export function NetWorthScreen({ balSum, balance, onSaveInvested, onOpenSidebar 
               <h2 id="nw-chart-hd" className="home-section-hd">
                 Invested vs book equity
               </h2>
-              {verdict ? <p className={`nw-verdict nw-verdict--${verdict.tone}`}>{verdict.text}</p> : null}
               <div className="form-card nw-chart-card">
                 <span className="form-card-title">Chart</span>
                 <div className="nw-twin-wrap">

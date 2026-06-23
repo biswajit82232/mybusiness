@@ -1,0 +1,436 @@
+/* ══════════════════════════════════════════════════════════════
+   RESPONSIVE LIST LAYOUTS — comfortable on all screen sizes
+   Loaded after premium-ui.css (see App.jsx).
+══════════════════════════════════════════════════════════════ */
+
+/* Search strips: pill input, tap-friendly height */
+.overlay-search-strip .search-box,
+.tab-appbar .search-box {
+  border-radius: var(--radius-pill);
+  height: var(--tap-min);
+  min-height: var(--tap-min);
+}
+
+.tab-page:has(> .overlay-search-strip) > .overlay-search-strip {
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+
+/* Truncate secondary lines everywhere lists use them */
+.activity-title,
+.activity-sub,
+.product-name,
+.product-sub,
+.ledger-title,
+.ledger-sub,
+.inv-row-left .inv-item-name,
+.inv-row-left .inv-item-sub {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── sale-row ─────────────────────────────────────────────── */
+@media (max-width: 380px) {
+  .sale-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "left" "right";
+    align-items: start;
+    gap: 6px 0;
+    padding-top: 12px;
+    padding-bottom: 12px;
+  }
+  .sale-row:has(> .avatar) {
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas: "avatar left" "avatar right";
+    column-gap: 10px;
+  }
+  .sale-row > .avatar {
+    grid-area: avatar;
+    align-self: start;
+  }
+  .sr-left {
+    grid-area: left;
+  }
+  .sr-right {
+    grid-area: right;
+    width: 100%;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 4px 8px;
+  }
+}
+
+/* ── activity-row (purchases, cash flow, ledger-style) ───── */
+@media (max-width: 380px) {
+  .activity-row {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas: "icon info" "icon amount";
+    align-items: start;
+    row-gap: 4px;
+    column-gap: 10px;
+  }
+  .activity-icon-wrap {
+    grid-area: icon;
+  }
+  .activity-info {
+    grid-area: info;
+    min-width: 0;
+  }
+  .activity-amount {
+    grid-area: amount;
+    text-align: left;
+    padding-left: 44px;
+    font-size: clamp(0.82rem, 3.6vw, 0.9rem);
+  }
+}
+
+/* ── customer-row ─────────────────────────────────────────── */
+@media (max-width: 380px) {
+  .customer-row {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    row-gap: 6px;
+  }
+  .customer-row > .avatar {
+    align-self: flex-start;
+  }
+  .customer-info {
+    flex: 1 1 calc(100% - 56px);
+  }
+  .customer-meta {
+    flex: 1 1 100%;
+    gap: 8px 10px;
+    padding-left: 52px;
+  }
+  .customer-kpi {
+    min-width: 0;
+  }
+  .customer-kpi-val {
+    font-size: clamp(0.78rem, 3.4vw, 0.84rem);
+  }
+}
+
+/* ── emi-row ──────────────────────────────────────────────── */
+@media (max-width: 380px) {
+  .emi-top {
+    flex-wrap: wrap;
+    gap: 4px 8px;
+  }
+  .emi-name {
+    flex: 1 1 100%;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .emi-loan {
+    margin-left: auto;
+    font-size: clamp(0.84rem, 3.6vw, 0.93rem);
+  }
+  .emi-sub {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+/* ── exp-row (not loan 3-column) ────────────────────────────── */
+@media (max-width: 380px) {
+  .exp-row-main:not(.loan-given-list-row-main) {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+  }
+  .exp-row-main:not(.loan-given-list-row-main) .exp-amount {
+    align-self: flex-end;
+  }
+  .exp-desc,
+  .exp-sub {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+/* ── loan-given 3-column rows ─────────────────────────────── */
+@media (max-width: 420px) {
+  .loan-given-list-row .exp-row-main,
+  .loan-given-list-row-main {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "borrower"
+      "loan"
+      "out";
+    min-height: 0;
+    gap: 4px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+  }
+  .loan-given-list-borrower {
+    grid-area: borrower;
+    min-height: 0;
+  }
+  .loan-given-list-loan {
+    grid-area: loan;
+    text-align: left;
+  }
+  .loan-given-list-out {
+    grid-area: out;
+    text-align: left;
+  }
+  .loan-given-list-cols-hd,
+  .loan-given-directory-cols-hd {
+    display: none;
+  }
+}
+
+/* ── product-row ──────────────────────────────────────────── */
+@media (max-width: 380px) {
+  .product-row {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas: "icon info" "icon right";
+    align-items: start;
+    row-gap: 4px;
+    column-gap: 10px;
+    padding: 12px var(--page-pad);
+  }
+  .product-icon {
+    grid-area: icon;
+  }
+  .product-info {
+    grid-area: info;
+    min-width: 0;
+  }
+  .product-right {
+    grid-area: right;
+    text-align: left;
+    padding-left: 52px;
+  }
+}
+
+/* ── inv-row ──────────────────────────────────────────────── */
+@media (max-width: 380px) {
+  .inv-row {
+    flex-wrap: wrap;
+    row-gap: 8px;
+    align-items: flex-start;
+  }
+  .inv-row-left {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+  .inv-row-right {
+    flex: 1 1 100%;
+    justify-content: space-between;
+    text-align: left;
+  }
+  .inv-row-right-info {
+    align-items: flex-start;
+  }
+}
+
+/* ── ledger-row ─────────────────────────────────────────────── */
+@media (max-width: 380px) {
+  .ledger-row {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas: "dot info" "dot amount";
+    align-items: start;
+    row-gap: 4px;
+    column-gap: 10px;
+  }
+  .ledger-dot {
+    grid-area: dot;
+    margin-top: 4px;
+  }
+  .ledger-info {
+    grid-area: info;
+    min-width: 0;
+  }
+  .ledger-amount {
+    grid-area: amount;
+    text-align: left;
+    padding-left: 20px;
+    font-size: clamp(0.82rem, 3.6vw, 0.9rem);
+  }
+}
+
+/* ── KPI strips on very narrow phones ─────────────────────── */
+@media (max-width: 359px) {
+  .recv-kpi,
+  .overlay-kpi-strip .recv-kpi {
+    padding: 10px 8px;
+  }
+  .recv-kpi-val {
+    font-size: clamp(0.88rem, 4.2vw, 1.05rem);
+  }
+  .recv-kpi-lbl {
+    font-size: 0.62rem;
+    letter-spacing: 0.04em;
+  }
+  .overlay-kpi-strip,
+  .receivables-summary {
+    gap: 1px;
+  }
+}
+
+/* ── Overlay detail scroll: comfortable width on large screens ─ */
+@media (min-width: 900px) {
+  .overlay-scroll.detail-scroll,
+  .overlay-scroll.overlay-scroll--flush {
+    max-width: 720px;
+    margin-left: auto;
+    margin-right: auto;
+    width: 100%;
+  }
+}
+
+/* ── Tab pages: centered content column on desktop ────────── */
+@media (min-width: 900px) {
+  .tab-page > .period-bar,
+  .tab-page > .seg-bar,
+  .tab-page > .sort-bar,
+  .tab-page > .overlay-kpi-strip,
+  .tab-page > .overlay-search-strip,
+  .tab-page > .receivables-summary,
+  .tab-page > .inv-summary,
+  .tab-page > .list-area,
+  .tab-page-scroll {
+    max-width: 720px;
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .tab-page-scroll > .list-area,
+  .tab-page-scroll > .receivables-summary,
+  .tab-page-scroll > .overlay-kpi-strip,
+  .tab-page-scroll > .purchases-kpi-strip,
+  .tab-page-scroll > .purchases-actions,
+  .tab-page-scroll > .daily-section-hd {
+    max-width: 100%;
+  }
+  .tab-page--banking > .banking-summary,
+  .tab-page--banking > .banking-period-bar,
+  .tab-page--fixed-assets > .banking-summary {
+    max-width: 720px;
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   BANKING — accounts, activity, fixed assets, overlay
+══════════════════════════════════════════════════════════════ */
+.bank-tx-row-btn .bank-tx-title,
+.bank-tx-row-btn .bank-tx-sub,
+.banking-acct-row-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 480px) {
+  .bank-tx-row-btn {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas:
+      "date body"
+      "nums nums";
+    align-items: start;
+    gap: 8px 10px;
+    padding: 11px var(--page-pad);
+    font-size: 0.76rem;
+    min-height: 0;
+    flex-wrap: unset;
+  }
+  .bank-tx-li--actions .bank-tx-row-btn {
+    width: auto;
+    flex: 1;
+    min-width: 0;
+  }
+  .bank-tx-row-btn .bank-tx-date {
+    grid-area: date;
+    flex: none;
+    font-size: 0.7rem;
+  }
+  .bank-tx-row-btn .bank-tx-body {
+    grid-area: body;
+    flex: none;
+    min-width: 0;
+  }
+  .bank-tx-row-btn .bank-tx-nums {
+    grid-area: nums;
+    flex: none;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: flex-start;
+    width: 100%;
+    min-width: 0;
+    gap: 12px;
+    padding-top: 6px;
+    border-top: 1px solid var(--line2);
+  }
+  .bank-tx-num-cell {
+    align-items: flex-start;
+    min-width: 0;
+  }
+  .banking-acct-row {
+    padding-left: var(--page-pad);
+    padding-right: var(--page-pad);
+  }
+}
+
+@media (max-width: 380px) {
+  .banking-acct-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "left bal";
+    align-items: start;
+    column-gap: 10px;
+    row-gap: 6px;
+  }
+  .banking-acct-row-left {
+    grid-area: left;
+    flex: none;
+    min-width: 0;
+  }
+  .banking-acct-row-right {
+    grid-area: bal;
+    flex: none;
+    align-self: start;
+  }
+  .banking-acct-row-meta {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+  .banking-acct-flow-sep {
+    display: none;
+  }
+  .banking-acct-row-flow {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+  }
+}
+
+@media (min-width: 900px) {
+  .overlay-screen--bank-acct > .page-hdr,
+  .overlay-screen--bank-acct > .overlay-scroll,
+  .overlay-screen--bank-acct > .overlay-form-footer {
+    max-width: 720px;
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .overlay-screen--bank-acct .banking-summary--overlay {
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  }
+}

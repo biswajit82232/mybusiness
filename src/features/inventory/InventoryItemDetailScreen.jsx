@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   computeInvRowsAggregated,
   computeInvRowsForBranch,
@@ -10,8 +10,8 @@ import {
   normBranchesList,
   stockInCashAmount,
 } from "@/domain/index.js";
-import { IcChevR, IcPlus } from "@/shared/ui/icons/AppIcons.jsx";
-import { Field, OverlayScreen, PageHeader } from "@/shared/ui/layout/AppChrome.jsx";
+import { IcEdit, IcPlus } from "@/shared/ui/icons/AppIcons.jsx";
+import { OverlayScreen, PageHeader } from "@/shared/ui/layout/AppChrome.jsx";
 
 function typeLabel(t) {
   if (t === "out") return "Stock out";
@@ -27,6 +27,7 @@ export function InventoryItemDetailScreen({
   branches = [],
   stockCategorySuggestions = [],
   onSaveProductCategory,
+  onRenameProduct,
   onClose,
   onEditEntry,
   openAddStock,
@@ -73,75 +74,187 @@ export function InventoryItemDetailScreen({
   if (!resolvedCategory) resolvedCategory = "";
 
   const [catDraft, setCatDraft] = useState(resolvedCategory);
+  const [editingCat, setEditingCat] = useState(false);
+  const [nameDraft, setNameDraft] = useState(displayName || "");
+  const [editingName, setEditingName] = useState(false);
+
+  useEffect(() => {
+    setCatDraft(resolvedCategory);
+    setEditingCat(false);
+  }, [resolvedCategory, itemKey]);
+
+  useEffect(() => {
+    setNameDraft(displayName || "");
+    setEditingName(false);
+  }, [displayName, itemKey]);
+
+  const saveCategory = () => {
+    const next = catDraft.trim();
+    setEditingCat(false);
+    if (typeof onSaveProductCategory !== "function") return;
+    if (next === resolvedCategory) return;
+    onSaveProductCategory(itemKey, next);
+  };
+
+  const openAdd = () => openAddStock("in", displayName, branchOpt);
+
+  const saveName = async () => {
+    const next = nameDraft.trim().replace(/\s+/g, " ");
+    setEditingName(false);
+    if (!next || next === (displayName || "").trim()) return;
+    if (typeof onRenameProduct !== "function") return;
+    const ok = await onRenameProduct(itemKey, next);
+    if (!ok) setNameDraft(displayName || "");
+  };
 
   return (
     <OverlayScreen>
-      <PageHeader title={displayName || "Product"} onBack={onClose} />
+      <PageHeader
+        title={displayName || "Product"}
+        onBack={onClose}
+        right={
+          <div className="detail-hdr-actions">
+            {typeof onRenameProduct === "function" && !editingName && (
+              <button
+                type="button"
+                className="icon-btn icon-btn-sm"
+                onClick={() => setEditingName(true)}
+                aria-label="Rename product"
+              >
+                <IcEdit />
+              </button>
+            )}
+            <button type="button" className="icon-btn icon-btn-sm" onClick={openAdd} aria-label="Add stock">
+              <IcPlus />
+            </button>
+          </div>
+        }
+      />
       <div className="overlay-scroll">
         <div className="form-sections">
           <div className="form-card inv-item-detail-summary">
+            {typeof onRenameProduct === "function" && (
+              <div className="inv-item-name-block">
+                <span className="inv-item-name-lbl">Product name</span>
+                {editingName ? (
+                  <input
+                    type="text"
+                    className="inv-item-name-input"
+                    value={nameDraft}
+                    onChange={(e) => setNameDraft(e.target.value)}
+                    onBlur={() => void saveName()}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        void saveName();
+                      }
+                      if (e.key === "Escape") {
+                        setNameDraft(displayName || "");
+                        setEditingName(false);
+                      }
+                    }}
+                    placeholder="Product name"
+                    autoComplete="off"
+                    autoFocus
+                    aria-label="Product name"
+                  />
+                ) : (
+                  <div className="inv-item-name-display">
+                    <strong className="inv-item-name-val">{displayName || "—"}</strong>
+                    <button
+                      type="button"
+                      className="icon-btn icon-btn-sm inv-item-cat-edit-btn"
+                      onClick={() => setEditingName(true)}
+                      aria-label="Rename product"
+                    >
+                      <IcEdit />
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
             {branchName && (
               <p className="inv-item-detail-branch">
                 <span className="inv-item-detail-branch-lbl">Branch</span> {branchName}
               </p>
             )}
             {summaryRow ? (
-              <dl className="inv-item-detail-dl">
-                <div>
-                  <dt>On hand</dt>
-                  <dd>
+              <div className="detail-kpi-grid inv-item-detail-kpis">
+                <div className="detail-kpi">
+                  <span className="detail-kpi-lbl">On hand</span>
+                  <strong className="detail-kpi-val">
                     {summaryRow.currentQty % 1 === 0 ? summaryRow.currentQty : summaryRow.currentQty.toFixed(2)} Nos
-                  </dd>
+                  </strong>
                 </div>
-                <div>
-                  <dt>Avg cost</dt>
-                  <dd className="fin-amount">{moneyFull(summaryRow.avgCost)}</dd>
+                <div className="detail-kpi">
+                  <span className="detail-kpi-lbl">Avg cost</span>
+                  <strong className="detail-kpi-val fin-amount">{moneyFull(summaryRow.avgCost)}</strong>
                 </div>
-                <div>
-                  <dt>Stock value</dt>
-                  <dd className="fin-amount">{moneyFull(summaryRow.stockValue)}</dd>
+                <div className="detail-kpi">
+                  <span className="detail-kpi-lbl">Stock value</span>
+                  <strong className="detail-kpi-val fin-amount">{moneyFull(summaryRow.stockValue)}</strong>
                 </div>
-              </dl>
+                {typeof onSaveProductCategory === "function" ? (
+                  <div className="detail-kpi inv-item-detail-cat-kpi">
+                    <span className="detail-kpi-lbl">Category</span>
+                    {editingCat ? (
+                      <div className="inv-item-cat-edit">
+                        <input
+                          type="text"
+                          className="inv-item-cat-input"
+                          value={catDraft}
+                          onChange={(e) => setCatDraft(e.target.value)}
+                          onBlur={saveCategory}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              saveCategory();
+                            }
+                            if (e.key === "Escape") {
+                              setCatDraft(resolvedCategory);
+                              setEditingCat(false);
+                            }
+                          }}
+                          placeholder="e.g. Lithium battery"
+                          autoComplete="off"
+                          autoFocus
+                          aria-label="Product category"
+                        />
+                      </div>
+                    ) : (
+                      <div className="inv-item-cat-display">
+                        <strong className="detail-kpi-val">{resolvedCategory || "—"}</strong>
+                        <button
+                          type="button"
+                          className="icon-btn icon-btn-sm inv-item-cat-edit-btn"
+                          onClick={() => setEditingCat(true)}
+                          aria-label="Edit category"
+                        >
+                          <IcEdit />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ) : resolvedCategory ? (
+                  <div className="detail-kpi">
+                    <span className="detail-kpi-lbl">Category</span>
+                    <strong className="detail-kpi-val">{resolvedCategory}</strong>
+                  </div>
+                ) : null}
+              </div>
             ) : (
               <p className="inv-item-detail-empty-sum">No quantity on hand for this filter.</p>
             )}
+            {editingCat && stockCategorySuggestions.length > 0 && (
+              <p className="inv-item-cat-hint">
+                Suggestions: {stockCategorySuggestions.slice(0, 6).join(", ")}
+                {stockCategorySuggestions.length > 6 ? "…" : ""}
+              </p>
+            )}
           </div>
 
-          {typeof onSaveProductCategory === "function" && (
-            <div className="form-card">
-              <Field label="Category">
-                <input
-                  type="text"
-                  value={catDraft}
-                  onChange={(e) => setCatDraft(e.target.value)}
-                  onBlur={() => {
-                    const next = catDraft.trim();
-                    if (next === resolvedCategory) return;
-                    onSaveProductCategory(itemKey, next);
-                  }}
-                  placeholder="e.g. Scooty, Lithium battery"
-                  autoComplete="off"
-                  aria-label="Product category"
-                />
-              </Field>
-              {stockCategorySuggestions.length > 0 && (
-                <p className="settings-inline-hint" style={{ marginTop: 8 }}>
-                  Suggestions: {stockCategorySuggestions.slice(0, 6).join(", ")}
-                  {stockCategorySuggestions.length > 6 ? "..." : ""}
-                </p>
-              )}
-              <p className="settings-inline-hint" style={{ marginTop: 8 }}>
-                Applies to this product everywhere. Used for grouping on the Products page.
-              </p>
-            </div>
-          )}
-
           <div className="inv-item-detail-actions">
-            <button
-              type="button"
-              className="inv-detail-act inv-detail-act-in inv-detail-act--solo"
-              onClick={() => openAddStock("in", displayName, branchOpt)}
-            >
+            <button type="button" className="inv-detail-act inv-detail-act-in inv-detail-act--solo" onClick={openAdd}>
               <IcPlus />
               Add stock
             </button>
@@ -178,8 +291,8 @@ export function InventoryItemDetailScreen({
                             {Number(inv.qty) % 1 === 0 ? inv.qty : Number(inv.qty).toFixed(2)}
                           </span>
                           {cash > 0 && <span className="inv-move-cash">{money(cash)} paid</span>}
-                          <span className="inv-move-chev" aria-hidden>
-                            <IcChevR />
+                          <span className="inv-move-edit-ic" aria-hidden>
+                            <IcEdit />
                           </span>
                         </div>
                       </button>

@@ -1,4 +1,4 @@
-import { dateSlash, moneyFull, num, todayStr } from "@/domain/index.js";
+import { dateSlash, moneyFull, num, todayStr, bankAccountCountsInBalanceSheet } from "@/domain/index.js";
 import { IcChevD } from "@/shared/ui/icons/AppIcons.jsx";
 import { Field, BsRow, TabPageChrome } from "@/shared/ui/layout/AppChrome.jsx";
 
@@ -33,6 +33,7 @@ function BsLineGroup({ title, hint, total, children, defaultOpen = false }) {
 export function AccountsOverviewTab({ state, balSum, saveOtherBalance, onOpenSidebar }) {
   const balance = state.balance || {};
   const bankAccounts = balance.bankAccounts || [];
+  const bankAccountsOnSheet = bankAccounts.filter(bankAccountCountsInBalanceSheet);
   const fixedAssetAccounts = balance.fixedAssetAccounts || [];
   const loanSchedule = balance.loanSchedule || [];
   const retainedOps = num(balSum.netCapital) - num(balance.ownerCapitalInvested);
@@ -49,6 +50,11 @@ export function AccountsOverviewTab({ state, balSum, saveOtherBalance, onOpenSid
         <span className="nw-live-dot" aria-hidden="true" />
         <span className="nw-live-text">Snapshot from your books</span>
         <span className="nw-live-date">{dateSlash(todayStr())}</span>
+      </div>
+
+      <div className="bs-hdr-card bs-hdr-card--sheet-top">
+        <p className="bs-co">{state.settings.businessName || "Business"}</p>
+        <p className="bs-doc">Balance sheet · {dateSlash(todayStr())}</p>
       </div>
 
       <div className="banking-summary bs-summary-strip" aria-label="Balance sheet totals">
@@ -69,32 +75,21 @@ export function AccountsOverviewTab({ state, balSum, saveOtherBalance, onOpenSid
         </div>
       </div>
 
-      <div className="bs-equation-hint" role="note">
-        What you own ({moneyFull(balSum.totalAssets)}) − what you owe ({moneyFull(balSum.totalLiab)}) = your stake (
-        {moneyFull(balSum.netCapital)})
-      </div>
-
       <div className="tab-page-scroll">
         <div className="fin-overview">
-          <div className="bs-hdr-card">
-            <p className="bs-co">{state.settings.businessName || "Business"}</p>
-            <p className="bs-doc">Balance sheet · {dateSlash(todayStr())}</p>
-          </div>
-
           <section className="bs-section" aria-labelledby="bs-assets-hd">
             <h2 id="bs-assets-hd" className="bs-section-hd">
               What you own
             </h2>
-            <p className="bs-section-intro">Cash, stock, and other things the business holds today.</p>
 
             <p className="bs-sub-hd">Ready to use</p>
-            {bankAccounts.length === 0 ? (
+            {bankAccountsOnSheet.length === 0 ? (
               <BsRow label="Money in bank" value={0} />
-            ) : bankAccounts.length === 1 ? (
-              <BsRow label={bankAccounts[0].name || "Money in bank"} value={balSum.bankTotal} />
+            ) : bankAccountsOnSheet.length === 1 ? (
+              <BsRow label={bankAccountsOnSheet[0].name || "Money in bank"} value={balSum.bankTotal} />
             ) : (
-              <BsLineGroup title="Money in bank" hint="All accounts" total={balSum.bankTotal}>
-                {bankAccounts.map((a) => (
+              <BsLineGroup title="Money in bank" hint="Included accounts" total={balSum.bankTotal}>
+                {bankAccountsOnSheet.map((a) => (
                   <BsRow key={a.id} indent label={a.name} value={a.amount} />
                 ))}
               </BsLineGroup>
@@ -135,7 +130,6 @@ export function AccountsOverviewTab({ state, balSum, saveOtherBalance, onOpenSid
             <h2 id="bs-liab-hd" className="bs-section-hd">
               What you owe
             </h2>
-            <p className="bs-section-intro">Money the business still needs to pay suppliers, banks, and others.</p>
 
             {hasAmount(balance.supplierPayables) ? (
               <BsRow label="Supplier dues (manual)" value={balance.supplierPayables} />
@@ -170,17 +164,12 @@ export function AccountsOverviewTab({ state, balSum, saveOtherBalance, onOpenSid
             <h2 id="bs-equity-hd" className="bs-section-hd">
               Your stake
             </h2>
-            <p className="bs-section-intro">What is left for you after paying everyone the business owes.</p>
 
             {hasAmount(balance.ownerCapitalInvested) ? (
               <BsRow label="Your declared investment" value={balance.ownerCapitalInvested} />
             ) : null}
             <BsRow label="Profit kept in the business" value={retainedOps} signed />
             <BsRow label="Your stake (net worth)" value={balSum.netCapital} grand />
-            <p className="bs-footnote">
-              Profit kept = total assets minus liabilities minus what you entered as investment. Update investment on the Net
-              Worth screen.
-            </p>
           </section>
 
           <details className="form-card form-card-details bs-manual-card">
@@ -204,7 +193,6 @@ export function AccountsOverviewTab({ state, balSum, saveOtherBalance, onOpenSid
                   defaultValue={balance.supplierPayables}
                 />
               </Field>
-              <p className="form-hint bs-manual-hint">Use this only for payables you have not entered under Purchases.</p>
               <Field label="Loans &amp; other liabilities (₹)">
                 <input name="loans" type="number" min="0" step="0.01" key={`ln-${balance.loans}`} defaultValue={balance.loans} />
               </Field>

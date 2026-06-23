@@ -98,6 +98,7 @@ export function InventoryTab({
           invRows={sortedRows}
           onDeleteItem={onDeleteItem}
           onOpenItem={(row) => openInventoryItemDetail(row, branchChip)}
+          onAddStockForItem={(item) => openAddStock("in", item, branchChip || null)}
         />
       </div>
       <button type="button" className="fab" onClick={() => openAddStock("in")} aria-label="Add stock">

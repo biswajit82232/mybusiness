@@ -1,18 +1,7 @@
 import { Virtuoso } from "react-virtuoso";
 import { saleStatus, money, dateHuman } from "@/domain/index.js";
+import { avatarColor, avatarInitials } from "@/features/customers/avatarUtils.js";
 import { useMainStageScrollParent } from "@/features/main-stage/MainStageScrollContext.jsx";
-
-const AV_COLORS = ["av-blue", "av-green", "av-purple", "av-orange", "av-teal", "av-indigo", "av-amber", "av-red"];
-
-function getInitials(name) {
-  return (name || "?").trim().split(/\s+/).slice(0, 2).map((w) => w[0] || "").join("").toUpperCase() || "?";
-}
-
-function avatarColor(name) {
-  let h = 0;
-  for (let i = 0; i < (name || "").length; i++) h = ((h << 5) - h + (name || "").charCodeAt(i)) | 0;
-  return AV_COLORS[Math.abs(h) % AV_COLORS.length];
-}
 
 /** Resets visible count when `key` on parent changes (filter / period / search). */
 export function PaginatedSaleList({ filteredSales = [], openSaleDetail, emptyState, defaultDueDays = 30 }) {
@@ -33,8 +22,8 @@ export function PaginatedSaleList({ filteredSales = [], openSaleDetail, emptySta
         const extraLines = lineCount > 1 ? lineCount - 1 : 0;
         return (
           <button key={sale.id} type="button" className={`sale-row sale-row--${st.cls}`} onClick={() => openSaleDetail(sale.id)}>
-            <div className={`sr-av ${avatarColor(sale.customerName)}`}>
-              {getInitials(sale.customerName)}
+            <div className={`avatar ${avatarColor(sale.customerName)}`}>
+              {avatarInitials(sale.customerName)}
             </div>
             <div className="sr-left">
               <span className="sr-name">{sale.customerName}</span>

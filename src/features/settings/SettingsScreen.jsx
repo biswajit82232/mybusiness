@@ -150,8 +150,8 @@ export function SettingsScreen({
           k: "invoice",
           icon: <IcSales />,
           title: "Invoice settings",
-          subtitle: "Prefix, payment due days",
-          keywords: ["invoice", "prefix", "due", "payment", "sale", "bill"],
+          subtitle: "Prefix, due days, sales target",
+          keywords: ["invoice", "prefix", "due", "payment", "sale", "bill", "target", "goal", "monthly"],
         },
         {
           k: "accounting",
@@ -489,6 +489,7 @@ export function SettingsScreen({
                   invoiceNextNumber: num(d.get("invoiceNextNumber")),
                   billOfSupplyNextNumber: num(d.get("billOfSupplyNextNumber")),
                   defaultDueDays: num(d.get("defaultDueDays")),
+                  monthlySalesTarget: num(d.get("monthlySalesTarget")),
                 });
               }}
             >
@@ -529,6 +530,17 @@ export function SettingsScreen({
                   </Field>
                   <Field label="Default due days">
                     <input name="defaultDueDays" type="number" min="1" max="365" key={`dd-${settings.defaultDueDays}`} defaultValue={settings.defaultDueDays} />
+                  </Field>
+                  <Field label="Monthly sales target (no. of sales)">
+                    <input
+                      name="monthlySalesTarget"
+                      type="number"
+                      min="0"
+                      step="1"
+                      key={`mst-${settings.monthlySalesTarget ?? 0}`}
+                      defaultValue={settings.monthlySalesTarget ?? 0}
+                      placeholder="e.g. 10"
+                    />
                   </Field>
                 </div>
               </div>

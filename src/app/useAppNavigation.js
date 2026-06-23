@@ -709,7 +709,7 @@ export function useAppNavigation({
         ...p.balance,
         bankAccounts: [
           ...(p.balance.bankAccounts || []),
-          { id, name: "New Account", amount: 0, openingBalance: 0, balanceAdjustment: 0, kind: "bank" },
+          { id, name: "New Account", amount: 0, openingBalance: 0, balanceAdjustment: 0, kind: "bank", excludeFromBalanceSheet: false, excludeFromLiquid: false },
         ],
       },
     }));

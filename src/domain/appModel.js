@@ -809,6 +809,55 @@ export function sumAccounts(arr) {
   return arr.reduce((s,a) => s + num(a?.amount), 0);
 }
 
+/** When true, account balance counts toward balance sheet / net worth bank total. */
+export function bankAccountCountsInBalanceSheet(acc) {
+  return !!(acc && acc.id) && acc.excludeFromBalanceSheet !== true;
+}
+
+/** When true, account balance counts toward Banking tab "Total liquid". */
+export function bankAccountCountsInLiquidTotal(acc) {
+  return !!(acc && acc.id) && acc.excludeFromLiquid !== true;
+}
+
+/** Sum stored book balances (`amount`) for accounts matching predicate. */
+export function sumBankAccountBalances(accounts, predicate = () => true) {
+  const arr = Array.isArray(accounts) ? accounts : [];
+  return roundMoney2(arr.filter((a) => a && a.id && predicate(a)).reduce((s, a) => s + num(a.amount), 0));
+}
+
+/** Banking tab / dashboard “Total liquid” — sum of book balances for non-excluded accounts. */
+export function computeTotalLiquid({
+  bankAccounts = [],
+  transfers = [],
+  expenses = [],
+  sales = [],
+  inventoryEntries = [],
+  otherIncomes = [],
+  purchases = [],
+  loansGiven = [],
+} = {}) {
+  const accounts = Array.isArray(bankAccounts) ? bankAccounts : [];
+  return roundMoney2(
+    accounts
+      .filter(bankAccountCountsInLiquidTotal)
+      .reduce(
+        (sum, acc) =>
+          sum +
+          computeBankAccountBookBalance(
+            acc,
+            expenses,
+            sales,
+            transfers,
+            inventoryEntries,
+            otherIncomes,
+            purchases,
+            loansGiven,
+          ),
+        0,
+      ),
+  );
+}
+
 export function detectFyYear(sm=4) {
   const n = new Date(); const m = n.getMonth()+1;
   return m >= sm ? n.getFullYear() : n.getFullYear()-1;
@@ -2425,6 +2474,8 @@ export function normBalance(raw) {
           openingBalance,
           balanceAdjustment,
           kind: normalizeBankAccountKind(name, x?.kind),
+          excludeFromBalanceSheet: x?.excludeFromBalanceSheet === true,
+          excludeFromLiquid: x?.excludeFromLiquid === true,
         };
       })
     : [];
@@ -2831,6 +2882,53 @@ export function findInvRowByItemName(rows, name) {
     if (normalizeItemKey(r.item) === key) return r;
   }
   return null;
+}
+
+function inventoryItemMatchesKey(item, oldKey) {
+  return normalizeItemKey(item) === oldKey;
+}
+
+/** Rename a stock product everywhere it appears (entries, sales lines, bundles, purchase lines). */
+export function renameInventoryProductInState(state, oldItemKey, newNameRaw) {
+  if (!state || typeof state !== "object") return state;
+  const oldKey = normalizeItemKey(oldItemKey);
+  const newName = String(newNameRaw || "")
+    .trim()
+    .replace(/\s+/g, " ");
+  if (!oldKey || !newName) return state;
+  if (normalizeItemKey(newName) === oldKey) return state;
+
+  const match = (item) => inventoryItemMatchesKey(item, oldKey);
+
+  const inventoryEntries = (state.inventoryEntries || []).map((e) =>
+    e && match(e.item) ? { ...e, item: newName } : e,
+  );
+
+  const sales = (state.sales || []).map((s) => {
+    if (!s || typeof s !== "object") return s;
+    const lineItems = Array.isArray(s.lineItems)
+      ? s.lineItems.map((li) => (li && match(li.item) ? { ...li, item: newName } : li))
+      : s.lineItems;
+    let item = match(s.item) ? newName : s.item;
+    if (Array.isArray(lineItems) && lineItems.length > 0) {
+      item = lineItems[0].item ?? item;
+    }
+    return { ...s, lineItems, item };
+  });
+
+  const bundles = (state.bundles || []).map((b) => {
+    if (!b || typeof b !== "object") return b;
+    const lines = (b.lines || []).map((l) => (l && match(l.item) ? { ...l, item: newName } : l));
+    return { ...b, lines };
+  });
+
+  const purchases = (state.purchases || []).map((p) => {
+    if (!p || typeof p !== "object") return p;
+    const lines = (p.lines || []).map((l) => (l && match(l.item) ? { ...l, item: newName } : l));
+    return { ...p, lines };
+  });
+
+  return { ...state, inventoryEntries, sales, bundles, purchases };
 }
 
 /** Stock rows for one branch only (for Branch page). */
@@ -4164,6 +4262,8 @@ export const defaultState = applyComputedBankBalances({
     businessPhone:"",
     businessWhatsapp:"",
     defaultDueDays:30,
+    /** Monthly sales count goal. 0 = not set; shown on dashboard. */
+    monthlySalesTarget: 0,
     invoicePrefix:"MB",
     billOfSupplyPrefix:"BOS",
     invoiceNextNumber: 1,
@@ -4225,6 +4325,7 @@ export function mergePersistedPayload(p) {
         ...defaultState.settings,...settingsIn,
         fyYear: settingsIn?.fyYear ?? detectFyYear(settingsIn?.financialYearStartMonth??4),
         defaultDueDays: Math.min(365,Math.max(1,num(settingsIn?.defaultDueDays)||30)),
+        monthlySalesTarget: Math.max(0, Math.floor(num(settingsIn?.monthlySalesTarget) || 0)),
         invoicePrefix: sanitizePrefix(settingsIn?.invoicePrefix??"MB"),
         billOfSupplyPrefix: sanitizePrefix(settingsIn?.billOfSupplyPrefix ?? "BOS"),
         invoiceNextNumber: Math.max(1, num(settingsIn?.invoiceNextNumber) || 1),

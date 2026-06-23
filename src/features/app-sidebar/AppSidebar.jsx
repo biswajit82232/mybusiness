@@ -12,7 +12,6 @@ import {
   IcLandmark,
   IcLedger,
   IcLogout,
-  IcMoon,
   IcNetWorth,
   IcReceivable,
   IcServicing,
@@ -20,13 +19,12 @@ import {
   IcReport,
   IcSales,
   IcSettings,
-  IcSearch,
   IcSpend,
-  IcSun,
   IcUsers,
   IcUpload,
   IcX,
 } from "@/shared/ui/icons/AppIcons.jsx";
+import { memo } from "react";
 import { prefetchMainStagePage } from "@/features/main-stage/lazyMainStageScreens.jsx";
 
 /** Warm route chunks on hover/focus so taps feel instant after browsing the menu. */
@@ -35,7 +33,7 @@ function tabPrefetchProps(pageId) {
   return { onPointerEnter: run, onFocus: run };
 }
 
-export function AppSidebar({ open, onClose, page, screen, alertCount, goPage, darkMode, setDarkMode, pendingOutbox = 0, onLogout, onOpenSearch }) {
+export const AppSidebar = memo(function AppSidebar({ open, onClose, page, screen, alertCount, goPage, pendingOutbox = 0, onLogout }) {
   const nav = (pageId) => {
     goPage(pageId);
   };
@@ -65,19 +63,6 @@ export function AppSidebar({ open, onClose, page, screen, alertCount, goPage, da
           </span>
           <span className="sidebar-item-label">Dashboard</span>
           {alertCount > 0 && <span className="sidebar-item-badge">{alertCount > 99 ? "99+" : alertCount}</span>}
-        </button>
-        <button
-          type="button"
-          className={`sidebar-item${screen === "search" ? " active" : ""}`}
-          onClick={() => {
-            onOpenSearch?.();
-            onClose?.();
-          }}
-        >
-          <span className="sidebar-item-icon">
-            <IcSearch />
-          </span>
-          <span className="sidebar-item-label">Search</span>
         </button>
 
         <p className="sidebar-section-label">Sales</p>
@@ -341,10 +326,6 @@ export function AppSidebar({ open, onClose, page, screen, alertCount, goPage, da
             </span>
           )}
         </button>
-        <button type="button" className="sidebar-item" onClick={() => setDarkMode((d) => !d)} aria-label="Toggle theme">
-          <span className="sidebar-item-icon">{darkMode ? <IcSun /> : <IcMoon />}</span>
-          <span className="sidebar-item-label">{darkMode ? "Light" : "Dark"}</span>
-        </button>
         <button
           type="button"
           className="sidebar-item"
@@ -362,4 +343,4 @@ export function AppSidebar({ open, onClose, page, screen, alertCount, goPage, da
       </div>
     </nav>
   );
-}
+});

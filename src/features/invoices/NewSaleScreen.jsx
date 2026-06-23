@@ -73,7 +73,6 @@ export function NewSaleScreen({
   bankAccounts = [],
   autoStockOutOnSale = false,
   stockPickRows = [],
-  defaultBranchLabel = "",
   /** Aggregated inventory rows — item picker when not using branch stock-out list */
   invRows = [],
   invoicePrefix = "MB",
@@ -223,7 +222,7 @@ export function NewSaleScreen({
   }, [isEdit, entry.invoiceNo, suggestedInvoiceNo, upd]);
 
   return (
-    <OverlayScreen className="overlay-screen--form-footer">
+    <OverlayScreen className="overlay-screen--form-footer overlay-screen--new-sale">
       <PageHeader title={isEdit ? "Edit Sale" : "New Sale"} onBack={onClose} />
       <div className="overlay-scroll overlay-scroll--form-body">
         <form id="form-new-sale" className="form-sections" onSubmit={onSubmit}>
@@ -434,10 +433,7 @@ export function NewSaleScreen({
                 <span className="form-card-meta">{lineItems.length} rows</span>
               ) : null}
             </div>
-            <p className="sale-lines-lead">
-              Add one row per product or service. Quantities and rates roll up to the invoice total.
-            </p>
-            <div className="form-stack">
+            <div className="form-stack form-stack--invoice-lines">
               {lineItems.map((li, idx) => (
                 <LineItemRow
                   key={li.id}
@@ -446,7 +442,6 @@ export function NewSaleScreen({
                   total={lineItems.length}
                   showStockItemPick={showStockItemPick}
                   stockPickRows={stockPickRows}
-                  defaultBranchLabel={defaultBranchLabel}
                   invRows={invRows}
                   onUpdate={(patch) => updLine(idx, patch)}
                   onRemove={() => removeLine(idx)}
@@ -492,69 +487,70 @@ export function NewSaleScreen({
                   onChange={(e) => upd("discount", e.target.value)}
                 />
               </Field>
-              <div className="form-card">
-                <div className="form-card-title">Payment received</div>
-                <div className="form-stack">
-                  {paymentLines.map((line, idx) => (
-                    <div key={line.id} className="payment-split-row">
-                      <div className="field-row">
-                        <Field label={idx === 0 ? "Amount (₹)" : "Amount (₹)"}>
-                          <input
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            placeholder="0"
-                            value={line.amount}
-                            onChange={(e) => updPaymentLine(idx, { amount: e.target.value })}
-                          />
-                        </Field>
-                        {banks.length > 0 ? (
-                          <Field label="Deposit to">
-                            <MenuSelect
-                              value={
-                                banks.some((b) => String(b.id) === String(line.bankAccountId))
-                                  ? line.bankAccountId
-                                  : getDefaultBankAccountId(banks)
-                              }
-                              onChange={(v) => updPaymentLine(idx, { bankAccountId: v })}
-                              options={banks.map((b) => ({
-                                value: b.id,
-                                label: (b.name || "").trim() || "Account",
-                              }))}
-                            />
-                          </Field>
-                        ) : (
-                          <span className="field-row-spacer" aria-hidden="true" />
-                        )}
-                      </div>
-                      {paymentLines.length > 1 ? (
-                        <button
-                          type="button"
-                          className="ghost-btn ghost-btn--compact payment-split-remove"
-                          onClick={() => removePaymentLine(idx)}
-                        >
-                          Remove
-                        </button>
-                      ) : null}
-                    </div>
-                  ))}
-                  {banks.length > 0 && totalSale > 0 ? (
+            </div>
+          </div>
+
+          <div className="form-card">
+            <div className="form-card-title">Payment received</div>
+            <div className="form-stack">
+              {paymentLines.map((line, idx) => (
+                <div key={line.id} className="payment-split-row">
+                  <div className="field-row">
+                    <Field label={idx === 0 ? "Amount (₹)" : "Amount (₹)"}>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        placeholder="0"
+                        value={line.amount}
+                        onChange={(e) => updPaymentLine(idx, { amount: e.target.value })}
+                      />
+                    </Field>
+                    {banks.length > 0 ? (
+                      <Field label="Deposit to">
+                        <MenuSelect
+                          value={
+                            banks.some((b) => String(b.id) === String(line.bankAccountId))
+                              ? line.bankAccountId
+                              : getDefaultBankAccountId(banks)
+                          }
+                          onChange={(v) => updPaymentLine(idx, { bankAccountId: v })}
+                          options={banks.map((b) => ({
+                            value: b.id,
+                            label: (b.name || "").trim() || "Account",
+                          }))}
+                        />
+                      </Field>
+                    ) : (
+                      <span className="field-row-spacer" aria-hidden="true" />
+                    )}
+                  </div>
+                  {paymentLines.length > 1 ? (
                     <button
                       type="button"
-                      className="ghost-btn ghost-btn--full form-add-line-btn"
-                      onClick={addPaymentLine}
-                      aria-label="Split payment across accounts"
+                      className="ghost-btn ghost-btn--compact payment-split-remove"
+                      onClick={() => removePaymentLine(idx)}
                     >
-                      + Split across accounts
+                      Remove
                     </button>
                   ) : null}
-                  {recvNum > 0 && outstanding > 0.01 ? (
-                    <p className="form-hint payment-split-hint">
-                      {money(recvNum)} received · {money(outstanding)} still due
-                    </p>
-                  ) : null}
                 </div>
-              </div>
+              ))}
+              {banks.length > 0 && totalSale > 0 ? (
+                <button
+                  type="button"
+                  className="ghost-btn ghost-btn--full form-add-line-btn"
+                  onClick={addPaymentLine}
+                  aria-label="Split payment across accounts"
+                >
+                  + Split across accounts
+                </button>
+              ) : null}
+              {recvNum > 0 && outstanding > 0.01 ? (
+                <p className="form-hint payment-split-hint">
+                  {money(recvNum)} received · {money(outstanding)} still due
+                </p>
+              ) : null}
             </div>
           </div>
 
@@ -702,7 +698,6 @@ function LineItemRow({
   total,
   showStockItemPick,
   stockPickRows,
-  defaultBranchLabel,
   invRows,
   onUpdate,
   onRemove,
@@ -734,11 +729,7 @@ function LineItemRow({
               catalogPick={line.itemProductPick}
               onCatalogPickChange={(v) => onUpdate({ itemProductPick: v })}
               stockQtyMode={showStockItemPick}
-              hint={
-                showStockItemPick && idx === 0 && defaultBranchLabel
-                  ? `Stock list: default branch (${defaultBranchLabel}). Matches auto stock-out.`
-                  : ""
-              }
+              searchable={false}
               required
               onItemChange={(v) => onUpdate({ item: v })}
               onPickRow={(row) => {

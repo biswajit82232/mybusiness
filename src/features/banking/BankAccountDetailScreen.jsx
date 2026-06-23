@@ -191,6 +191,40 @@ export function BankAccountDetailScreen({
                     ]}
                   />
                 </Field>
+                <div className="bank-acct-exclude-block">
+                  <div className="toggle-row bank-acct-exclude-row">
+                    <div>
+                      <div className="toggle-label">Exclude from balance sheet</div>
+                      <div className="toggle-sub">
+                        Profit, personal, or tracking accounts — not counted in assets or net worth
+                      </div>
+                    </div>
+                    <label className="toggle-switch" aria-label="Exclude from balance sheet">
+                      <input
+                        type="checkbox"
+                        checked={!!account.excludeFromBalanceSheet}
+                        onChange={(e) => onPatch({ excludeFromBalanceSheet: e.target.checked })}
+                      />
+                      <span className="toggle-track" />
+                    </label>
+                  </div>
+                  <div className="toggle-row bank-acct-exclude-row">
+                    <div>
+                      <div className="toggle-label">Exclude from liquid total</div>
+                      <div className="toggle-sub">
+                        Hidden from Banking “Total liquid” — use for non-operating cash you still track here
+                      </div>
+                    </div>
+                    <label className="toggle-switch" aria-label="Exclude from liquid total">
+                      <input
+                        type="checkbox"
+                        checked={!!account.excludeFromLiquid}
+                        onChange={(e) => onPatch({ excludeFromLiquid: e.target.checked })}
+                      />
+                      <span className="toggle-track" />
+                    </label>
+                  </div>
+                </div>
                 <Field label="Opening balance (₹)">
                   <input
                     type="number"

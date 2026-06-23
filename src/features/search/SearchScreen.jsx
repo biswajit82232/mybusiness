@@ -189,33 +189,39 @@ export function SearchScreen({
   );
 
   return (
-    <OverlayScreen>
-      <div className="search-overlay-bar">
-        <button type="button" className="icon-btn" onClick={onClose} aria-label="Back">
-          <IcBack />
-        </button>
-        <input
-          ref={inputRef}
-          className="search-overlay-input"
-          placeholder="Search invoices, purchases, expenses, inventory, contacts, EMI, bank accounts…"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={onSearchKeyDown}
-          type="search"
-          autoComplete="off"
-          aria-keyshortcuts="Enter"
-          aria-describedby="search-enter-hint"
-        />
-        {query && (
-          <button type="button" className="icon-btn-sm" onClick={() => setQuery("")} aria-label="Clear">
-            <IcX />
+    <OverlayScreen className="overlay-screen--search">
+      <div className="search-overlay-shell">
+        <div className="search-overlay-bar">
+          <button type="button" className="icon-btn search-overlay-back" onClick={onClose} aria-label="Back">
+            <IcBack />
           </button>
-        )}
-      </div>
-      <span id="search-enter-hint" className="sr-only">
-        Enter opens the first result.
-      </span>
-      <div className="list-area search-results-scroll">
+          <input
+            ref={inputRef}
+            className="search-overlay-input"
+            placeholder="Search sales, purchases, contacts…"
+            aria-label="Search invoices, purchases, expenses, inventory, contacts, EMI, and bank accounts"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={onSearchKeyDown}
+            type="search"
+            enterKeyHint="search"
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck={false}
+            aria-keyshortcuts="Enter"
+            aria-describedby="search-enter-hint"
+          />
+          {query ? (
+            <button type="button" className="icon-btn-sm search-overlay-clear" onClick={() => setQuery("")} aria-label="Clear">
+              <IcX />
+            </button>
+          ) : null}
+        </div>
+        <span id="search-enter-hint" className="sr-only">
+          Enter opens the first result.
+        </span>
+        <div className="list-area search-results-scroll">
         {qLen < 1 ? (
           <div className="search-no-results">
             <p>Start typing</p>
@@ -403,6 +409,7 @@ export function SearchScreen({
             )}
           </>
         )}
+        </div>
       </div>
     </OverlayScreen>
   );

@@ -45,6 +45,8 @@ export function useSettingsActions({
         );
       if ("defaultDueDays" in updates)
         s.defaultDueDays = Math.min(365, Math.max(1, num(updates.defaultDueDays) || 30));
+      if ("monthlySalesTarget" in updates)
+        s.monthlySalesTarget = Math.max(0, Math.floor(num(updates.monthlySalesTarget) || 0));
       if ("fyYear" in updates) s.fyYear = num(updates.fyYear) || detectFyYear(s.financialYearStartMonth);
       if ("financialYearStartMonth" in updates)
         s.financialYearStartMonth = num(updates.financialYearStartMonth) || 4;

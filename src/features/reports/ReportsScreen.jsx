@@ -23,7 +23,8 @@ import {
   sumOtherIncomeCashInInFy,
   sumOtherIncomeCashInInMonth,
   saleStatus,
-  sumAccounts,
+  sumBankAccountBalances,
+  bankAccountCountsInBalanceSheet,
   dateSlash,
   todayStr,
 } from "@/domain/index.js";
@@ -204,24 +205,6 @@ export function ReportsScreen({
 
   const expTotal = useMemo(() => expByCat.reduce((s, [, v]) => s + v, 0), [expByCat]);
 
-  const topCustomers = useMemo(() => {
-    const map = new Map();
-    for (const s of filtSales) {
-      const name = (s.customerName || "").trim() || "—";
-      map.set(name, (map.get(name) || 0) + num(s.totalSale));
-    }
-    return [...map.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8);
-  }, [filtSales]);
-
-  const topProducts = useMemo(() => {
-    const map = new Map();
-    for (const s of filtSales) {
-      const it = (s.item || "").trim() || "—";
-      map.set(it, (map.get(it) || 0) + num(s.totalSale));
-    }
-    return [...map.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8);
-  }, [filtSales]);
-
   const receivables = useMemo(
     () =>
       [...sales]
@@ -237,12 +220,9 @@ export function ReportsScreen({
 
   const stockLowCt = invRows.filter((r) => r.currentQty <= 0).length;
   const emiLoanSum = emiEntries.reduce((a, e) => a + num(e.loanAmount), 0);
-  const bankTotal = sumAccounts(balance.bankAccounts);
+  const bankTotal = sumBankAccountBalances(balance.bankAccounts, bankAccountCountsInBalanceSheet);
   const rangeLabel =
     range === "fy" ? `FY ${fyStr}` : range === "month" ? formatMonthLabel(String(reportMonth).slice(0, 7)) : "All time";
-
-  const topCustMax = topCustomers.length ? topCustomers[0][1] : 1;
-  const topProdMax = topProducts.length ? topProducts[0][1] : 1;
 
   return (
     <TabPageChrome title="Reports" onOpenSidebar={onOpenSidebar} className="tab-page--reports">
@@ -460,56 +440,6 @@ export function ReportsScreen({
             </div>
           )}
         </section>
-
-        <div className="rep-split">
-          <section className="rep-section rep-section--minimal" aria-labelledby="rep-cust-title">
-            <h3 id="rep-cust-title" className="rep-st">
-              Top customers
-            </h3>
-            {topCustomers.length === 0 ? (
-              <p className="rep-empty">No sales in this range.</p>
-            ) : (
-              <div>
-                {topCustomers.map(([name, amt], i) => (
-                  <div key={`c-${i}-${name}`} className="rep-rank-row">
-                    <span className="rep-rank-num">{i + 1}</span>
-                    <span className="rep-rank-name">{name}</span>
-                    <div className="rep-rank-bar-wrap">
-                      <div className="rep-rank-bar-bg">
-                        <div className="rep-rank-bar-fill" style={{ width: `${Math.round((amt / topCustMax) * 100)}%` }} />
-                      </div>
-                      <span className="rep-rank-amt">{money(amt)}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </section>
-
-          <section className="rep-section rep-section--minimal" aria-labelledby="rep-prod-title">
-            <h3 id="rep-prod-title" className="rep-st">
-              Top products
-            </h3>
-            {topProducts.length === 0 ? (
-              <p className="rep-empty">No sales in this range.</p>
-            ) : (
-              <div>
-                {topProducts.map(([name, amt], i) => (
-                  <div key={`p-${i}-${name}`} className="rep-rank-row">
-                    <span className="rep-rank-num">{i + 1}</span>
-                    <span className="rep-rank-name">{name}</span>
-                    <div className="rep-rank-bar-wrap">
-                      <div className="rep-rank-bar-bg">
-                        <div className="rep-rank-bar-fill" style={{ width: `${Math.round((amt / topProdMax) * 100)}%` }} />
-                      </div>
-                      <span className="rep-rank-amt">{money(amt)}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </section>
-        </div>
 
         <section className="rep-section rep-section--minimal" aria-labelledby="rep-ar-title">
           <h3 id="rep-ar-title" className="rep-st">

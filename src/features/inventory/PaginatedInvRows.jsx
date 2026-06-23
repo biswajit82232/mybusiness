@@ -1,13 +1,57 @@
 import { Virtuoso } from "react-virtuoso";
 import { money } from "@/domain/index.js";
-import { IcBox, IcTrash } from "@/shared/ui/icons/AppIcons.jsx";
+import { IcBox, IcEdit, IcPlus, IcTrash } from "@/shared/ui/icons/AppIcons.jsx";
 import { EmptyState } from "@/shared/ui/layout/AppChrome.jsx";
 import { useMainStageScrollParent } from "@/features/main-stage/MainStageScrollContext.jsx";
 
 /** Bottom inset for embedded lists (Branches) so last rows clear the fixed FAB — applied on last row. */
 const EMBEDDED_LAST_ROW_PAD = { paddingBottom: "calc(80px + env(safe-area-inset-bottom, 0px))" };
 
-export function PaginatedInvRows({ invRows, onDeleteItem, onOpenItem, virtuosoLayout = "fill" }) {
+function InvRowActions({ row, onOpenItem, onAddStockForItem, onDeleteItem }) {
+  return (
+    <div className="inv-row-actions">
+      {typeof onAddStockForItem === "function" && (
+        <button
+          type="button"
+          className="inv-row-act inv-row-act--add"
+          onClick={(e) => {
+            e.stopPropagation();
+            onAddStockForItem(row.item);
+          }}
+          aria-label={`Add stock for ${row.item}`}
+        >
+          <IcPlus />
+        </button>
+      )}
+      {typeof onOpenItem === "function" && (
+        <button
+          type="button"
+          className="inv-row-act inv-row-act--edit"
+          onClick={(e) => {
+            e.stopPropagation();
+            onOpenItem(row);
+          }}
+          aria-label={`Edit ${row.item}`}
+        >
+          <IcEdit />
+        </button>
+      )}
+      <button
+        type="button"
+        className="inv-row-del"
+        onClick={(e) => {
+          e.stopPropagation();
+          onDeleteItem(row.item.toLowerCase());
+        }}
+        aria-label={`Delete ${row.item}`}
+      >
+        <IcTrash />
+      </button>
+    </div>
+  );
+}
+
+export function PaginatedInvRows({ invRows, onDeleteItem, onOpenItem, onAddStockForItem, virtuosoLayout = "fill" }) {
   const scrollParent = useMainStageScrollParent();
   if (invRows.length === 0) {
     return <EmptyState icon={<IcBox />} title="No stock entries" />;
@@ -35,6 +79,7 @@ export function PaginatedInvRows({ invRows, onDeleteItem, onOpenItem, virtuosoLa
                   </div>
                 </div>
               </button>
+              <InvRowActions row={row} onOpenItem={onOpenItem} onAddStockForItem={onAddStockForItem} onDeleteItem={onDeleteItem} />
             </div>
           </li>
         ))}
@@ -83,17 +128,7 @@ export function PaginatedInvRows({ invRows, onDeleteItem, onOpenItem, virtuosoLa
           ) : (
             <div className="inv-row-main">{main}</div>
           )}
-          <button
-            type="button"
-            className="inv-row-del"
-            onClick={(e) => {
-              e.stopPropagation();
-              onDeleteItem(row.item.toLowerCase());
-            }}
-            aria-label={`Delete ${row.item}`}
-          >
-            <IcTrash />
-          </button>
+          <InvRowActions row={row} onOpenItem={onOpenItem} onAddStockForItem={onAddStockForItem} onDeleteItem={onDeleteItem} />
           </div>
         );
       }}

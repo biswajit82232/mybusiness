@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { EXPENSE_CATEGORY_ALL } from "@/domain/index.js";
 import { IcBell, IcBook, IcMenu, IcSearch } from "@/shared/ui/icons/AppIcons.jsx";
 import { NotifPanel } from "@/features/home/index.js";
@@ -105,7 +106,7 @@ function resolveMobileSubtitle({ screen, page }) {
   return TAB_SUB[page] || "";
 }
 
-export function MobileAppBar({
+export const MobileAppBar = memo(function MobileAppBar({
   onOpenMenu,
   onOpenSearch,
   screen,
@@ -219,4 +220,4 @@ export function MobileAppBar({
       </div>
     </header>
   );
-}
+});

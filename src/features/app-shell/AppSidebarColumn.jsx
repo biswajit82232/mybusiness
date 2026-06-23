@@ -8,11 +8,8 @@ export function AppSidebarColumn({
   screen,
   alertCount,
   goPage,
-  darkMode,
-  setDarkMode,
   pendingOutbox = 0,
   onLogout,
-  onOpenSearch,
 }) {
   return (
     <>
@@ -23,11 +20,8 @@ export function AppSidebarColumn({
         screen={screen}
         alertCount={alertCount}
         goPage={goPage}
-        darkMode={darkMode}
-        setDarkMode={setDarkMode}
         pendingOutbox={pendingOutbox}
         onLogout={onLogout}
-        onOpenSearch={onOpenSearch}
       />
       <div
         className={`sidebar-overlay${open ? " is-open" : ""}`}

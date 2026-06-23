@@ -18,8 +18,6 @@ export function CapitalGrowthScreen({ sales = [], expenses = [], otherIncomes = 
     () => buildMonthlyCapitalSeries(sales, expenses, otherIncomes, mode, fsm, fyYear, reportMonth),
     [sales, expenses, otherIncomes, mode, fsm, fyYear, reportMonth],
   );
-  const lastCum = series.length ? series[series.length - 1].cumulative : 0;
-  const totalNet = series.reduce((s, r) => s + r.netProfit, 0);
 
   return (
     <TabPageChrome title="Growth" onOpenSidebar={onOpenSidebar} className="tab-page--split-scroll tab-page--growth">
@@ -41,23 +39,6 @@ export function CapitalGrowthScreen({ sales = [], expenses = [], otherIncomes = 
             <input type="month" className="month-input" value={reportMonth} onChange={(e) => setReportMonth(e.target.value)} aria-label="Report month" />
           </div>
         )}
-      </div>
-
-      <div className="cg-kpi-band">
-        <div className="cg-kpi">
-          <span className="cg-kpi-lbl">
-            <span className="cg-kpi-lbl-long">Period net profit</span>
-            <span className="cg-kpi-lbl-short">Net profit</span>
-          </span>
-          <strong className={totalNet >= 0 ? "cg-pos" : "cg-neg"}>{moneyFull(totalNet)}</strong>
-        </div>
-        <div className="cg-kpi">
-          <span className="cg-kpi-lbl">
-            <span className="cg-kpi-lbl-long">Cumulative surplus (running)</span>
-            <span className="cg-kpi-lbl-short">Cumulative</span>
-          </span>
-          <strong className={lastCum >= 0 ? "cg-pos" : "cg-neg"}>{moneyFull(lastCum)}</strong>
-        </div>
       </div>
 
       <div className="tab-page-scroll cg-page cg-page--full">

@@ -29,7 +29,10 @@ for (const f of files) {
   } catch {
     continue;
   }
-  if (text.includes("<EmptyState") && /subtitle\s*=/.test(text)) {
+  const emptyStateUsesSubtitle = [...text.matchAll(/<EmptyState[\s\S]*?\/>|<EmptyState[\s\S]*?<\/EmptyState>/g)].some(
+    (m) => /subtitle\s*=/.test(m[0]),
+  );
+  if (emptyStateUsesSubtitle) {
     issues.push(`${f}: EmptyState may use invalid prop "subtitle" (use "sub")`);
   }
   if (/\bdangerouslySetInnerHTML\s*=/.test(text)) {

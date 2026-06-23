@@ -1,7 +1,12 @@
 import { useCallback } from "react";
+import {
+  computeInvRowsAggregated,
+  normalizeItemKey,
+  renameInventoryProductInState,
+} from "@/domain/index.js";
 
 /**
- * Inventory catalog helpers (product category on stock rows).
+ * Inventory catalog helpers (product category on stock rows, rename product).
  */
 export function useInventoryActions({ state, showToast, setState, persistWholeStateImmediate }) {
   const patchInventoryProductCategory = useCallback(
@@ -30,5 +35,45 @@ export function useInventoryActions({ state, showToast, setState, persistWholeSt
     [persistWholeStateImmediate, setState, showToast, state],
   );
 
-  return { patchInventoryProductCategory };
+  const renameInventoryProduct = useCallback(
+    async (itemKey, newName, onRenamed) => {
+      const oldKey = normalizeItemKey(itemKey);
+      const name = String(newName || "")
+        .trim()
+        .replace(/\s+/g, " ");
+      if (!oldKey || !name) {
+        showToast("Enter a product name");
+        return false;
+      }
+      if (normalizeItemKey(name) === oldKey) return true;
+
+      const rows = computeInvRowsAggregated(state.inventoryEntries || []);
+      const clash = rows.find(
+        (r) => r?.item && normalizeItemKey(r.item) === normalizeItemKey(name) && normalizeItemKey(r.item) !== oldKey,
+      );
+      if (clash) {
+        showToast("A product with that name already exists");
+        return false;
+      }
+
+      const next = renameInventoryProductInState(state, oldKey, name);
+      try {
+        const __p = await persistWholeStateImmediate(next);
+        if (__p) {
+          setState(__p);
+          showToast("Product renamed");
+          onRenamed?.({ itemKey: normalizeItemKey(name), displayName: name });
+          return true;
+        }
+        showToast("Could not save name");
+        return false;
+      } catch {
+        showToast("Could not save name");
+        return false;
+      }
+    },
+    [persistWholeStateImmediate, setState, showToast, state],
+  );
+
+  return { patchInventoryProductCategory, renameInventoryProduct };
 }

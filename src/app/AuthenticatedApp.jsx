@@ -83,6 +83,8 @@ import {
   compareSalesByInvoiceNo,
   makeId,
   sumAccounts,
+  sumBankAccountBalances,
+  bankAccountCountsInBalanceSheet,
   fyLabel,
   isOverdue,
   daysDiffFromToday,
@@ -995,7 +997,7 @@ export default function AuthenticatedApp() {
       const sv = rows.reduce((s, r) => s + r.stockValue, 0);
       return { id: b.id, name: b.name, stockValue: sv };
     });
-    const bankTotal      = sumAccounts(state.balance.bankAccounts);
+    const bankTotal      = sumBankAccountBalances(state.balance.bankAccounts, bankAccountCountsInBalanceSheet);
     const fixedAssets    = sumAccounts(state.balance.fixedAssetAccounts);
     const curAssets      = bankTotal + num(state.balance.otherAssets) + outstanding + stockVal;
     const totalAssets    = curAssets+fixedAssets;
@@ -1277,12 +1279,24 @@ export default function AuthenticatedApp() {
     persistWholeStateImmediate,
   });
 
-  const { patchInventoryProductCategory } = useInventoryActions({
+  const { patchInventoryProductCategory, renameInventoryProduct } = useInventoryActions({
     state,
     showToast,
     setState,
     persistWholeStateImmediate,
   });
+
+  const renameInventoryProductDetail = useCallback(
+    (itemKey, newName) =>
+      renameInventoryProduct(itemKey, newName, (updated) => {
+        setInvItemDetail((prev) =>
+          prev && String(prev.itemKey || "").toLowerCase() === String(itemKey || "").toLowerCase()
+            ? { ...prev, itemKey: updated.itemKey, displayName: updated.displayName }
+            : prev,
+        );
+      }),
+    [renameInventoryProduct, setInvItemDetail],
+  );
 
   const { resolveSyncConflict, restoreSyncConflict, clearResolvedConflicts } =
     useSyncConflictActions({
@@ -1336,7 +1350,8 @@ export default function AuthenticatedApp() {
   useBootVisibleWhenAuthChecking(authState, setBootVisible);
 
   /* Bundle maps values to MainStage props only; trap refs are passed separately below (react-hooks/refs). */
-  const mergedMainStageProps = mergeAuthenticatedMainStageProps({
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const mergedMainStageProps = useMemo(() => mergeAuthenticatedMainStageProps({
     screen,
     page,
     goPage,
@@ -1470,6 +1485,7 @@ export default function AuthenticatedApp() {
     removeFixed,
     saveFixed,
     patchInventoryProductCategory,
+    renameInventoryProduct: renameInventoryProductDetail,
     saveOtherBalance,
     saveOwnerCapitalInvested,
     saveSettingsPartial,
@@ -1532,7 +1548,65 @@ export default function AuthenticatedApp() {
     requestConfirm,
     cancelSimpleConfirm,
     onSimpleConfirm,
-  });
+  }), [
+    screen, page, goPage, setScreen, setSidebarOpen,
+    setSelCustomerName, setSelEmiId, setSelBankAccountId,
+    setEditingCustomerId, setCustomerEntry, setSelVendorName,
+    setEditingVendorId, setVendorEntry, setDelConfirm, setPayModal,
+    setPayPurchaseModal, setPayBankAccountId, setPayAmt, setActionConfirm,
+    state, kpis, fyStr, fyYear, fsm, balSum,
+    businessMonth, setBusinessMonth,
+    dashSales, dashPurchases, dashExp, dashOtherIncome,
+    filteredSales, saleView, setSaleView, searchTerm, setSearchTerm,
+    showSearch, setShowSearch, safeSales, safeExpenses, safeInventory,
+    safeOtherIncomes, invRows, saleStockPickRows, saleBranchInvRowsFull,
+    saleDefaultBranchLabel, notifications, effectiveNotifOpen, setNotifOpen,
+    payModal, payPurchaseModal, delConfirm, actionConfirm, simpleConfirm,
+    welcomeOpen, payBankAccountId, payAmt, payDate,
+    editingSaleId, editingCustomerId, editingVendorId,
+    editingExpenseId, editingOtherIncomeId,
+    saleEntry, updSale, emi2, emi3, emi4,
+    customerEntry, updCustomer, vendorEntry, updVendor,
+    stockEntry, updStock, expEntry, updExp, oiEntry, updOi,
+    addStockBranchInvRows, stockCategorySuggestions,
+    selCustomerName, selVendorName, selExpenseCategory, selEmiDetail,
+    selSale, selEmi, selExpense, selOtherIncome, selBankAccount,
+    expensesInSelCategory, darkMode, cloudSyncMeta, swUpdateReady, toast,
+    purchaseEntry, updPurchase, editingPurchaseId,
+    dismissAlert, dismissAllAlerts, onNotificationClick, notifPerm,
+    requestNotifPermission, openNewSale, openSaleDetail, openNewExpense,
+    openNewCustomer, openNewVendor, openAddStock, invItemDetail,
+    openInventoryItemDetail, openInventoryItemDetailFromSearch,
+    closeInventoryItemDetail, openNewOtherIncome, openNewPurchase,
+    openEditPurchase, openPurchaseDetail, closePurchaseDetail,
+    closeNewPurchase, selPurchase,
+    openEditOtherIncome, openOtherIncomeDetail, closeOtherIncomeDetail,
+    openExpenseCategory, openSaleDetailFromInvoice,
+    saveBranchesList, removeBranchById, addBank, addBankTransfer,
+    patchFixed, addFixed, removeFixed, saveFixed,
+    patchInventoryProductCategory, renameInventoryProductDetail,
+    saveOtherBalance, saveOwnerCapitalInvested, saveSettingsPartial,
+    exportBackup, importBackupFile, requestResetAllData,
+    executeCloudSync, resolveSyncConflict, restoreSyncConflict,
+    clearResolvedConflicts, onSaveSale, closeNewSale,
+    onSaveCustomer, closeNewCustomer, onSaveVendor, closeNewVendor,
+    toggleEmiDuePaid, closeSaleDetailNav, openEmiDetail, closeEmiDetailNav,
+    openEditSale, openPayModal, openPayPurchaseModal,
+    onStockProductPick, onStockTypeChange, onSaveStock, closeAddStock,
+    editingInventoryId, openEditInventoryEntry, onSavePurchase,
+    closeBankAccountDetail, openBankAccountFromSearch,
+    openCustomerDetailFromSearch, closeCustomerDetailNav,
+    openVendorDetailFromSearch, closeVendorDetailNav,
+    requestDeleteBankActivity, patchBank, saveBank, openExpenseDetail,
+    removeBankTransfer, onSaveOtherIncome, closeNewOtherIncome,
+    markServicingComplete, undoServicingComplete,
+    closeExpenseCategory, closeExpenseDetail, openEditExpense,
+    onSaveExpense, closeNewExpense, onRecordPayment, onRecordPurchasePayment,
+    setPayDate, onDeleteConfirmed, confirmImportBackup, completeResetAllData,
+    dismissWelcome, reloadWithNewVersion, requestConfirm,
+    cancelSimpleConfirm, onSimpleConfirm,
+    setDarkModeAndPersist,
+  ]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useLayoutEffect(() => {
     detailScreenClosersRef.current = {
@@ -1579,10 +1653,6 @@ export default function AuthenticatedApp() {
             setDarkMode={setDarkModeAndPersist}
             pendingOutbox={pendingOutbox}
             onLogout={handleLogout}
-            onOpenSearch={() => {
-              setSidebarOpen(false);
-              setScreen("search");
-            }}
           />
         }
       >

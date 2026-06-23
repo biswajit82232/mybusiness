@@ -6,6 +6,7 @@ import {
   getDefaultBankAccountId,
   BANK_EXTERNAL_SOURCE_ID,
   BANK_EXTERNAL_SINK_ID,
+  bankAccountCountsInLiquidTotal,
   shiftMonthKey,
   formatMonthLabel,
   currentMonthStr,
@@ -68,7 +69,10 @@ export function BankingTab({
   );
 
   const totalLiquid = useMemo(
-    () => accountsWithBook.reduce((s, row) => s + num(row.book), 0),
+    () =>
+      accountsWithBook
+        .filter(({ acc }) => bankAccountCountsInLiquidTotal(acc))
+        .reduce((s, row) => s + num(row.book), 0),
     [accountsWithBook],
   );
 

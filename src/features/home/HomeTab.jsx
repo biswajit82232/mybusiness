@@ -1,14 +1,17 @@
 import { useMemo } from "react";
-import { compareRecordsByRecency, money, dateHuman, num, saleStatus } from "@/domain/index.js";
+import {
+  compareRecordsByRecency,
+  currentMonthStr,
+  formatMonthLabel,
+  money,
+  dateHuman,
+  num,
+  saleStatus,
+} from "@/domain/index.js";
 import {
   IcBell,
   IcBook,
-  IcBox,
-  IcChart,
-  IcNetWorth,
   IcPlus,
-  IcReceivable,
-  IcSales,
   IcSearch,
   IcSpend,
 } from "@/shared/ui/icons/AppIcons.jsx";
@@ -34,14 +37,33 @@ function avatarColor(name) {
   return AV_COLORS[Math.abs(h) % AV_COLORS.length];
 }
 
-function RecentSection({ title, emptyHint, children }) {
+function Md3ListRow({ avatarName, title, subtitle, amount, badge, badgeCls, onClick }) {
   return (
-    <div className="home-section">
-      <div className="home-section-hdr">
-        <span className="home-section-hd">{title}</span>
+    <button type="button" className="home-md3-list-row" onClick={onClick}>
+      <div className={`home-md3-list-av ${avatarColor(avatarName)}`}>{getInitials(avatarName)}</div>
+      <div className="home-md3-list-body">
+        <span className="home-md3-list-title">{title}</span>
+        {subtitle ? <span className="home-md3-list-sub">{subtitle}</span> : null}
       </div>
-      {children || <p className="home-empty-hint">{emptyHint}</p>}
-    </div>
+      <div className="home-md3-list-end">
+        {amount ? <span className="home-md3-list-amt">{amount}</span> : null}
+        {badge ? <span className={`status-badge status-badge--sm ${badgeCls || ""}`}>{badge}</span> : null}
+      </div>
+    </button>
+  );
+}
+
+function Md3Section({ title, children, emptyHint }) {
+  const hasItems = Array.isArray(children) ? children.length > 0 : !!children;
+  return (
+    <section className="home-md3-section">
+      <div className="home-md3-section-hd">
+        <h2 className="home-md3-section-title">{title}</h2>
+      </div>
+      <div className="home-md3-section-body">
+        {hasItems ? children : <p className="home-md3-empty">{emptyHint}</p>}
+      </div>
+    </section>
   );
 }
 
@@ -87,28 +109,85 @@ export function HomeTab({
         .slice(0, RECENT_LIMIT),
     [safeSales],
   );
-  const otherIncomeHint =
-    kpis.otherIncome > 0.01
-      ? `incl. ${money(kpis.otherIncome)} other income`
-      : kpis.otherIncome < -0.01
-        ? `incl. ${money(kpis.otherIncome)} other income`
-        : null;
+
+  const revenueLabel = kpis.accountingBasis === "cash" ? "Revenue (cash)" : "Revenue";
+  const expenseLabel = kpis.accountingBasis === "cash" ? "Cash expenses" : "Operating exp.";
+  const profitPositive = kpis.netProfit >= 0;
+  const grossPositive = kpis.grossProfit >= 0;
 
   const today = new Date().toLocaleDateString("en-IN", {
-    weekday: "short",
+    weekday: "long",
     day: "numeric",
     month: "short",
-    year: "numeric",
   });
 
-  const grossCls = kpis.grossProfit >= 0 ? "kpi-gross" : "kpi-gross kpi-gross-neg";
-  const profitCls = kpis.netProfit >= 0 ? "kpi-profit" : "kpi-loss";
+  const otherIncomeSub =
+    Math.abs(num(kpis.otherIncome)) > 0.01 ? `incl. ${money(kpis.otherIncome)} OI` : null;
+
+  const kpiTiles = useMemo(
+    () => [
+      {
+        key: "profit",
+        label: "Net profit",
+        value: money(kpis.netProfit),
+        sub: otherIncomeSub,
+        hero: true,
+        tone: profitPositive ? "tone-good" : "tone-bad",
+      },
+      { key: "revenue", label: revenueLabel, value: money(kpis.revenue), tone: "tone-primary" },
+      { key: "cogs", label: "COGS", value: money(kpis.cogs), tone: "tone-warn" },
+      {
+        key: "gross",
+        label: "Gross profit",
+        value: money(kpis.grossProfit),
+        tone: grossPositive ? "tone-good" : "tone-bad",
+      },
+      { key: "expense", label: expenseLabel, value: money(kpis.expenses), tone: "tone-neutral" },
+      {
+        key: "recv",
+        label: "Receivables",
+        value: money(kpis.outstanding),
+        tone: "tone-accent",
+        wideMobile: true,
+      },
+      {
+        key: "liquid",
+        label: "Total liquid",
+        value: money(kpis.totalLiquid),
+        tone: "tone-primary",
+      },
+    ],
+    [kpis, revenueLabel, expenseLabel, profitPositive, grossPositive, otherIncomeSub],
+  );
+
+  const monthlyTarget = Math.max(0, Math.floor(num(state.settings?.monthlySalesTarget)));
+  const targetMonth = businessMonth || currentMonthStr();
+
+  const targetMonthSalesCount = useMemo(() => {
+    if (monthlyTarget <= 0) return 0;
+    return safeSales.filter((s) => String(s.date || "").startsWith(targetMonth)).length;
+  }, [monthlyTarget, targetMonth, safeSales]);
+
+  const salesTargetDisplay = useMemo(() => {
+    if (monthlyTarget <= 0) return null;
+    const count = targetMonthSalesCount;
+    const pct = Math.min(999, Math.round((count / monthlyTarget) * 100));
+    const month = formatMonthLabel(targetMonth);
+    const unit = monthlyTarget === 1 ? "sale" : "sales";
+    return {
+      month,
+      count,
+      goal: monthlyTarget,
+      unit,
+      pct,
+      ariaLabel: `${month}: ${count} of ${monthlyTarget} sales, ${pct} percent`,
+    };
+  }, [monthlyTarget, targetMonth, targetMonthSalesCount]);
 
   return (
-    <div className="tab-page home-page">
+    <div className="tab-page home-page home-page--md3">
       {notifOpen && <div className="notif-backdrop" onClick={() => setNotifOpen(false)} aria-hidden="true" />}
 
-      {/* Header — visible on desktop (mobile uses MobileAppBar instead) */}
       <div className="home-hdr">
         <div className="home-hdr-left">
           <div className="home-hdr-titles">
@@ -125,14 +204,10 @@ export function HomeTab({
               onClick={onToggleAccountingBasis}
               title={
                 accountingBasis === "accrual"
-                  ? "Accrual basis (invoiced) — click for cash (operational)"
-                  : "Cash (operational) basis — click for accrual (invoiced)"
+                  ? "Accrual basis — tap for cash"
+                  : "Cash basis — tap for accrual"
               }
-              aria-label={
-                accountingBasis === "accrual"
-                  ? "Accrual basis, click for cash operational basis"
-                  : "Cash operational basis, click for accrual basis"
-              }
+              aria-label={accountingBasis === "accrual" ? "Accrual basis" : "Cash basis"}
             >
               <IcBook />
             </button>
@@ -170,197 +245,113 @@ export function HomeTab({
         </div>
       </div>
 
-      {/* Period selector */}
-      <div className="period-bar period-bar-compact">
-        <span className="sr-only">Period</span>
-        <MonthFilterCompact value={businessMonth} onChange={setBusinessMonth} instanceId="global" />
-      </div>
-
-      {/* KPI grid — 6 cards with accent color + icon */}
-      <div className="kpi-grid kpi-grid-home">
-        <div
-          className="kpi-card kpi-sales"
-          title={
-            kpis.accountingBasis === "cash"
-              ? "Cash basis: collections by payment date in the selected month or FY."
-              : "Accrual: sum of invoice totals by invoice date in the selected period."
-          }
-        >
-          <div className="kpi-hd">
-            <span className="kpi-lbl">{kpis.accountingBasis === "cash" ? "Revenue (cash)" : "Revenue"}</span>
-            <span className="kpi-icon"><IcSales /></span>
-          </div>
-          <span className="kpi-val">{money(kpis.revenue)}</span>
+      <div className="home-md3-scroll">
+        <div className="home-md3-period">
+          {salesTargetDisplay ? (
+            <div className="home-md3-target" role="status" aria-label={salesTargetDisplay.ariaLabel}>
+              <span className="home-md3-target-lbl">{salesTargetDisplay.month}</span>
+              <span className="home-md3-target-val">
+                {salesTargetDisplay.count} / {salesTargetDisplay.goal} {salesTargetDisplay.unit}
+              </span>
+              <span className="home-md3-target-pct">({salesTargetDisplay.pct}%)</span>
+            </div>
+          ) : (
+            <span className="home-md3-target-spacer" aria-hidden="true" />
+          )}
+          <MonthFilterCompact value={businessMonth} onChange={setBusinessMonth} instanceId="global" />
         </div>
 
-        <div
-          className="kpi-card kpi-cost"
-          title="COGS: line cost on invoices / payments in this period."
-        >
-          <div className="kpi-hd">
-            <span className="kpi-lbl">COGS</span>
-            <span className="kpi-icon"><IcBox /></span>
-          </div>
-          <span className="kpi-val">{money(kpis.cogs)}</span>
+        <section className="home-md3-kpi-grid" aria-label="Key metrics">
+          {kpiTiles.map((tile) => (
+            <div
+              key={tile.key}
+              className={[
+                "home-md3-kpi",
+                tile.hero ? "home-md3-kpi--hero" : "",
+                tile.wideMobile ? "home-md3-kpi--wide-mobile" : "",
+                tile.tone || "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
+              title={`${tile.label}: ${tile.value}`}
+            >
+              <span className="home-md3-kpi-lbl">{tile.label}</span>
+              <span className="home-md3-kpi-val">{tile.value}</span>
+              {tile.sub ? <span className="home-md3-kpi-sub">{tile.sub}</span> : null}
+            </div>
+          ))}
+        </section>
+
+        <div className="home-md3-actions">
+          <button type="button" className="home-md3-action home-md3-action--filled" onClick={openNewSale}>
+            <IcPlus />
+            <span>New sale</span>
+          </button>
+          <button type="button" className="home-md3-action home-md3-action--tonal" onClick={openNewExpense}>
+            <IcSpend />
+            <span>Expense</span>
+          </button>
         </div>
 
-        <div className={`kpi-card ${grossCls}`}>
-          <div className="kpi-hd">
-            <span className="kpi-lbl">Gross Profit</span>
-            <span className="kpi-icon"><IcChart /></span>
-          </div>
-          <span className="kpi-val">{money(kpis.grossProfit)}</span>
-        </div>
-
-        <div
-          className="kpi-card kpi-expense"
-          title={
-            kpis.accountingBasis === "cash"
-              ? "Cash: expense outflow in the selected month or FY."
-              : "Accrual: operating costs by expense date in the selected month or FY."
-          }
-        >
-          <div className="kpi-hd">
-            <span className="kpi-lbl">Operating exp.</span>
-            <span className="kpi-icon"><IcSpend /></span>
-          </div>
-          <span className="kpi-val">{money(kpis.expenses)}</span>
-        </div>
-
-        <div className={`kpi-card kpi-card--hero ${profitCls}`}>
-          <div className="kpi-hd">
-            <span className="kpi-lbl">Net Profit</span>
-            <span className="kpi-icon"><IcNetWorth /></span>
-          </div>
-          <span className="kpi-val">{money(kpis.netProfit)}</span>
-          {otherIncomeHint ? <span className="kpi-sub">{otherIncomeHint}</span> : null}
-        </div>
-
-        <div
-          className="kpi-card kpi-due"
-          title="All open invoice balances — not limited to the period filter."
-        >
-          <div className="kpi-hd">
-            <span className="kpi-lbl">Receivables</span>
-            <span className="kpi-icon"><IcReceivable /></span>
-          </div>
-          <span className="kpi-val">{money(kpis.outstanding)}</span>
-        </div>
-      </div>
-
-      {/* Quick actions */}
-      <div className="quick-actions">
-        <button type="button" className="qa-btn qa-primary" onClick={openNewSale}>
-          <IcPlus />
-          <span>New Sale</span>
-        </button>
-        <button type="button" className="qa-btn qa-secondary" onClick={openNewExpense}>
-          <IcSpend />
-          <span>Add Expense</span>
-        </button>
-      </div>
-
-      {/* Recent activity — card-style sections */}
-      <div className="home-recent-area">
-        <RecentSection
-          title="Recent Sales"
-          emptyHint="No sales in this period — tap New Sale above."
-        >
+        <Md3Section title="Recent sales" emptyHint="No sales in this period.">
           {recentSales.length > 0
             ? recentSales.map((sale) => {
                 const st = saleStatus(sale, state.settings?.defaultDueDays);
                 return (
-                  <button
+                  <Md3ListRow
                     key={sale.id}
-                    type="button"
-                    className="sale-row"
+                    avatarName={sale.customerName}
+                    title={sale.customerName}
+                    subtitle={[dateHuman(sale.date), sale.item].filter(Boolean).join(" · ")}
+                    amount={money(sale.totalSale)}
+                    badge={st.text}
+                    badgeCls={st.cls}
                     onClick={() => openSaleDetail(sale.id)}
-                  >
-                    <div className={`sr-av ${avatarColor(sale.customerName)}`}>
-                      {getInitials(sale.customerName)}
-                    </div>
-                    <div className="sr-left">
-                      <span className="sr-name">{sale.customerName}</span>
-                      <span className="sr-sub">
-                        {dateHuman(sale.date)}
-                        {sale.item ? ` · ${sale.item}` : ""}
-                      </span>
-                    </div>
-                    <div className="sr-right">
-                      <span className="sr-amount">{money(sale.totalSale)}</span>
-                      <span className={`status-badge ${st.cls}`}>{st.text}</span>
-                    </div>
-                  </button>
+                  />
                 );
               })
             : null}
-        </RecentSection>
+        </Md3Section>
 
-        <RecentSection title="Recent Purchases" emptyHint="No purchases in this period.">
+        <Md3Section title="Recent purchases" emptyHint="No purchases in this period.">
           {recentPurchases.length > 0
             ? recentPurchases.map((p) => {
                 const due = num(p.outstanding);
                 return (
-                  <button
+                  <Md3ListRow
                     key={p.id}
-                    type="button"
-                    className="sale-row sale-row--purchase"
+                    avatarName={p.supplierName || "S"}
+                    title={(p.supplierName || "").trim() || "Supplier"}
+                    subtitle={[dateHuman(p.date), p.invoiceRef].filter(Boolean).join(" · ")}
+                    amount={money(p.totalAmount)}
+                    badge={due > 0.01 ? `Due ${money(due)}` : "Paid"}
+                    badgeCls={due > 0.01 ? "s-unpaid" : "s-paid"}
                     onClick={() => openPurchaseDetail?.(p.id)}
-                  >
-                    <div className={`sr-av ${avatarColor(p.supplierName || "S")}`}>
-                      {getInitials(p.supplierName || "S")}
-                    </div>
-                    <div className="sr-left">
-                      <span className="sr-name">{(p.supplierName || "").trim() || "Supplier"}</span>
-                      <span className="sr-sub">
-                        {dateHuman(p.date)}
-                        {p.invoiceRef ? ` · ${p.invoiceRef}` : ""}
-                      </span>
-                    </div>
-                    <div className="sr-right">
-                      <span className="sr-amount">{money(p.totalAmount)}</span>
-                      {due > 0.01 ? (
-                        <span className="status-badge s-unpaid">Due {money(due)}</span>
-                      ) : (
-                        <span className="status-badge s-paid">Paid</span>
-                      )}
-                    </div>
-                  </button>
+                  />
                 );
               })
             : null}
-        </RecentSection>
+        </Md3Section>
 
-        <RecentSection title="Receivables" emptyHint="No open balances — all caught up.">
+        <Md3Section title="Open receivables" emptyHint="All caught up — no open balances.">
           {recentReceivables.length > 0
             ? recentReceivables.map((sale) => {
                 const st = saleStatus(sale, state.settings?.defaultDueDays);
                 return (
-                  <button
+                  <Md3ListRow
                     key={sale.id}
-                    type="button"
-                    className="sale-row sale-row--receivable"
+                    avatarName={sale.customerName}
+                    title={sale.customerName}
+                    subtitle={[dateHuman(sale.date), sale.invoiceNo].filter(Boolean).join(" · ")}
+                    amount={money(sale.outstanding)}
+                    badge={st.text}
+                    badgeCls={st.cls}
                     onClick={() => openSaleDetail(sale.id)}
-                  >
-                    <div className={`sr-av ${avatarColor(sale.customerName)}`}>
-                      {getInitials(sale.customerName)}
-                    </div>
-                    <div className="sr-left">
-                      <span className="sr-name">{sale.customerName}</span>
-                      <span className="sr-sub">
-                        {dateHuman(sale.date)}
-                        {sale.invoiceNo ? ` · ${sale.invoiceNo}` : ""}
-                      </span>
-                    </div>
-                    <div className="sr-right">
-                      <span className="sr-amount sr-amount--due">{money(sale.outstanding)}</span>
-                      <span className={`status-badge ${st.cls}`}>{st.text}</span>
-                    </div>
-                  </button>
+                  />
                 );
               })
             : null}
-        </RecentSection>
+        </Md3Section>
       </div>
     </div>
   );

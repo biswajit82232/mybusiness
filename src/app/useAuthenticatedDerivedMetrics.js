@@ -5,6 +5,7 @@ import {
   recognizedCogsForSales,
   recognizedCogsForPaymentsInMonth,
   recognizedCogsForPaymentsInFy,
+  computeTotalLiquid,
   sumSalePaymentsInMonth,
   sumSalePaymentsInFy,
   sumExpenseCashOutInMonth,
@@ -174,6 +175,16 @@ export function useAuthenticatedDerivedMetrics({
     }
     const revenue = accrual ? revenueInvoiced : revenueCash;
     const outstanding = safeSales.reduce((s, x) => s + num(x.outstanding), 0);
+    const totalLiquid = computeTotalLiquid({
+      bankAccounts: state.balance?.bankAccounts,
+      transfers: state.balance?.bankTransfers,
+      expenses: safeExpenses,
+      sales: safeSales,
+      inventoryEntries: state.inventoryEntries,
+      otherIncomes: safeOtherIncomes,
+      purchases: state.purchases,
+      loansGiven: state.loansGiven,
+    });
     return {
       accountingBasis,
       revenue,
@@ -187,6 +198,7 @@ export function useAuthenticatedDerivedMetrics({
       grossProfit: revenue - cogs,
       netProfit: revenue - cogs - expenses + otherIncome,
       outstanding,
+      totalLiquid,
       invoices: dashSales.length,
     };
   }, [
@@ -196,6 +208,11 @@ export function useAuthenticatedDerivedMetrics({
     safeSales,
     safeExpenses,
     safeOtherIncomes,
+    state.balance?.bankAccounts,
+    state.balance?.bankTransfers,
+    state.inventoryEntries,
+    state.purchases,
+    state.loansGiven,
     accountingBasisSetting,
     businessMonth,
     fsm,

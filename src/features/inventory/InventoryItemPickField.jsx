@@ -47,6 +47,8 @@ export function InventoryItemPickField({
   required = false,
   selectClassName = "stock-product-select",
   hint = "",
+  /** When false, hides the product search box (e.g. New Sale form). */
+  searchable = true,
   /** When true, option subtitles emphasize branch stock qty (sales auto stock-out). */
   stockQtyMode = false,
 }) {
@@ -55,13 +57,14 @@ export function InventoryItemPickField({
   const sorted = useMemo(() => dedupeInvRows(invRows), [invRows]);
 
   const filtered = useMemo(() => {
+    if (!searchable) return sorted;
     const q = normalizeItemKey(filterQuery);
     if (!q) return sorted;
     return sorted.filter((r) => {
       const key = normalizeItemKey(r.item);
       return key.includes(q) || String(r.item).toLowerCase().includes(filterQuery.trim().toLowerCase());
     });
-  }, [sorted, filterQuery]);
+  }, [sorted, filterQuery, searchable]);
 
   const trimVal = String(value || "").trim();
   const matched = findInvRowByItemName(sorted, trimVal);
@@ -81,7 +84,7 @@ export function InventoryItemPickField({
 
   const menuValue = optionKeys.has(pickVal) || pickVal === "__custom__" ? pickVal : "__custom__";
   const showCustomInput = menuValue === "__custom__";
-  const showSearch = sorted.length >= SEARCH_MIN;
+  const showSearch = searchable && sorted.length >= SEARCH_MIN;
 
   const applyCatalogRow = (row) => {
     if (!row) return;

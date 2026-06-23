@@ -13,7 +13,7 @@ import { useEffect } from "react";
  * no half-second cross-fade of every element.
  */
 const THEME_LIGHT = "#f6f8fb";
-const THEME_DARK = "#0a1224";
+const THEME_DARK = "#0a0a0a";
 
 function applyTheme(isDark) {
   const root = document.documentElement;
