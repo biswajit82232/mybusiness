@@ -6,6 +6,7 @@ import {
   entityRowsToLocalPayload,
   isPayloadEffectivelyEmpty,
   isTransientSyncError,
+  remoteWinsLocalRow,
 } from "../src/data/sync/syncPayloadUtils.js";
 
 console.log("sync-sanity:");
@@ -17,6 +18,16 @@ assert.equal(isPayloadEffectivelyEmpty({ sales: [{ id: "1" }] }), false);
 assert.equal(isTransientSyncError({ code: 503 }), true);
 assert.equal(isTransientSyncError({ message: "Failed to fetch" }), true);
 assert.equal(isTransientSyncError({ message: "invalid input" }), false);
+
+assert.equal(remoteWinsLocalRow(null, "2026-01-02T00:00:00Z", false), true);
+assert.equal(
+  remoteWinsLocalRow({ updatedAt: "2026-01-03T00:00:00Z" }, "2026-01-02T00:00:00Z", false),
+  false,
+);
+assert.equal(
+  remoteWinsLocalRow({ updatedAt: "2026-01-01T00:00:00Z" }, "2026-01-02T00:00:00Z", false),
+  true,
+);
 
 const rows = [
   {

@@ -360,6 +360,7 @@ export default function AuthenticatedApp() {
     didStartupFullReconcileRef,
     suppressPersistRef,
     lastPersistedStateRef,
+    pendingWritesRef,
   });
   useEffect(() => {
     if (authState !== "ready") return;

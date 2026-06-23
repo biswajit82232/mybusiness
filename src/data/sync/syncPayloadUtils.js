@@ -68,6 +68,23 @@ export function normalizeEntityPayloadWithRecordId(entityType, recordId, payload
   return next;
 }
 
+export function parseUpdatedAtMs(iso) {
+  if (!iso) return 0;
+  const t = Date.parse(String(iso));
+  return Number.isFinite(t) ? t : 0;
+}
+
+/**
+ * Conflict rule: last-write-wins by `updatedAt` timestamp.
+ * Pending outbox is tracked separately; when local is newer, keep local even if outbox was cleared after push.
+ */
+export function remoteWinsLocalRow(localRow, remoteIso, _hasPendingLocalChange) {
+  if (!localRow) return true;
+  const lt = parseUpdatedAtMs(localRow.updatedAt);
+  const rt = parseUpdatedAtMs(remoteIso);
+  return rt > lt;
+}
+
 /** Network / 5xx / rate-limit — worth retrying the whole sync or an outbox row. */
 export function isTransientSyncError(e) {
   if (!e || typeof e !== "object") {

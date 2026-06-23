@@ -7,6 +7,7 @@ import {
 import { withSupabaseSyncHint } from "@/data/sync/syncErrorHints.js";
 import {
   getPendingOutboxCount,
+  loadUserLocalState,
   writeAppCache,
 } from "@/data/local/indexedDbStore.js";
 import { defaultState, makeId, mergePersistedPayload } from "@/domain/index.js";
@@ -44,6 +45,7 @@ export function useCloudSyncExecutor({
   didStartupFullReconcileRef,
   suppressPersistRef,
   lastPersistedStateRef,
+  pendingWritesRef,
 }) {
   const [cloudSyncMeta, setCloudSyncMeta] = useState(() => ({
     at: null,
@@ -97,29 +99,40 @@ export function useCloudSyncExecutor({
           }
           return r;
         }
-        if (r.didPull && r.pullPayload) {
+        if (r.fullRestore && r.pullPayload) {
           let merged = mergePersistedPayload(r.pullPayload) || defaultState;
+          merged = appendConflictRowsLocal(merged, r.conflictRows);
+          await applyCloudPullToAppState(uid, merged, {
+            advancePullCursorTo:
+              typeof r.pullCursorMaxIso === "string" ? r.pullCursorMaxIso : undefined,
+          });
+          await writeAppCache(merged).catch(() => {});
+          if (!pendingWritesRef?.current) {
+            suppressPersistRef.current = true;
+            setState(merged);
+            lastPersistedStateRef.current = merged;
+            Promise.resolve().then(() => {
+              suppressPersistRef.current = false;
+            });
+          }
+        } else if ((r.remoteRowsApplied ?? 0) > 0 && !pendingWritesRef?.current) {
+          // Re-read IDB after pull+push — pullPayload is captured before push and can be stale
+          // if the user saved while sync was in flight.
+          const freshPayload = await loadUserLocalState(uid);
+          let merged = mergePersistedPayload(freshPayload) || defaultState;
           merged = appendConflictRowsLocal(merged, r.conflictRows);
           suppressPersistRef.current = true;
           setState(merged);
           lastPersistedStateRef.current = merged;
-          if (r.fullRestore) {
-            await applyCloudPullToAppState(uid, merged, {
-              advancePullCursorTo:
-                typeof r.pullCursorMaxIso === "string" ? r.pullCursorMaxIso : undefined,
-            });
-          }
           await writeAppCache(merged).catch(() => {});
           Promise.resolve().then(() => {
             suppressPersistRef.current = false;
           });
         }
         const parts = [];
-        if (r.didPull && r.pullPayload) {
-          if (r.fullRestore) parts.push("Restored from cloud");
-          else if ((r.remoteRowsApplied ?? 0) > 0) {
-            parts.push(`Updated ${r.remoteRowsApplied} from cloud`);
-          }
+        if (r.fullRestore) parts.push("Restored from cloud");
+        else if ((r.remoteRowsApplied ?? 0) > 0) {
+          parts.push(`Updated ${r.remoteRowsApplied} from cloud`);
         }
         if (r.pushed > 0) parts.push(`Saved ${r.pushed} to cloud`);
         if ((r.conflicts ?? 0) > 0) {
@@ -163,6 +176,7 @@ export function useCloudSyncExecutor({
       setPendingOutbox,
       setState,
       suppressPersistRef,
+      pendingWritesRef,
     ],
   );
 

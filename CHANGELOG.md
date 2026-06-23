@@ -2,6 +2,16 @@
 
 All notable changes are tracked here. The Settings screen shows **Version** from `package.json`.
 
+## [7.0.2] — 2026-06-23
+
+### Fixes
+
+- **Saved values flickering / reverting** — cloud sync no longer overwrites newer local saves with stale remote snapshots. Conflict resolution is now true last-write-wins by timestamp (local kept when newer, even after outbox upload). UI reloads fresh data from device storage after sync instead of using a pre-push snapshot that could be outdated if you saved mid-sync.
+
+App version **7.0.2**; service worker cache **v55**.
+
+---
+
 ## [7.0.1] — 2026-06-23
 
 ### Fixes

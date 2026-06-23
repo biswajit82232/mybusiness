@@ -11,9 +11,15 @@ import {
   isPayloadEffectivelyEmpty,
   isTransientSyncError,
   normalizeEntityPayloadWithRecordId,
+  remoteWinsLocalRow,
 } from "./syncPayloadUtils.js";
 
-export { entityRowsToLocalPayload, isPayloadEffectivelyEmpty, isTransientSyncError } from "./syncPayloadUtils.js";
+export {
+  entityRowsToLocalPayload,
+  isPayloadEffectivelyEmpty,
+  isTransientSyncError,
+  remoteWinsLocalRow,
+} from "./syncPayloadUtils.js";
 import {
   applyMergedStateToIndexedDbWithoutOutbox,
   clearOutboxForUser,
@@ -84,25 +90,6 @@ function prepareOutboxRowForCloud(row) {
 function recordIdForDb(entityType, outboxRecordId) {
   if (entityType === "balance") return "__settings__";
   return String(outboxRecordId ?? "");
-}
-
-function parseUpdatedAtMs(iso) {
-  if (!iso) return 0;
-  const t = Date.parse(String(iso));
-  return Number.isFinite(t) ? t : 0;
-}
-
-/**
- * Conflict rule:
- * - If local has pending outbox for the same record, keep strict LWW (protect unsynced local edits).
- * - If local is clean (no pending row), prefer remote so devices converge even under clock skew.
- */
-function remoteWinsLocalRow(localRow, remoteIso, hasPendingLocalChange) {
-  if (!localRow) return true;
-  if (!hasPendingLocalChange) return true;
-  const lt = parseUpdatedAtMs(localRow.updatedAt);
-  const rt = parseUpdatedAtMs(remoteIso);
-  return rt > lt;
 }
 
 function localRecordIdForGet(entityType, serverRecordId) {
