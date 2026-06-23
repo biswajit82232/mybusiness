@@ -1,6 +1,6 @@
 import { useCallback } from "react";
-import { makeId, normServicingCompletions, todayStr } from "@/domain/index.js";
-import { deriveServicingSlotsForSale } from "@/domain/servicing.js";
+import { makeId, normServicingCompletions, normServicingWaSent, todayStr } from "@/domain/index.js";
+import { deriveServicingSlotsForSale, servicingVisitKey } from "@/domain/servicing.js";
 
 const MAX_DISMISSED_ALERTS = 200;
 
@@ -66,5 +66,34 @@ export function useServicingActions({ state, setState, showToast, persistWholeSt
     [state, setState, showToast, persistWholeStateImmediate, lastPersistedStateRef],
   );
 
-  return { markServicingComplete, undoServicingComplete };
+  const markServicingWaSent = useCallback(
+    async (saleId, serviceNum) => {
+      const sid = String(saleId || "").trim();
+      const sn = Math.min(3, Math.max(1, Math.round(Number(serviceNum)) || 1));
+      if (!sid) return;
+      const existing = normServicingWaSent(state.servicingWaSent);
+      const key = servicingVisitKey(sid, sn);
+      const prev = existing.find((c) => servicingVisitKey(c.saleId, c.serviceNum) === key);
+      const entry = {
+        id: prev?.id || makeId(),
+        saleId: sid,
+        serviceNum: sn,
+        sentAt: todayStr(),
+      };
+      const nextList = prev
+        ? existing.map((c) => (servicingVisitKey(c.saleId, c.serviceNum) === key ? entry : c))
+        : [entry, ...existing];
+      const next = { ...state, servicingWaSent: nextList };
+      const persisted = await persistWholeStateImmediate(next);
+      if (persisted) {
+        setState(persisted);
+        lastPersistedStateRef.current = persisted;
+      } else {
+        setState(next);
+      }
+    },
+    [state, setState, persistWholeStateImmediate, lastPersistedStateRef],
+  );
+
+  return { markServicingComplete, undoServicingComplete, markServicingWaSent };
 }

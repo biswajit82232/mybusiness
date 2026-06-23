@@ -4254,6 +4254,19 @@ export function normServicingCompletions(raw) {
     .filter((x) => x.saleId && x.serviceNum >= 1 && x.serviceNum <= 3);
 }
 
+export function normServicingWaSent(raw) {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter((x) => x && typeof x === "object")
+    .map((x) => ({
+      id: String(x.id || makeId()),
+      saleId: String(x.saleId || "").trim(),
+      serviceNum: Math.min(3, Math.max(1, Math.round(num(x.serviceNum)) || 1)),
+      sentAt: String(x.sentAt || todayStr()).slice(0, 10),
+    }))
+    .filter((x) => x.saleId && x.serviceNum >= 1 && x.serviceNum <= 3);
+}
+
 export const defaultState = applyComputedBankBalances({
   settings:{
     financialYearStartMonth:4,
@@ -4297,6 +4310,7 @@ export const defaultState = applyComputedBankBalances({
   emiEntries:[],
   loansGiven: [],
   servicingCompletions: [],
+  servicingWaSent: [],
   customerDirectory: [],
   vendorDirectory: [],
   dismissedAlertIds: [],
@@ -4372,6 +4386,7 @@ export function mergePersistedPayload(p) {
       emiEntries: normEmiList(p.emiEntries),
       loansGiven: normLoansGivenList(p.loansGiven),
       servicingCompletions: normServicingCompletions(p.servicingCompletions),
+      servicingWaSent: normServicingWaSent(p.servicingWaSent),
       customerDirectory: normCustomerDirectory(p.customerDirectory),
       vendorDirectory: normVendorDirectory(p.vendorDirectory),
       dismissedAlertIds: Array.isArray(p.dismissedAlertIds) ? p.dismissedAlertIds.filter(Boolean).map(String) : [],

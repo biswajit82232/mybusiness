@@ -193,6 +193,7 @@ export function mergeAuthenticatedMainStageProps(c) {
       closeNewOtherIncome: c.closeNewOtherIncome,
       markServicingComplete: c.markServicingComplete,
       undoServicingComplete: c.undoServicingComplete,
+      markServicingWaSent: c.markServicingWaSent,
       closeExpenseCategory: c.closeExpenseCategory,
       closeExpenseDetail: c.closeExpenseDetail,
       openEditExpense: c.openEditExpense,

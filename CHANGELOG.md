@@ -2,6 +2,15 @@
 
 All notable changes are tracked here. The Settings screen shows **Version** from `package.json`.
 
+## [7.3.14] — 2026-06-23
+
+### Features
+- **Servicing** — **Next 7 days** group at top for upcoming pending visits; **Sent** mark on WhatsApp reminders (persisted and synced).
+
+App version **7.3.14**; service worker cache **v90**.
+
+---
+
 ## [7.3.13] — 2026-06-23
 
 ### Improvements

@@ -9,6 +9,7 @@ import {
   dateSlash,
   daysDiffFromToday,
   normServicingCompletions,
+  normServicingWaSent,
   todayStr,
   waMessageHref,
 } from "./appModel.js";
@@ -16,6 +17,7 @@ import {
 export const SERVICING_VISIT_NUMBERS = [1, 2, 3];
 export const SERVICING_REMINDER_DAYS_BEFORE = 3;
 export const SERVICING_REMINDER_DAYS_TWO_BEFORE = 2;
+export const SERVICING_UPCOMING_DAYS = 7;
 
 export function servicingSlotId(saleId, serviceNum) {
   return `svc-${String(saleId || "")}-${serviceNum}`;
@@ -23,6 +25,10 @@ export function servicingSlotId(saleId, serviceNum) {
 
 function completionKey(saleId, serviceNum) {
   return `${String(saleId)}-${serviceNum}`;
+}
+
+export function servicingVisitKey(saleId, serviceNum) {
+  return completionKey(saleId, serviceNum);
 }
 
 /** Union local + remote completion rows; remote wins when the same visit appears in both. */
@@ -195,6 +201,39 @@ export function buildServicingAlerts(slots, { businessName } = {}) {
       waPhone: slot.phone,
       waHref: waMessageHref(slot.phone, waText),
     });
+  }
+  return out;
+}
+
+/** Union local + remote WhatsApp sent rows; keeps latest sentAt per visit. */
+export function mergeServicingWaSent(local, remote) {
+  const map = new Map();
+  for (const row of normServicingWaSent(local)) {
+    map.set(completionKey(row.saleId, row.serviceNum), row);
+  }
+  for (const row of normServicingWaSent(remote)) {
+    const key = completionKey(row.saleId, row.serviceNum);
+    const prev = map.get(key);
+    if (!prev || String(row.sentAt) >= String(prev.sentAt)) map.set(key, row);
+  }
+  return [...map.values()];
+}
+
+export function getServicingWaSentAt(sentList, saleId, serviceNum) {
+  const key = completionKey(saleId, serviceNum);
+  const row = normServicingWaSent(sentList).find((c) => completionKey(c.saleId, c.serviceNum) === key);
+  return row?.sentAt || "";
+}
+
+/** Pending visits due today through the next N days (excludes overdue). */
+export function partitionUpcomingServicingSlots(slots, days = SERVICING_UPCOMING_DAYS) {
+  const windowDays = Math.max(0, Math.round(Number(days)) || SERVICING_UPCOMING_DAYS);
+  const out = [];
+  for (const slot of Array.isArray(slots) ? slots : []) {
+    if (!slot || slot.completed) continue;
+    const diff = daysDiffFromToday(slot.dueDate);
+    if (diff == null || diff < 0 || diff > windowDays) continue;
+    out.push(slot);
   }
   return out;
 }

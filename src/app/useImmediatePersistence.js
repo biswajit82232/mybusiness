@@ -91,7 +91,12 @@ export function useImmediatePersistence({ currentUserIdRef, lastPersistedStateRe
           userId,
           entityType: "settings",
           recordId: "settings",
-          payload: { settings: safe.settings, balance: safe.balance, servicingCompletions: safe.servicingCompletions || [] },
+          payload: {
+            settings: safe.settings,
+            balance: safe.balance,
+            servicingCompletions: safe.servicingCompletions || [],
+            servicingWaSent: safe.servicingWaSent || [],
+          },
           deleted: false,
           updatedAt,
         });

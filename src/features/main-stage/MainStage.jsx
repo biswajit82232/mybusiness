@@ -237,6 +237,7 @@ export function MainStage(props) {
     closeNewOtherIncome,
     markServicingComplete,
     undoServicingComplete,
+    markServicingWaSent,
     closeExpenseCategory,
     closeExpenseDetail,
     openEditExpense,
@@ -406,9 +407,11 @@ export function MainStage(props) {
           <LazyServicingScreen
             sales={safeSales}
             servicingCompletions={state.servicingCompletions || []}
+            servicingWaSent={state.servicingWaSent || []}
             businessName={state.settings?.businessName}
             onMarkComplete={markServicingComplete}
             onUndoComplete={undoServicingComplete}
+            onMarkWaSent={markServicingWaSent}
             onOpenSale={openSaleDetail}
             onOpenSidebar={() => setSidebarOpen(true)}
           />

@@ -360,6 +360,7 @@ export async function loadUserLocalState(userId) {
     settings: settingsPayload?.settings ?? null,
     balance: settingsPayload?.balance ?? null,
     servicingCompletions: settingsPayload?.servicingCompletions ?? null,
+    servicingWaSent: settingsPayload?.servicingWaSent ?? null,
     sales: salesRows.filter((r) => !r.deleted).map((r) => r.payload),
     expenses: expensesRows.filter((r) => !r.deleted).map((r) => r.payload),
     otherIncomes: otherIncomeRows.filter((r) => !r.deleted).map((r) => r.payload),
@@ -528,7 +529,12 @@ export async function applyMergedStateToIndexedDbWithoutOutbox(userId, merged) {
     userId,
     entityType: "settings",
     recordId: "settings",
-    payload: { settings: merged.settings, balance: merged.balance, servicingCompletions: merged.servicingCompletions || [] },
+    payload: {
+      settings: merged.settings,
+      balance: merged.balance,
+      servicingCompletions: merged.servicingCompletions || [],
+      servicingWaSent: merged.servicingWaSent || [],
+    },
     deleted: false,
     updatedAt,
   });

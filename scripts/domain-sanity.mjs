@@ -112,6 +112,7 @@ import {
   normSaleLineItems,
   normSalesList,
   normServicingCompletions,
+  normServicingWaSent,
   num,
   renameInventoryProductInState,
   recognizedCogsForPaymentsAll,
@@ -156,8 +157,12 @@ import {
   buildServicingAlerts,
   classifyServicingReminderDiff,
   deriveServicingSlots,
+  getServicingWaSentAt,
+  mergeServicingWaSent,
+  partitionUpcomingServicingSlots,
   SERVICING_REMINDER_DAYS_BEFORE,
   SERVICING_REMINDER_DAYS_TWO_BEFORE,
+  SERVICING_UPCOMING_DAYS,
 } from "../src/domain/servicing.js";
 import {
   BACKUP_SCHEMA_VERSION,
@@ -1694,6 +1699,42 @@ ok("mergePersistedPayload: notifyServicingDueTwoDays defaults on", () => {
     settings: { notifyServicingDueTwoDays: false },
   });
   assert.equal(off.settings.notifyServicingDueTwoDays, false);
+});
+
+ok("partitionUpcomingServicingSlots: today through 7 days, not overdue", () => {
+  const today = todayStr();
+  const in3 = addDaysStr(today, 3);
+  const in7 = addDaysStr(today, SERVICING_UPCOMING_DAYS);
+  const in8 = addDaysStr(today, SERVICING_UPCOMING_DAYS + 1);
+  const overdue = addDaysStr(today, -2);
+  const slots = [
+    { id: "a", dueDate: in3, completed: false },
+    { id: "b", dueDate: in7, completed: false },
+    { id: "c", dueDate: in8, completed: false },
+    { id: "d", dueDate: overdue, completed: false },
+    { id: "e", dueDate: in3, completed: true },
+  ];
+  const up = partitionUpcomingServicingSlots(slots);
+  assert.equal(up.length, 2);
+  assert.equal(up[0].id, "a");
+  assert.equal(up[1].id, "b");
+});
+
+ok("getServicingWaSentAt + mergeServicingWaSent", () => {
+  const sent = normServicingWaSent([{ saleId: "s1", serviceNum: 2, sentAt: "2026-06-01" }]);
+  assert.equal(getServicingWaSentAt(sent, "s1", 2), "2026-06-01");
+  assert.equal(getServicingWaSentAt(sent, "s1", 1), "");
+  const merged = mergeServicingWaSent(sent, [{ saleId: "s1", serviceNum: 2, sentAt: "2026-06-10" }]);
+  assert.equal(merged.length, 1);
+  assert.equal(merged[0].sentAt, "2026-06-10");
+});
+
+ok("mergePersistedPayload: servicingWaSent preserved", () => {
+  const m = mergePersistedPayload({
+    servicingWaSent: [{ saleId: "s1", serviceNum: 1, sentAt: "2026-06-20" }],
+  });
+  assert.equal(m.servicingWaSent.length, 1);
+  assert.equal(m.servicingWaSent[0].sentAt, "2026-06-20");
 });
 
 ok("backup envelope: wrap and unwrap versioned export", () => {

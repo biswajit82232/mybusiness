@@ -2,8 +2,8 @@
  * Supabase cloud sync: ensure business, restore when local is empty, push outbox when online.
  * Reliability: serialized passes, keyset pagination for large pulls, exponential backoff on push/transient errors.
  */
-import { normServicingCompletions } from "../../domain/appModel.js";
-import { mergeServicingCompletions } from "../../domain/servicing.js";
+import { normServicingCompletions, normServicingWaSent } from "../../domain/appModel.js";
+import { mergeServicingCompletions, mergeServicingWaSent } from "../../domain/servicing.js";
 import { readSupabaseSessionSafely } from "../auth/supabaseSession.js";
 import { supabase } from "../supabase/client.js";
 import {
@@ -147,6 +147,7 @@ function toLocalPayloadShape(raw) {
     settings: base.settings ?? null,
     balance: base.balance ?? null,
     servicingCompletions: Array.isArray(base.servicingCompletions) ? base.servicingCompletions : [],
+    servicingWaSent: Array.isArray(base.servicingWaSent) ? base.servicingWaSent : [],
     sales: Array.isArray(base.sales) ? base.sales : [],
     expenses: Array.isArray(base.expenses) ? base.expenses : [],
     otherIncomes: Array.isArray(base.otherIncomes) ? base.otherIncomes : [],
@@ -202,6 +203,7 @@ async function seedEntityRecordsFromPayload(client, businessId, payload) {
       settings: payload?.settings ?? null,
       balance: payload?.balance ?? null,
       servicingCompletions: Array.isArray(payload?.servicingCompletions) ? payload.servicingCompletions : [],
+      servicingWaSent: Array.isArray(payload?.servicingWaSent) ? payload.servicingWaSent : [],
     },
     deleted: false,
     updated_at: ts,
@@ -345,10 +347,16 @@ async function mergeRemoteRowsIntoLocal(userId, rows) {
       const nextCompletions = remoteHasCompletions
         ? mergeServicingCompletions(localCompletions, remotePayload.servicingCompletions)
         : normServicingCompletions(localCompletions);
+      const localWaSent = currentSettingsPayload.servicingWaSent ?? [];
+      const remoteHasWaSent = Array.isArray(remotePayload.servicingWaSent);
+      const nextWaSent = remoteHasWaSent
+        ? mergeServicingWaSent(localWaSent, remotePayload.servicingWaSent)
+        : normServicingWaSent(localWaSent);
       const payload = {
         settings: nextSettings,
         balance: nextBalance,
         servicingCompletions: nextCompletions,
+        servicingWaSent: nextWaSent,
       };
       await putLocalEntityRowWithoutOutbox({
         userId,
@@ -595,6 +603,7 @@ async function upsertEntityRow(client, businessId, row) {
             servicingCompletions: Array.isArray(row.payload?.servicingCompletions)
               ? row.payload.servicingCompletions
               : [],
+            servicingWaSent: Array.isArray(row.payload?.servicingWaSent) ? row.payload.servicingWaSent : [],
           },
     );
     const b = await upsertViaRpc(

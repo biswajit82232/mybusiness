@@ -1880,6 +1880,71 @@ a:focus-visible {
   width: 16px;
   height: 16px;
 }
+.svc-wa-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.svc-sent-mark {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--success);
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--success) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--success) 28%, transparent);
+  line-height: 1.2;
+  white-space: nowrap;
+}
+.svc-icon-btn--sent {
+  border-color: color-mix(in srgb, var(--success) 35%, var(--line));
+  background: color-mix(in srgb, var(--success) 8%, var(--card));
+}
+.svc-upcoming-group {
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--line2);
+}
+.svc-upcoming-hd,
+.svc-rest-hd {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 10px var(--page-pad) 6px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.svc-upcoming-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 12%, var(--card));
+  border: 1px solid color-mix(in srgb, var(--primary) 22%, var(--line));
+}
+.svc-list--upcoming .svc-row:first-child {
+  border-top: 1px solid var(--line2);
+}
+.svc-list--upcoming .svc-row {
+  background: color-mix(in srgb, var(--primary) 4%, var(--card));
+}
+.svc-rest-group {
+  padding-top: 2px;
+}
 .primary-btn--compact {
   min-height: 36px;
   padding: 0 12px;

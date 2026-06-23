@@ -1229,7 +1229,7 @@ export default function AuthenticatedApp() {
     otherIncomeOpenedFromRef,
   });
 
-  const { markServicingComplete, undoServicingComplete } = useServicingActions({
+  const { markServicingComplete, undoServicingComplete, markServicingWaSent } = useServicingActions({
     state,
     setState,
     showToast,
@@ -1532,6 +1532,7 @@ export default function AuthenticatedApp() {
     closeNewOtherIncome,
     markServicingComplete,
     undoServicingComplete,
+    markServicingWaSent,
     closeExpenseCategory,
     closeExpenseDetail,
     openEditExpense,
@@ -1600,7 +1601,7 @@ export default function AuthenticatedApp() {
     openVendorDetailFromSearch, closeVendorDetailNav,
     requestDeleteBankActivity, patchBank, saveBank, openExpenseDetail,
     removeBankTransfer, onSaveOtherIncome, closeNewOtherIncome,
-    markServicingComplete, undoServicingComplete,
+    markServicingComplete, undoServicingComplete, markServicingWaSent,
     closeExpenseCategory, closeExpenseDetail, openEditExpense,
     onSaveExpense, closeNewExpense, onRecordPayment, onRecordPurchasePayment,
     setPayDate, onDeleteConfirmed, confirmImportBackup, completeResetAllData,

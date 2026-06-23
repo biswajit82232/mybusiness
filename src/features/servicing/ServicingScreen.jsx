@@ -3,6 +3,9 @@ import {
   buildServicingWhatsAppMessage,
   dateHuman,
   deriveServicingSlots,
+  getServicingWaSentAt,
+  partitionUpcomingServicingSlots,
+  SERVICING_UPCOMING_DAYS,
   servicingVisitStatusLabel,
   waMessageHref,
 } from "@/domain/index.js";
@@ -16,12 +19,100 @@ const FILTERS = [
   { id: "all", label: "All" },
 ];
 
+function ServicingSlotRow({
+  slot,
+  businessName,
+  waSentAt,
+  onMarkComplete,
+  onUndoComplete,
+  onOpenSale,
+  onMarkWaSent,
+}) {
+  const st = servicingVisitStatusLabel(slot.completed ? "done" : slot.status, slot.completed);
+  const wa = slot.phone
+    ? waMessageHref(slot.phone, buildServicingWhatsAppMessage(slot, { businessName }))
+    : null;
+
+  return (
+    <li className="svc-row">
+      <div className="svc-row-main">
+        <span className="svc-visit-num" aria-label={`Visit ${slot.serviceNum} of 3`}>
+          {slot.serviceNum}
+        </span>
+        <div className="svc-row-text">
+          <div className="svc-row-line1">
+            <span className="svc-name">{slot.customerName}</span>
+            <span className={`status-badge status-badge--sm ${st.cls}`}>{st.text}</span>
+          </div>
+          <span className="svc-row-line2">
+            Due {dateHuman(slot.dueDate)}
+            {slot.invoiceNo ? ` · ${slot.invoiceNo}` : ""}
+          </span>
+        </div>
+      </div>
+      <div className="svc-row-foot">
+        {slot.completed ? (
+          <button
+            type="button"
+            className="svc-action svc-action--ghost"
+            onClick={() => onUndoComplete?.(slot.saleId, slot.serviceNum)}
+          >
+            Undo
+          </button>
+        ) : (
+          <button
+            type="button"
+            className="svc-action svc-action--primary"
+            onClick={() => onMarkComplete?.(slot.saleId, slot.serviceNum)}
+          >
+            Done
+          </button>
+        )}
+        {slot.invoiceNo ? (
+          <button
+            type="button"
+            className="svc-action svc-action--ghost"
+            onClick={() => onOpenSale?.(slot.saleId)}
+          >
+            Invoice
+          </button>
+        ) : null}
+        {wa ? (
+          <div className="svc-wa-wrap">
+            {waSentAt ? (
+              <span className="svc-sent-mark" title={`WhatsApp sent ${dateHuman(waSentAt)}`}>
+                Sent
+              </span>
+            ) : null}
+            <a
+              href={wa}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`svc-icon-btn${waSentAt ? " svc-icon-btn--sent" : ""}`}
+              aria-label={waSentAt ? "WhatsApp reminder sent — open again" : "Send WhatsApp reminder"}
+              onClick={() => onMarkWaSent?.(slot.saleId, slot.serviceNum)}
+            >
+              <IcWhatsApp />
+            </a>
+          </div>
+        ) : slot.phone ? (
+          <a href={`tel:${slot.phone}`} className="svc-icon-btn" aria-label="Call">
+            <IcPhone />
+          </a>
+        ) : null}
+      </div>
+    </li>
+  );
+}
+
 export function ServicingScreen({
   sales,
   servicingCompletions,
+  servicingWaSent = [],
   businessName,
   onMarkComplete,
   onUndoComplete,
+  onMarkWaSent,
   onOpenSale,
   onOpenSidebar,
 }) {
@@ -50,12 +141,44 @@ export function ServicingScreen({
     return slots.filter((s) => !s.completed);
   }, [slots, filter]);
 
+  const upcoming = useMemo(() => {
+    if (filter === "done") return [];
+    return partitionUpcomingServicingSlots(slots, SERVICING_UPCOMING_DAYS);
+  }, [slots, filter]);
+
+  const upcomingIds = useMemo(() => new Set(upcoming.map((s) => s.id)), [upcoming]);
+
+  const filteredRest = useMemo(
+    () => filtered.filter((s) => !upcomingIds.has(s.id)),
+    [filtered, upcomingIds],
+  );
+
   const filterCount = (id) => {
     if (id === "all") return slots.length;
     if (id === "done") return counts.done;
     if (id === "overdue") return counts.overdue;
     return counts.pending;
   };
+
+  const rowProps = {
+    businessName,
+    onMarkComplete,
+    onUndoComplete,
+    onOpenSale,
+    onMarkWaSent,
+  };
+
+  const renderRows = (list) =>
+    list.map((slot) => (
+      <ServicingSlotRow
+        key={slot.id}
+        slot={slot}
+        waSentAt={getServicingWaSentAt(servicingWaSent, slot.saleId, slot.serviceNum)}
+        {...rowProps}
+      />
+    ));
+
+  const hasList = upcoming.length > 0 || filteredRest.length > 0;
 
   return (
     <TabPageChrome title="Servicing" onOpenSidebar={onOpenSidebar} className="tab-page--servicing">
@@ -77,83 +200,34 @@ export function ServicingScreen({
 
       <div className="tab-page-scroll">
         <div className="list-area servicing-list-area">
-          {filtered.length === 0 ? (
+          {!hasList ? (
             <EmptyState
               icon={<IcServicing />}
               title={filter === "done" ? "No completed visits yet" : "Nothing here"}
               sub="Visits are created from your sales invoices."
             />
           ) : (
-            <ul className="svc-list" role="list">
-              {filtered.map((slot) => {
-                const st = servicingVisitStatusLabel(slot.completed ? "done" : slot.status, slot.completed);
-                const wa = slot.phone
-                  ? waMessageHref(slot.phone, buildServicingWhatsAppMessage(slot, { businessName }))
-                  : null;
-                return (
-                  <li key={slot.id} className="svc-row">
-                    <div className="svc-row-main">
-                      <span className="svc-visit-num" aria-label={`Visit ${slot.serviceNum} of 3`}>
-                        {slot.serviceNum}
-                      </span>
-                      <div className="svc-row-text">
-                        <div className="svc-row-line1">
-                          <span className="svc-name">{slot.customerName}</span>
-                          <span className={`status-badge status-badge--sm ${st.cls}`}>{st.text}</span>
-                        </div>
-                        <span className="svc-row-line2">
-                          Due {dateHuman(slot.dueDate)}
-                          {slot.invoiceNo ? ` · ${slot.invoiceNo}` : ""}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="svc-row-foot">
-                      {slot.completed ? (
-                        <button
-                          type="button"
-                          className="svc-action svc-action--ghost"
-                          onClick={() => onUndoComplete?.(slot.saleId, slot.serviceNum)}
-                        >
-                          Undo
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          className="svc-action svc-action--primary"
-                          onClick={() => onMarkComplete?.(slot.saleId, slot.serviceNum)}
-                        >
-                          Done
-                        </button>
-                      )}
-                      {slot.invoiceNo ? (
-                        <button
-                          type="button"
-                          className="svc-action svc-action--ghost"
-                          onClick={() => onOpenSale?.(slot.saleId)}
-                        >
-                          Invoice
-                        </button>
-                      ) : null}
-                      {wa ? (
-                        <a
-                          href={wa}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="svc-icon-btn"
-                          aria-label="WhatsApp"
-                        >
-                          <IcWhatsApp />
-                        </a>
-                      ) : slot.phone ? (
-                        <a href={`tel:${slot.phone}`} className="svc-icon-btn" aria-label="Call">
-                          <IcPhone />
-                        </a>
-                      ) : null}
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
+            <>
+              {upcoming.length > 0 ? (
+                <section className="svc-upcoming-group" aria-label={`Upcoming ${SERVICING_UPCOMING_DAYS} days`}>
+                  <h2 className="svc-upcoming-hd">
+                    Next {SERVICING_UPCOMING_DAYS} days
+                    <span className="svc-upcoming-count">{upcoming.length}</span>
+                  </h2>
+                  <ul className="svc-list svc-list--upcoming" role="list">
+                    {renderRows(upcoming)}
+                  </ul>
+                </section>
+              ) : null}
+              {filteredRest.length > 0 ? (
+                <section className={upcoming.length > 0 ? "svc-rest-group" : undefined}>
+                  {upcoming.length > 0 ? <h2 className="svc-rest-hd">Later</h2> : null}
+                  <ul className="svc-list" role="list">
+                    {renderRows(filteredRest)}
+                  </ul>
+                </section>
+              ) : null}
+            </>
           )}
         </div>
       </div>

@@ -79,11 +79,13 @@ export function useDebouncedLocalPersist({
           settings: nextState.settings,
           balance: normalizedBalance.balance,
           servicingCompletions: nextState.servicingCompletions || [],
+          servicingWaSent: nextState.servicingWaSent || [],
         };
         const prevMeta = {
           settings: prevState.settings,
           balance: prevState.balance,
           servicingCompletions: prevState.servicingCompletions || [],
+          servicingWaSent: prevState.servicingWaSent || [],
         };
         if (stableStringify(prevMeta) !== stableStringify(nextMeta)) {
           await upsertLocalEntityRecord({
