@@ -2,6 +2,15 @@
 
 All notable changes are tracked here. The Settings screen shows **Version** from `package.json`.
 
+## [7.3.16] — 2026-06-23
+
+### Fixes
+- **Banking** — KPI amounts no longer clip; values wrap and stack on narrow screens.
+
+App version **7.3.16**; service worker cache **v92**.
+
+---
+
 ## [7.3.15] — 2026-06-23
 
 ### Improvements
