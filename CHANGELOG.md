@@ -2,6 +2,15 @@
 
 All notable changes are tracked here. The Settings screen shows **Version** from `package.json`.
 
+## [7.3.13] — 2026-06-23
+
+### Improvements
+- **Dashboard privacy** — eye toggle also blurs Revenue and COGS (with net and gross profit).
+
+App version **7.3.13**; service worker cache **v89**.
+
+---
+
 ## [7.3.12] — 2026-06-23
 
 ### Features

@@ -20,6 +20,7 @@ import {
 import { MonthFilterCompact } from "@/shared/ui/shell/MonthFilterCompact.jsx";
 import { NotifPanel } from "./NotifPanel.jsx";
 
+const PROFIT_MASK_KEYS = new Set(["profit", "gross", "revenue", "cogs"]);
 const RECENT_LIMIT = 5;
 const AV_COLORS = ["av-blue", "av-green", "av-purple", "av-orange", "av-teal", "av-indigo", "av-amber", "av-red"];
 
@@ -270,7 +271,7 @@ export function HomeTab({
 
         <section className="home-md3-kpi-grid" aria-label="Key metrics">
           {kpiTiles.map((tile) => {
-            const maskProfit = profitHidden && (tile.key === "profit" || tile.key === "gross");
+            const maskProfit = profitHidden && PROFIT_MASK_KEYS.has(tile.key);
             return (
             <div
               key={tile.key}
@@ -301,7 +302,11 @@ export function HomeTab({
                     type="button"
                     className="home-md3-kpi-eye"
                     onClick={toggleProfitHidden}
-                    aria-label={profitHidden ? "Show net and gross profit" : "Hide net and gross profit"}
+                    aria-label={
+                      profitHidden
+                        ? "Show revenue, COGS, net and gross profit"
+                        : "Hide revenue, COGS, net and gross profit"
+                    }
                     aria-pressed={profitHidden}
                   >
                     {profitHidden ? <IcEyeOff /> : <IcEye />}
