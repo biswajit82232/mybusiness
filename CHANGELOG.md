@@ -2,6 +2,15 @@
 
 All notable changes are tracked here. The Settings screen shows **Version** from `package.json`.
 
+## [7.3.15] — 2026-06-23
+
+### Improvements
+- **Balance sheet** — **Subtotal — current** row highlighted in green for quick scanning.
+
+App version **7.3.15**; service worker cache **v91**.
+
+---
+
 ## [7.3.14] — 2026-06-23
 
 ### Features

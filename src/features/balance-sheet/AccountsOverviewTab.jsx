@@ -108,7 +108,7 @@ export function AccountsOverviewTab({ state, balSum, saveOtherBalance, onOpenSid
             )}
 
             {hasAmount(balance.otherAssets) ? <BsRow label="Other assets" value={balance.otherAssets} /> : null}
-            <BsRow label="Subtotal — current" value={balSum.curAssets} bold />
+            <BsRow label="Subtotal — current" value={balSum.curAssets} highlight />
 
             <p className="bs-sub-hd">Long-term</p>
             {fixedAssetAccounts.length === 0 ? (

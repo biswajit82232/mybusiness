@@ -2432,6 +2432,17 @@ button.sale-row.sale-row--clickable { cursor: pointer; font: inherit; color: inh
 }
 .bs-row:last-child { border-bottom: none; }
 .bs-row.bs-bold  { font-weight: 700; background: var(--line2); }
+.bs-row.bs-row--highlight-current {
+  font-weight: 800;
+  background: color-mix(in srgb, var(--success) 14%, var(--card));
+  border-top: 1px solid color-mix(in srgb, var(--success) 32%, var(--line2));
+  border-bottom: 1px solid color-mix(in srgb, var(--success) 32%, var(--line2));
+}
+.bs-row.bs-row--highlight-current .bs-row__label,
+.bs-row.bs-row--highlight-current .bs-row__val {
+  color: var(--success);
+  font-weight: 800;
+}
 .bs-row.bs-grand { font-weight: 800; background: var(--primary-bg); color: var(--primary); border-top: 1.5px solid var(--primary-mid); }
 .bs-row.bs-row--branch {
   padding-left: 22px;

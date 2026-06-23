@@ -12,12 +12,14 @@ export function Field({ label, children }) {
   );
 }
 
-export function BsRow({ label, value, bold, grand, indent, signed }) {
+export function BsRow({ label, value, bold, grand, indent, signed, highlight }) {
   const n = num(value);
   const valCls =
     signed && n < -0.005 ? " bs-row__val--neg" : signed && n > 0.005 ? " bs-row__val--pos" : "";
   return (
-    <div className={`bs-row${bold ? " bs-bold" : ""}${grand ? " bs-grand" : ""}${indent ? " bs-row--branch" : ""}`}>
+    <div
+      className={`bs-row${bold ? " bs-bold" : ""}${grand ? " bs-grand" : ""}${indent ? " bs-row--branch" : ""}${highlight ? " bs-row--highlight-current" : ""}`}
+    >
       <span className="bs-row__label">{label}</span>
       <span className={`bs-row__val${valCls}`}>{moneyFull(value)}</span>
     </div>
