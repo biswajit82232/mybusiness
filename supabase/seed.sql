@@ -1,0 +1,2 @@
+-- Optional seed data for local `supabase db reset`.
+-- Add demo rows here when useful; keep empty for production parity.

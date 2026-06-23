@@ -1,0 +1,3 @@
+# Private business management app — not for public indexing
+User-agent: *
+Disallow: /

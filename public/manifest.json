@@ -1,0 +1,80 @@
+{
+  "id": "/",
+  "name": "MyBusiness",
+  "short_name": "MyBiz",
+  "description": "Invoicing, inventory, expenses, and banking for small businesses. Works offline; optional cloud sync.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "portrait-primary",
+  "background_color": "#f5f7fb",
+  "theme_color": "#23408e",
+  "categories": ["business", "finance", "productivity"],
+  "lang": "en",
+  "icons": [
+    { "src": "/icon-72.png",  "sizes": "72x72",   "type": "image/png", "purpose": "any" },
+    { "src": "/icon-96.png",  "sizes": "96x96",   "type": "image/png", "purpose": "any" },
+    { "src": "/icon-144.png", "sizes": "144x144", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    {
+      "name": "New Sale",
+      "short_name": "New Sale",
+      "description": "Create a new sales invoice",
+      "url": "/?action=new_sale",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Loans Given",
+      "short_name": "Loans",
+      "description": "View and manage loans given",
+      "url": "/?action=loans_given",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Balance Sheet",
+      "short_name": "Balance",
+      "description": "Open the balance sheet overview",
+      "url": "/?action=balance_sheet",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Products",
+      "short_name": "Products",
+      "description": "Open the product catalogue",
+      "url": "/?action=products",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Customers",
+      "short_name": "Customers",
+      "description": "Open the customer list",
+      "url": "/?action=customers",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "New Expense",
+      "short_name": "Expense",
+      "description": "Record a new expense quickly",
+      "url": "/?action=new_expense",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "MyBusiness dashboard"
+    }
+  ],
+  "prefer_related_applications": false,
+  "launch_handler": {
+    "client_mode": "focus-existing"
+  }
+}

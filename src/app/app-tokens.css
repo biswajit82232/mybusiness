@@ -1,0 +1,235 @@
+/* ══════════════════════════════════════════════════════════════
+   DESIGN TOKENS — corporate-grade palette, type, elevation, motion
+   ----------------------------------------------------------------
+   Single source of truth for the premium design system.
+   Imported first by App.css; do not move declarations after this.
+══════════════════════════════════════════════════════════════ */
+:root {
+  /* ── Type stack ──────────────────────────────────────────── */
+  --font-sans: "Inter", "SF Pro Text", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-display: "Inter", "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", "Cascadia Mono", "Roboto Mono", Menlo, Consolas, monospace;
+
+  /* ── Surfaces & neutrals — cool slate, premium feel ───────── */
+  --bg:           #f5f7fb;   /* page background */
+  --bg2:          #edf1f8;   /* recessed band */
+  --card:         #ffffff;   /* default surface */
+  --card-2:       #fafbfd;   /* alt surface (zebra rows, recessed cards) */
+  --elevated:     #ffffff;   /* lifted surface (modals, popovers) */
+  --line:         #dde4ee;   /* default hairline */
+  --line2:        #eef3f9;   /* faint hairline (inside cards) */
+  --line-strong:  #c6d2e2;
+  --text:         #0b1220;
+  --text2:        #1f2937;
+  --text3:        #334155;
+  --muted:        #5b6776;
+  --muted2:       #94a3b8;
+  --on-primary:   #ffffff;
+
+  /* ── Brand: deep enterprise indigo ────────────────────────── */
+  --primary:      #23408e;
+  --primary-dk:   #1b326f;
+  --primary-hov:  #1f397f;
+  --primary-bg:   #eaf0ff;
+  --primary-mid:  #c7d4f4;
+  --primary-soft: rgba(35, 64, 142, 0.08);
+
+  /* ── Semantic status (refined, desaturated) ───────────────── */
+  --success:      #047857;
+  --success-bg:   #ecfdf5;
+  --warning:      #a1590f;
+  --warning-bg:   #fffbeb;
+  --danger:       #b91c1c;
+  --danger-bg:    #fef2f2;
+  --purple:       #6d28d9;
+  --purple-bg:    #f5f3ff;
+  --accent:       #0ea5e9;
+
+  /* ── Sidebar / layout ────────────────────────────────────── */
+  --sidebar-w:    min(264px, 88vw);
+  --hdr-h:        clamp(54px, 8.2vw, 60px);
+  --content-max:  1280px;
+  --sidebar-bg:           #0b1224;
+  --sidebar-surface-hover: rgba(255, 255, 255, 0.06);
+  --sidebar-surface-active: rgba(37, 99, 235, 0.22);
+  --sidebar-border:       rgba(255, 255, 255, 0.08);
+  --sidebar-text:         #e8edf5;
+  --sidebar-text-soft:    #94a3b8;
+  --sidebar-accent-strip: var(--primary);
+
+  /* ── Radii ───────────────────────────────────────────────── */
+  --r:            14px;
+  --radius-xs:    8px;
+  --radius-sm:    10px;
+  --radius-md:    14px;
+  --radius-lg:    18px;
+  --radius-xl:    22px;
+  --radius-pill:  999px;
+
+  /* ── Spacing scale ───────────────────────────────────────── */
+  --space-1:      4px;
+  --space-2:      8px;
+  --space-3:      12px;
+  --space-4:      16px;
+  --space-5:      22px;
+  --space-6:      28px;
+  --space-7:      32px;
+  --space-8:      40px;
+  --page-pad:     clamp(14px, 3.2vw, 26px);
+  --section-gap:  clamp(12px, 2vw, 20px);
+  --row-pad-y:    15px;
+  --tap-min:      46px;
+  --btn-height:   48px;
+  --btn-pad-x:    20px;
+  --btn-font:     0.9375rem;
+  --input-height: 48px;
+
+  /* ── Typography scale ────────────────────────────────────── */
+  --fs-caption:    0.72rem;
+  --fs-body-sm:    0.82rem;
+  --fs-body:       clamp(0.875rem, 2.1vw, 0.9375rem);
+  --fs-h3:         0.95rem;
+  --fs-h2:         clamp(1rem, 2.4vw, 1.125rem);
+  --fs-h1:         clamp(1.25rem, 3.4vw, 1.5rem);
+  --fs-display:    clamp(1.5rem, 4.6vw, 2rem);
+  --fw-regular:    400;
+  --fw-medium:     500;
+  --fw-semibold:   600;
+  --fw-bold:       700;
+  --fw-heavy:      800;
+  --lh-tight:      1.2;
+  --lh-snug:       1.35;
+  --lh-base:       1.5;
+  --tracking-tight:-0.012em;
+  --tracking-tighter:-0.022em;
+  --tracking-caps: 0.08em;
+  /* Legacy aliases */
+  --title-size:    var(--fs-h2);
+  --body-size:     var(--fs-body);
+
+  /* ── Elevation — layered, premium ─────────────────────────── */
+  --shadow-xs:    0 1px 1px rgba(15, 23, 42, 0.04);
+  --shadow-sm:    0 1px 2px rgba(15, 23, 42, 0.04), 0 1px 3px rgba(15, 23, 42, 0.05);
+  --shadow-md:    0 4px 12px rgba(15, 23, 42, 0.06), 0 1px 3px rgba(15, 23, 42, 0.04);
+  --shadow-lg:    0 16px 40px rgba(15, 23, 42, 0.12), 0 4px 14px rgba(15, 23, 42, 0.06);
+  --shadow-xl:    0 24px 60px rgba(15, 23, 42, 0.18), 0 8px 24px rgba(15, 23, 42, 0.08);
+  --shadow-pop:   0 6px 20px rgba(15, 23, 42, 0.10), 0 2px 6px rgba(15, 23, 42, 0.06);
+  --shadow-card:  var(--shadow-sm);
+  --shadow-float: var(--shadow-lg);
+  --shadow-kpi-hover: 0 10px 30px rgba(15, 23, 42, 0.10), 0 2px 8px rgba(15, 23, 42, 0.05);
+
+  /* ── Frosted surfaces (used sparingly) ───────────────────── */
+  --surface-glass: color-mix(in srgb, var(--card) 92%, transparent);
+  --appbar-glass:  color-mix(in srgb, var(--card) 86%, transparent);
+
+  /* ── Motion ──────────────────────────────────────────────── */
+  --ease-out:        cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out:     cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-spring:     cubic-bezier(0.18, 0.89, 0.32, 1.28);
+  --dur-fast:        120ms;
+  --dur-base:        180ms;
+  --dur-slow:        280ms;
+
+  /* ── Gradient shortcuts ──────────────────────────────────── */
+  --gradient-primary: linear-gradient(135deg, var(--primary-dk), var(--primary));
+  --gradient-home: linear-gradient(180deg, color-mix(in srgb, var(--primary) 9%, var(--bg)) 0%, var(--bg) 200px);
+  --gradient-card-accent: linear-gradient(135deg, color-mix(in srgb, var(--primary) 7%, var(--card)), var(--card) 70%);
+  --gradient-sidebar-brand: linear-gradient(135deg, color-mix(in srgb, var(--primary) 24%, var(--sidebar-bg)) 0%, var(--sidebar-bg) 75%);
+
+  /* ── App shell background ────────────────────────────────── */
+  --shell-bg: var(--bg);
+
+  /* ── Toast / banners ─────────────────────────────────────── */
+  --toast-bg:     #0b1220;
+  --toast-color:  #ffffff;
+
+  /* ── Focus & elevated panels ─────────────────────────────── */
+  --focus-ring:    0 0 0 3px color-mix(in srgb, var(--primary) 22%, transparent);
+  --focus-ring-strong: 0 0 0 3px color-mix(in srgb, var(--primary) 40%, transparent);
+  --surface-panel: var(--card);
+
+  /* ── Scrollbar (Windows / desktop) ────────────────────────── */
+  --scroll-thumb:        rgba(15, 23, 42, 0.18);
+  --scroll-thumb-hover:  rgba(15, 23, 42, 0.32);
+  --scroll-track:        transparent;
+
+  color-scheme: light;
+}
+
+/* ── Dark mode ───────────────────────────────────────────── */
+[data-theme="dark"] {
+  --sidebar-bg:           #060c1a;
+  --sidebar-surface-hover: rgba(255, 255, 255, 0.05);
+  --sidebar-surface-active: rgba(99, 102, 241, 0.26);
+  --sidebar-border:       rgba(255, 255, 255, 0.06);
+  --sidebar-text:         #f1f5f9;
+  --sidebar-text-soft:    #8b96ad;
+
+  --bg:           #0a1224;
+  --bg2:          #111a2f;
+  --card:         #131c33;
+  --card-2:       #182240;
+  --elevated:     #1a2440;
+  --line:         #243149;
+  --line2:        #1a2238;
+  --line-strong:  #3b4a68;
+  --text:         #eef2fb;
+  --text2:        #cbd5e1;
+  --text3:        #94a3b8;
+  --muted:        #94a3b8;
+  --muted2:       #6b7891;
+
+  --primary:      #7b8df7;
+  --primary-dk:   #6679eb;
+  --primary-hov:  #8b9bfa;
+  --primary-bg:   rgba(123,141,247,0.16);
+  --primary-mid:  rgba(123,141,247,0.36);
+  --primary-soft: rgba(123,141,247,0.10);
+
+  --success-bg:   rgba(16,185,129,0.16);
+  --warning-bg:   rgba(217,119,6,0.16);
+  --danger-bg:    rgba(220,38,38,0.16);
+  --purple-bg:    rgba(124,58,237,0.16);
+
+  --shadow-xs:    0 1px 1px rgba(0,0,0,0.35);
+  --shadow-sm:    0 1px 2px rgba(0,0,0,0.35), 0 1px 3px rgba(0,0,0,0.25);
+  --shadow-md:    0 4px 14px rgba(0,0,0,0.4), 0 2px 6px rgba(0,0,0,0.25);
+  --shadow-lg:    0 18px 50px rgba(0,0,0,0.5), 0 6px 18px rgba(0,0,0,0.32);
+  --shadow-xl:    0 28px 70px rgba(0,0,0,0.65), 0 10px 28px rgba(0,0,0,0.4);
+  --shadow-pop:   0 6px 24px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3);
+  --shadow-card:  var(--shadow-sm);
+  --shadow-float: var(--shadow-lg);
+  --shadow-kpi-hover: 0 14px 38px rgba(0, 0, 0, 0.45), 0 3px 14px rgba(0, 0, 0, 0.28);
+
+  --toast-bg:     #eef2fb;
+  --toast-color:  #0b1224;
+
+  --shell-bg: var(--bg);
+  --appbar-glass: color-mix(in srgb, var(--card) 80%, transparent);
+  --surface-glass: color-mix(in srgb, var(--card) 90%, transparent);
+
+  --scroll-thumb:        rgba(255, 255, 255, 0.16);
+  --scroll-thumb-hover:  rgba(255, 255, 255, 0.28);
+
+  color-scheme: dark;
+}
+
+/* Small phones: tighter gutters, same tap comfort. */
+@media (max-width: 390px) {
+  :root {
+    --page-pad: 12px;
+    --section-gap: 10px;
+    --btn-height: 46px;
+    --input-height: 46px;
+  }
+}
+
+/* Large phones / tablets: more breathing room and stronger hierarchy. */
+@media (min-width: 768px) {
+  :root {
+    --page-pad: clamp(18px, 2.6vw, 30px);
+    --section-gap: clamp(14px, 1.8vw, 22px);
+    --btn-height: 50px;
+    --input-height: 50px;
+  }
+}

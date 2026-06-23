@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+    <!-- PWA / installability -->
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#f5f7fb" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0a1224" media="(prefers-color-scheme: dark)" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="MyBiz" />
+
+    <!-- Icons -->
+    <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-180.png" />
+    <link rel="apple-touch-icon" sizes="192x192" href="/icon-192.png" />
+    <link rel="apple-touch-icon" sizes="144x144" href="/icon-144.png" />
+
+    <!-- SEO / social -->
+    <meta name="description" content="MyBusiness — invoicing, inventory, expenses, and banking for small businesses. Private by default; optional cloud backup." />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="application-name" content="MyBusiness" />
+
+    <!-- Open Graph (for link sharing) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="MyBusiness" />
+    <meta property="og:description" content="Invoicing, inventory, expenses, and banking for small businesses. Private by default; optional cloud backup." />
+    <meta property="og:image" content="/icon-512.png" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="MyBusiness" />
+    <meta name="twitter:description" content="Invoicing, inventory, expenses, and banking for small businesses. Private by default; optional cloud backup." />
+    <meta name="twitter:image" content="/icon-512.png" />
+
+    <!-- Prevent flash of unstyled background: read theme preference before first paint.
+         Supports "auto" mode (system) when biz_theme_mode === "auto". -->
+    <script>
+      (function () {
+        try {
+          var modePref = localStorage.getItem('biz_theme_mode');
+          var dark;
+          if (modePref === 'auto') {
+            dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          } else if (modePref === 'dark') {
+            dark = true;
+          } else if (modePref === 'light') {
+            dark = false;
+          } else {
+            dark = localStorage.getItem('biz_dark') === '1';
+          }
+          var root = document.documentElement;
+          root.dataset.theme = dark ? 'dark' : 'light';
+          root.style.background = dark ? '#0a1224' : '#f5f7fb';
+          root.style.color = dark ? '#eef2fb' : '#0b1220';
+          var meta = document.querySelector('meta[name="theme-color"]:not([media])');
+          if (meta) meta.setAttribute('content', dark ? '#0a1224' : '#f5f7fb');
+        } catch (e) {}
+      })();
+    </script>
+
+    <title>MyBusiness</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

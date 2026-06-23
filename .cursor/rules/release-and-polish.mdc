@@ -1,0 +1,32 @@
+---
+description: Release versioning and continuous polish conventions for this PWA
+alwaysApply: true
+---
+
+# Release & Polish
+
+## Always bump the version before pushing
+
+Every push that changes shipped code MUST bump the version. Keep these three in sync:
+
+1. `package.json` → `version` (semver). Patch for fixes, minor for features, major for breaking.
+2. `public/sw.js` → `const VERSION = "vNN"` (increment by 1). This forces a fresh
+   precache so existing installs pick up the deploy and stale caches are purged.
+3. `CHANGELOG.md` → add a top entry `## [x.y.z] — YYYY-MM-DD` with Features /
+   Improvements / Fixes, and note the app version + service worker cache version.
+
+The Settings screen shows the version from `package.json`, so users can confirm they
+are on the new build.
+
+## Polish from root to UI, continuously
+
+Treat every task as a chance to improve the whole stack — not just the immediate ask:
+
+- **Root/data**: correctness of calculations, data sync, offline-first robustness,
+  no boot hangs, graceful failure (timeouts, fallbacks).
+- **Domain**: keep business logic centralized in `src/domain`; add/extend sanity
+  tests in `scripts/*-sanity.mjs` when logic changes.
+- **UI/UX**: clean, aligned, mobile-friendly (small Android screens), consistent
+  with the existing design system and tokens.
+
+Before pushing, run `npm run build` and the relevant `scripts/*-sanity.mjs` checks.

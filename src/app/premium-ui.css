@@ -1,0 +1,1890 @@
+/* ══════════════════════════════════════════════════════════════
+   PREMIUM UI — Zoho Books-grade mobile-first design
+   ----------------------------------------------------------------
+   Loaded last (App.jsx imports after App.css) so it wins cascade.
+   DO NOT add flex-direction:column to strip containers — they are
+   intentionally horizontal. Each cell stacks label-above-value.
+══════════════════════════════════════════════════════════════ */
+
+/* ── Global quality ────────────────────────────────────────── */
+html, body {
+  font-feature-settings: "tnum" 1, "lnum" 1, "ss01" 1, "ss03" 1, "cv11" 1;
+}
+
+/* Smooth scrolling on every scrollport (touch momentum + anchor/focus scroll) */
+.main-stage,
+.overlay-scroll,
+.detail-scroll,
+.sidebar,
+.notif-panel-body,
+.tab-page-scroll,
+.overlay-screen > .list-area {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .main-stage,
+  .overlay-scroll,
+  .detail-scroll,
+  .sidebar,
+  .notif-panel-body,
+  .tab-page-scroll,
+  .overlay-screen > .list-area {
+    scroll-behavior: auto;
+  }
+}
+
+/* Instant theme swap: when html.theme-switching is set, suppress every
+   transition for one paint so the palette flips cleanly. */
+html.theme-switching *,
+html.theme-switching *::before,
+html.theme-switching *::after {
+  transition: none !important;
+  animation-duration: 0.001ms !important;
+}
+
+/* Tap highlight off for interactive surfaces — we provide our own feedback */
+button, a, [role="button"], [role="tab"], [tabindex] {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Tabular numerics everywhere money is shown — App.css already enables tnum,
+   this is a defensive override for any element that overrode it. */
+.bank-tx-after,
+.banking-sum-val,
+.inv-sum-val,
+.recv-kpi-val,
+.ledger-sum-val,
+.rep-kpi-v,
+.detail-kpi-val,
+.kpi-grid-loans-given .kpi-val,
+.dh-bal-amt {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1, "lnum" 1;
+}
+
+/* Long lists: paint only when visible — huge perf win on mobile.
+   The browser still reserves space (contain-intrinsic-size) so scroll is exact. */
+.sale-row,
+.activity-row,
+.bank-tx-row,
+.bank-tx-row-btn,
+.inv-row-main {
+  content-visibility: auto;
+  contain-intrinsic-size: 0 72px;
+}
+
+/* Thin, premium scrollbars (desktop/Windows) */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--scroll-thumb);
+  border-radius: var(--radius-pill);
+}
+::-webkit-scrollbar-thumb:hover { background: var(--scroll-thumb-hover); }
+* { scrollbar-width: thin; scrollbar-color: var(--scroll-thumb) transparent; }
+
+/* Unified focus ring */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex="0"]:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   KPI / SUMMARY STRIPS  ← THE MAIN FIX
+   These must stay display:flex (horizontal row).
+   Each CELL is flex-direction:column so label sits above value.
+   Values use clamp + nowrap so numbers never break/overflow.
+══════════════════════════════════════════════════════════════ */
+
+/* ── Container: always horizontal row ─────────────────────── */
+.banking-summary,
+.inv-summary,
+.receivables-summary,
+.ledger-summary {
+  display: flex;
+  flex-direction: row;    /* ← HORIZONTAL — cells side by side */
+  gap: 0;
+  background: var(--line);  /* 1px hairline dividers between cells */
+  border-top: none;
+  border-left: none;
+  border-right: none;
+  border-bottom: 1px solid var(--line);
+  overflow: hidden;
+}
+
+/* ── Each cell: label on top, value below ─────────────────── */
+.banking-sum-cell,
+.inv-sum-card,
+.recv-kpi,
+.ledger-sum-kpi {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 10px 8px 10px 10px;
+  background: var(--card);
+  display: flex;
+  flex-direction: column;  /* label above value */
+  gap: 3px;
+  border-right: none;       /* gap:0 + bg:var(--line) makes the divider */
+}
+
+/* ── Labels: tiny, caps, muted ───────────────────────────── */
+.banking-sum-lbl,
+.inv-sum-lbl,
+.recv-kpi-lbl,
+.ledger-sum-lbl {
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
+}
+
+/* ── Values: bold tabular, fluid size, never breaks ─────── */
+.banking-sum-val,
+.inv-sum-val,
+.recv-kpi-val,
+.ledger-sum-val {
+  font-family: var(--font-display);
+  font-size: clamp(0.8rem, 2.8vw, 0.96rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
+}
+
+/* Semantic value colors preserved */
+.banking-sum-cell--in  .banking-sum-val,
+.banking-sum-val--pos,
+.ledger-sum-in  { color: var(--success) !important; }
+
+.banking-sum-cell--out .banking-sum-val,
+.banking-sum-val--neg,
+.ledger-sum-out { color: var(--danger) !important; }
+
+/* Meta line (account count etc.) */
+.banking-sum-meta {
+  font-size: 0.62rem;
+  font-weight: 600;
+  color: var(--muted2);
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.banking-sum-meta-txt {
+  font-size: 0.6rem;
+  font-weight: 600;
+  color: var(--muted2);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+/* ── rep-kpi-grid: stays 2-col grid ──────────────────────── */
+.rep-kpi-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.rep-kpi {
+  background: var(--line2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.rep-kpi-l {
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+.rep-kpi-v {
+  font-size: clamp(0.82rem, 2.6vw, 0.98rem);
+  font-weight: 800;
+  color: var(--text);
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── kpi-grid-loans-given: stays 2/4-col grid ───────────── */
+.kpi-grid-loans-given {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  padding: 8px var(--page-pad) 14px;
+}
+.kpi-grid-loans-given .kpi-card {
+  min-width: 0;
+  min-height: 72px;
+  justify-content: center;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+}
+.kpi-grid-loans-given .kpi-lbl {
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--muted);
+}
+.kpi-grid-loans-given .kpi-val {
+  font-size: clamp(0.86rem, 3.2vw, 1.05rem);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+@media (min-width: 600px) {
+  .kpi-grid-loans-given { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+/* ── detail-kpi-grid: stays 2-col grid ──────────────────── */
+.detail-kpi-grid {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.detail-kpi {
+  background: var(--line2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+[data-theme="dark"] .detail-kpi {
+  background: var(--bg2);
+}
+.detail-kpi-lbl {
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-caps);
+  color: var(--muted);
+}
+.detail-kpi-val {
+  font-size: clamp(0.82rem, 2.6vw, 1rem);
+  font-weight: 800;
+  letter-spacing: -0.015em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   LOGIN
+══════════════════════════════════════════════════════════════ */
+.login-shell {
+  background: var(--bg);
+}
+.login-card {
+  width: 100%;
+  max-width: 380px;
+  padding: 32px 24px 24px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-sm);
+  background: var(--card);
+}
+.login-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 12px;
+  margin-bottom: 28px;
+}
+.login-logo {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  box-shadow: var(--shadow-md);
+}
+.login-title {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  color: var(--text);
+}
+.login-sub {
+  margin-top: 2px;
+  font-size: var(--fs-body-sm);
+  font-weight: 500;
+  color: var(--muted);
+}
+
+/* Storage choice + tab toggles */
+.login-storage-choice {
+  display: flex;
+  gap: 0;
+  margin-bottom: 20px;
+  padding: 4px;
+  background: var(--line2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+}
+.login-storage-btn {
+  flex: 1;
+  min-height: 38px;
+  border: none;
+  border-radius: calc(var(--radius-md) - 4px);
+  background: transparent;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--muted);
+  transition: background var(--dur-fast) var(--ease-out),
+              color var(--dur-fast) var(--ease-out);
+}
+.login-storage-btn.active {
+  background: var(--card);
+  color: var(--primary);
+  box-shadow: var(--shadow-xs);
+}
+
+.login-tabs {
+  display: flex;
+  margin-bottom: 18px;
+  padding: 4px;
+  background: var(--line2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+}
+.login-tab {
+  flex: 1;
+  min-height: 38px;
+  border: none;
+  border-radius: calc(var(--radius-md) - 4px);
+  background: transparent;
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--muted);
+  transition: background var(--dur-fast) var(--ease-out),
+              color var(--dur-fast) var(--ease-out);
+}
+.login-tab.active {
+  background: var(--card);
+  color: var(--primary);
+  box-shadow: var(--shadow-xs);
+}
+
+.login-label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-caps);
+  color: var(--muted2);
+}
+.login-input {
+  width: 100%;
+  min-height: var(--input-height);
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  font-size: 16px;
+  background: var(--card);
+  color: var(--text);
+  outline: none;
+  transition: border-color var(--dur-fast) var(--ease-out),
+              box-shadow var(--dur-fast) var(--ease-out);
+}
+.login-input::placeholder { color: var(--muted2); }
+.login-input:focus {
+  border-color: var(--primary);
+  box-shadow: var(--focus-ring);
+}
+.login-submit {
+  margin-top: 6px;
+}
+
+/* Mobile: full-bleed card */
+@media (max-width: 480px) {
+  .login-card {
+    border: none;
+    box-shadow: none;
+    border-radius: 0;
+    max-width: 100%;
+    padding: max(44px, env(safe-area-inset-top)) max(22px, env(safe-area-inset-right))
+      max(24px, env(safe-area-inset-bottom)) max(22px, env(safe-area-inset-left));
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   APP CHROME — appbar, page header
+══════════════════════════════════════════════════════════════ */
+.mobile-appbar {
+  min-height: var(--hdr-h);
+  background: var(--card);
+  border-bottom: 1px solid var(--line);
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+.mobile-appbar-title {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  color: var(--text);
+}
+.mobile-appbar-sub {
+  font-size: 0.68rem;
+  font-weight: 500;
+  color: var(--muted);
+  letter-spacing: 0;
+}
+
+.page-hdr {
+  min-height: var(--hdr-h);
+  background: var(--card);
+  border-bottom: 1px solid var(--line);
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  padding: 0 var(--page-pad);
+}
+.page-hdr-title {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  color: var(--text);
+}
+
+.tab-appbar {
+  height: var(--hdr-h);
+  background: var(--card);
+  border-bottom: 1px solid var(--line);
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+.tab-title {
+  font-family: var(--font-display);
+  font-size: 1.0625rem;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   BUTTONS — unified 48px premium system
+══════════════════════════════════════════════════════════════ */
+.primary-btn,
+.ghost-btn,
+.danger-btn,
+.action-btn,
+.edit-entry-btn,
+.delete-btn,
+.login-submit {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: var(--btn-height);
+  height: var(--btn-height);
+  padding: 0 var(--btn-pad-x);
+  width: 100%;
+  font-family: var(--font-sans);
+  font-size: var(--btn-font);
+  font-weight: 700;
+  letter-spacing: 0.005em;
+  line-height: 1;
+  border-radius: var(--radius-md);
+  -webkit-tap-highlight-color: transparent;
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-out),
+              border-color var(--dur-fast) var(--ease-out),
+              color var(--dur-fast) var(--ease-out),
+              box-shadow var(--dur-fast) var(--ease-out);
+}
+
+.primary-btn,
+.action-btn,
+.login-submit {
+  border: none;
+  background: var(--primary);
+  color: #fff;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+}
+.primary-btn:hover:not(:disabled),
+.action-btn:hover:not(:disabled) {
+  background: var(--primary-hov);
+}
+.primary-btn:active:not(:disabled),
+.action-btn:active:not(:disabled) {
+  background: var(--primary-dk);
+  box-shadow: none;
+}
+.primary-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.ghost-btn,
+.edit-entry-btn {
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--text);
+}
+.ghost-btn:hover:not(:disabled),
+.edit-entry-btn:hover:not(:disabled) {
+  background: var(--line2);
+  border-color: var(--line-strong);
+}
+.ghost-btn:active:not(:disabled),
+.edit-entry-btn:active {
+  background: var(--line);
+  box-shadow: none;
+  transform: none;
+}
+
+.danger-btn {
+  border: none;
+  background: var(--danger);
+  color: #fff;
+}
+.danger-btn:hover:not(:disabled) { filter: brightness(1.04); }
+.danger-btn:active:not(:disabled) { filter: brightness(0.92); box-shadow: none; }
+
+.delete-btn {
+  border: 1px solid color-mix(in srgb, var(--danger) 26%, transparent);
+  background: var(--card);
+  color: var(--danger);
+}
+.delete-btn:active { background: var(--danger-bg); transform: none; }
+
+.modal-btns {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+}
+.modal-btns > * { flex: 1 1 0; min-width: 0; }
+
+/* ══════════════════════════════════════════════════════════════
+   INPUTS — consistent, full-height, focus ring
+══════════════════════════════════════════════════════════════ */
+.field input,
+.field select,
+.field textarea,
+.input-compact,
+.textarea-compact {
+  border-radius: var(--radius-md);
+  border-width: 1px;
+}
+.field input:focus,
+.field select:focus,
+.field textarea:focus,
+.input-compact:focus,
+.textarea-compact:focus {
+  box-shadow: var(--focus-ring);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   SEGMENTED CONTROLS
+══════════════════════════════════════════════════════════════ */
+.seg-bar {
+  background: var(--line2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 4px;
+}
+.seg-btn {
+  border-radius: calc(var(--radius-md) - 4px) !important;
+  font-weight: 600;
+  font-size: 0.84rem;
+}
+.seg-btn.active {
+  background: var(--card) !important;
+  color: var(--primary) !important;
+  box-shadow: var(--shadow-xs) !important;
+  font-weight: 700 !important;
+}
+
+.stock-toggle {
+  background: var(--line2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 4px;
+}
+.stt-btn { border-radius: calc(var(--radius-md) - 4px); font-weight: 600; }
+.stt-btn.active { background: var(--card); box-shadow: var(--shadow-xs); }
+
+/* ══════════════════════════════════════════════════════════════
+   DETAIL SCREENS
+══════════════════════════════════════════════════════════════ */
+.detail-scroll { background: var(--bg); }
+
+.detail-hero {
+  background: var(--card);
+  border-bottom: 1px solid var(--line);
+  padding: 18px var(--page-pad) 20px;
+}
+.detail-hero-v2 {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  margin: 12px var(--page-pad) 0;
+  padding: 18px 16px;
+  box-shadow: none;
+}
+
+.dh-inv {
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-caps);
+  color: var(--muted);
+}
+.dh-name {
+  font-family: var(--font-display);
+  font-size: 1.0625rem;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+}
+.dh-bal-amt {
+  font-family: var(--font-display);
+  font-size: clamp(1.5rem, 5vw, 2rem);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.detail-card,
+.detail-card-v2 {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  box-shadow: none;
+}
+
+.dc-title {
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-caps);
+  color: var(--muted2);
+}
+
+.detail-actions-v2 {
+  gap: 10px;
+  padding: 12px var(--page-pad) 0;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   SETTINGS
+══════════════════════════════════════════════════════════════ */
+.settings-hub-row {
+  min-height: 60px;
+  padding: 12px 14px;
+  box-shadow: none;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--card);
+  transition: background var(--dur-fast) var(--ease-out);
+}
+.settings-hub-row:hover  { border-color: var(--line-strong); }
+.settings-hub-row:active { background: var(--line2); transform: none; }
+
+.settings-hub-row-ic {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  background: var(--line2);
+  color: var(--primary);
+}
+.settings-hub-row-title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.settings-hub-search {
+  min-height: var(--input-height);
+  border-radius: var(--radius-md);
+  border-width: 1px;
+  background: var(--card);
+}
+.settings-hub-search:focus { box-shadow: var(--focus-ring); }
+
+.settings-action-btn {
+  min-height: 84px;
+  border-radius: var(--radius-md);
+  background: var(--card);
+  border: 1px solid var(--line);
+  box-shadow: none;
+}
+.settings-action-btn:active { background: var(--line2); transform: none; }
+
+.settings-report-bugs-btn {
+  border: 1px solid var(--line);
+  background: var(--card);
+  border-radius: var(--radius-md);
+  box-shadow: none;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   MODALS / TOASTS / OVERLAY FOOTER
+══════════════════════════════════════════════════════════════ */
+.modal {
+  background: var(--elevated, var(--card));
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xl);
+}
+.modal-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.015em;
+}
+
+.toast {
+  background: var(--toast-bg);
+  color: var(--toast-color);
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: 0.005em;
+  padding: 10px 18px;
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-xl);
+}
+
+.overlay-form-footer {
+  background: var(--card);
+  border-top: 1px solid var(--line);
+  box-shadow: none;
+  padding: 12px var(--page-pad) max(14px, env(safe-area-inset-bottom));
+}
+.overlay-form-footer .submit-btn,
+.overlay-form-footer .primary-btn,
+.overlay-form-footer .ghost-btn,
+.overlay-form-footer .danger-btn {
+  width: 100%;
+}
+
+/* FAB */
+.fab {
+  box-shadow: 0 4px 18px color-mix(in srgb, var(--primary) 36%, transparent),
+              0 2px 6px rgba(15, 23, 42, 0.10);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   MOBILE POLISH
+══════════════════════════════════════════════════════════════ */
+@media (max-width: 899px) {
+  /* Overlay screens: flat bg, no slide animation */
+  .overlay-screen {
+    animation: none;
+    background: var(--bg);
+  }
+  .page-hdr { min-height: var(--hdr-h); }
+
+  /* Detail hero cards: stretch edge to edge on mobile */
+  .detail-hero-v2 {
+    margin: 0;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    border-top: none;
+    box-shadow: none;
+  }
+  .detail-card,
+  .detail-card-v2 {
+    margin-left: 0;
+    margin-right: 0;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    box-shadow: none;
+  }
+
+  /* Side-by-side action buttons */
+  .detail-actions-v2--split {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .detail-actions-v2--split .action-btn,
+  .detail-actions-v2--split .edit-entry-btn { width: 100%; }
+
+  /* Strips edge-to-edge */
+  .banking-summary,
+  .inv-summary,
+  .receivables-summary,
+  .ledger-summary {
+    border-left: none;
+    border-right: none;
+  }
+
+  /* Slightly tighter cell padding on small screens */
+  .banking-sum-cell,
+  .inv-sum-card,
+  .recv-kpi,
+  .ledger-sum-kpi {
+    padding: 9px 6px 9px 8px;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   DARK MODE
+══════════════════════════════════════════════════════════════ */
+[data-theme="dark"] .login-card { border-color: var(--line); }
+[data-theme="dark"] .detail-card,
+[data-theme="dark"] .detail-card-v2,
+[data-theme="dark"] .detail-hero-v2,
+[data-theme="dark"] .settings-hub-row,
+[data-theme="dark"] .settings-action-btn,
+[data-theme="dark"] .modal { background: var(--card); }
+[data-theme="dark"] .kpi-grid-loans-given .kpi-card { background: var(--card); }
+
+/* ══════════════════════════════════════════════════════════════
+   THEME PICKER (Light / System / Dark)
+══════════════════════════════════════════════════════════════ */
+.theme-mode-group {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.theme-mode-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 6px;
+  min-height: 92px;
+  background: var(--card);
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  font-size: 0.84rem;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-out),
+              border-color var(--dur-fast) var(--ease-out),
+              color var(--dur-fast) var(--ease-out);
+}
+.theme-mode-btn:hover { border-color: var(--line-strong); background: var(--line2); }
+.theme-mode-btn.active {
+  border-color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 6%, var(--card));
+  color: var(--primary);
+}
+.theme-mode-sw {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--line2);
+  color: var(--text);
+}
+.theme-mode-btn.active .theme-mode-sw {
+  background: color-mix(in srgb, var(--primary) 14%, var(--card));
+  color: var(--primary);
+}
+.theme-mode-sw svg { width: 18px; height: 18px; }
+.theme-mode-lbl { line-height: 1; }
+
+/* kbd hint chips */
+kbd {
+  display: inline-block;
+  padding: 1px 6px;
+  margin: 0 1px;
+  background: var(--line2);
+  border: 1px solid var(--line);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 0.72em;
+  font-weight: 600;
+  color: var(--text2);
+  line-height: 1.4;
+  vertical-align: baseline;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   SKELETONS — static professional placeholders (no flashy shimmer)
+══════════════════════════════════════════════════════════════ */
+.is-skeleton {
+  position: relative;
+  color: transparent !important;
+  background: color-mix(in srgb, var(--line2) 86%, var(--line));
+  border-radius: var(--radius-sm);
+}
+
+/* No bouncy/tap-scale animations: keep interactions crisp and professional. */
+.primary-btn:active:not(:disabled),
+.action-btn:active:not(:disabled),
+.ghost-btn:active:not(:disabled),
+.danger-btn:active:not(:disabled),
+.delete-btn:active:not(:disabled),
+.edit-entry-btn:active:not(:disabled),
+.login-submit:active:not(:disabled),
+.settings-hub-row:active,
+.settings-action-btn:active,
+.sale-row:active,
+.activity-row:active,
+.bank-tx-row-btn:active,
+.fab:active {
+  transform: none !important;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   PAINT CONTAINMENT — cards & sections paint independently.
+   Reduces compositor work on scroll.
+══════════════════════════════════════════════════════════════ */
+.detail-card,
+.detail-card-v2,
+.detail-hero-v2,
+.form-card,
+.settings-hub-row,
+.settings-action-btn,
+.kpi-grid-loans-given .kpi-card,
+.rep-kpi,
+.detail-kpi {
+  contain: layout style paint;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   LEGACY ALPHA PATCHES — replace hardcoded rgba(255,255,255,*)
+   with tokens so they look right in dark mode too.
+══════════════════════════════════════════════════════════════ */
+[data-theme="dark"] .detail-kpi {
+  background: var(--card-2, var(--bg2));
+  border-color: var(--line);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   MOBILE PROFESSIONAL POLISH — all screen sizes
+══════════════════════════════════════════════════════════════ */
+.tab-page,
+.overlay-scroll,
+.detail-scroll {
+  padding-bottom: max(var(--section-gap), 10px);
+}
+
+/* Uniform card geometry across modules for visual consistency. */
+.form-card,
+.detail-card,
+.detail-card-v2,
+.kpi-grid-loans-given .kpi-card,
+.rep-kpi,
+.detail-kpi,
+.settings-hub-row,
+.settings-action-btn,
+.loan-given-list-row,
+.bank-cash-list-row,
+.banking-acct-row,
+.sale-row,
+.inv-row-main {
+  border-radius: var(--radius-md);
+}
+
+/* Larger click points and better ergonomics on touch devices. */
+.icon-btn,
+.icon-btn-sm,
+.del-btn,
+.inv-row-del,
+.bank-tx-del {
+  min-width: var(--tap-min);
+  min-height: var(--tap-min);
+}
+
+.sale-row,
+.bank-cash-list-row,
+.banking-acct-row,
+.bank-tx-row-btn,
+.inv-row-main,
+.fixed-asset-row,
+.settings-hub-row {
+  min-height: var(--tap-min);
+}
+
+/* Give value columns stable rhythm and cleaner scanability. */
+.kpi-grid-loans-given .kpi-val,
+.detail-kpi-val,
+.rep-kpi-v,
+.banking-sum-val,
+.inv-sum-val,
+.recv-kpi-val,
+.ledger-sum-val {
+  line-height: 1.25;
+  letter-spacing: -0.018em;
+}
+
+/* Safer horizontal rhythm on very small phones. */
+@media (max-width: 360px) {
+  .kpi-grid-loans-given {
+    gap: 8px;
+    padding-left: var(--page-pad);
+    padding-right: var(--page-pad);
+  }
+  .tab-page > .period-bar,
+  .tab-page > .seg-bar,
+  .tab-page > .sort-bar,
+  .tab-page > .overlay-search-strip,
+  .tab-page > .overlay-kpi-strip {
+    padding-left: var(--page-pad);
+    padding-right: var(--page-pad);
+  }
+}
+
+/* Large phones / small tablets: more structured breathing room. */
+@media (min-width: 600px) and (max-width: 1024px) {
+  .kpi-grid-loans-given {
+    gap: 12px;
+  }
+  .detail-actions-v2 {
+    gap: 12px;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   NOTIFICATIONS — WhatsApp CTA + EMI detail polish
+══════════════════════════════════════════════════════════════ */
+.notif-item-wrap {
+  align-items: center;
+  gap: 0;
+}
+.notif-item-wa {
+  flex-shrink: 0;
+  width: var(--tap-min);
+  min-width: var(--tap-min);
+  height: var(--tap-min);
+  display: grid;
+  place-items: center;
+  color: #128c7e;
+  border-left: 1px solid var(--line2);
+  background: color-mix(in srgb, #25d366 6%, var(--card));
+}
+.notif-item-wa:active {
+  background: color-mix(in srgb, #25d366 14%, var(--card));
+}
+.notif-kind-emi-due-3d .notif-item {
+  border-left: 3px solid color-mix(in srgb, var(--primary) 55%, transparent);
+}
+
+.emi-detail-hero {
+  padding-top: 20px;
+  padding-bottom: 22px;
+}
+.emi-detail-hero-name {
+  font-family: var(--font-display);
+  font-size: clamp(1.05rem, 3.4vw, 1.2rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.emi-detail-hero-loan {
+  font-family: var(--font-display);
+  font-size: clamp(1.35rem, 4.8vw, 1.75rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+  color: var(--primary);
+  margin-top: 4px;
+}
+.emi-row {
+  min-height: var(--tap-min);
+  padding: 14px var(--page-pad);
+  border-bottom: 1px solid var(--line2);
+  background: var(--card);
+  text-align: left;
+  width: 100%;
+}
+.emi-row:active {
+  background: var(--line2);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   LOANS GIVEN — portfolio, detail, directories
+══════════════════════════════════════════════════════════════ */
+.tab-page--loans-given .loan-given-summary-board {
+  box-shadow: inset 0 -1px 0 var(--line2);
+}
+.kpi-grid-loans-given--3col {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+@media (max-width: 520px) {
+  .kpi-grid-loans-given--3col {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .kpi-grid-loans-given--3col .kpi-card:last-child {
+    grid-column: 1 / -1;
+  }
+}
+.loan-given-detail-hero {
+  background: linear-gradient(
+    165deg,
+    color-mix(in srgb, var(--primary) 10%, var(--card)) 0%,
+    var(--card) 55%
+  );
+  border-radius: var(--radius-md);
+  margin-bottom: 4px;
+}
+.loan-given-detail-hero-out strong {
+  font-variant-numeric: tabular-nums;
+  color: var(--primary);
+}
+.loan-given-calc-card {
+  border: 1px solid color-mix(in srgb, var(--primary) 18%, var(--line));
+  background: color-mix(in srgb, var(--primary) 4%, var(--card));
+}
+.loan-given-partner-card {
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--bg) 35%, var(--card));
+  padding: 12px;
+}
+.loan-given-partner-stat-grid {
+  margin-top: 8px;
+}
+.modal--loan-pay .loan-pay-context {
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--primary) 5%, var(--surface-2, #f1f5f9));
+  padding: 12px;
+  margin-bottom: 12px;
+}
+.loan-pay-kind-btn.is-active {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--primary) 35%, transparent);
+}
+.list-area--loans-given .loan-given-list-row {
+  border-bottom: 1px solid var(--line2);
+}
+.list-area--loans-given .loan-given-list-row-main:active,
+.list-area--loan-directory .loan-given-list-row-main:active {
+  background: color-mix(in srgb, var(--primary) 6%, var(--card));
+}
+.list-area--loan-directory .loan-given-list-row {
+  border-bottom: 1px solid var(--line2);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   REDUCED MOTION
+══════════════════════════════════════════════════════════════ */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .is-skeleton { background: color-mix(in srgb, var(--line2) 86%, var(--line)); }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   PREMIUM MAKEOVER v6.2.0
+   ─────────────────────────────────────────────────────────────
+   All visual polish lives here so App.css stays untouched.
+   Loads last — wins cascade.
+══════════════════════════════════════════════════════════════ */
+
+/* ── Mobile appbar: solid, slightly elevated ─────────────── */
+.mobile-appbar {
+  background: var(--card);
+  border-bottom: 1px solid var(--line);
+  box-shadow: 0 1px 0 var(--line), 0 2px 12px rgba(15,23,42,0.04);
+}
+
+/* ── Desktop home-header: gradient accent ────────────────── */
+@media (min-width: 900px) {
+  .home-hdr {
+    background: linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--primary) 7%, var(--card)),
+      var(--card) 70%
+    );
+    border-bottom: 1px solid var(--line);
+    padding: 16px var(--page-pad) 14px;
+  }
+  .home-biz {
+    font-size: 1.2rem;
+    font-weight: 800;
+    letter-spacing: -0.025em;
+    color: var(--primary);
+  }
+}
+
+/* ── Mobile: hide home-hdr (MobileAppBar handles it) ────── */
+@media (max-width: 899px) {
+  .home-hdr { display: none !important; }
+}
+
+/* ── Sidebar brand: gradient top strip ──────────────────── */
+.sidebar-brand {
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--primary) 24%, var(--sidebar-bg)) 0%,
+    var(--sidebar-bg) 75%
+  );
+  padding: 18px 14px 16px;
+}
+.sidebar-brand-logo {
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.38);
+}
+.sidebar-brand-name {
+  font-size: 1.0rem;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+}
+.sidebar-section-label {
+  font-size: 0.6rem;
+  letter-spacing: 0.1em;
+  opacity: 1;
+  color: color-mix(in srgb, var(--sidebar-text-soft) 90%, var(--primary));
+}
+.sidebar-item.active {
+  background: color-mix(in srgb, var(--primary) 18%, var(--sidebar-bg));
+  color: var(--sidebar-text);
+  box-shadow: inset 3px 0 0 0 var(--primary);
+}
+[data-theme="dark"] .sidebar-item.active {
+  background: color-mix(in srgb, var(--primary) 22%, var(--sidebar-bg));
+  box-shadow: inset 3px 0 0 0 var(--primary);
+}
+.sidebar-item.active .sidebar-item-icon {
+  color: var(--primary);
+}
+[data-theme="dark"] .sidebar-item.active .sidebar-item-icon {
+  color: var(--primary);
+}
+
+/* ── Home page: richer gradient ─────────────────────────── */
+.home-page {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--primary) 9%, var(--bg)) 0%,
+    var(--bg) 200px
+  );
+}
+
+/* ── KPI cards: colored top accent + icon support ───────── */
+.kpi-card {
+  position: relative;
+  overflow: hidden;
+}
+.kpi-card::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: var(--line-strong);
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+}
+.kpi-sales::before    { background: var(--primary); }
+.kpi-cost::before     { background: var(--warning); }
+.kpi-gross::before    { background: var(--success); }
+.kpi-gross-neg::before { background: var(--danger); }
+.kpi-expense::before  { background: var(--danger); }
+.kpi-profit::before   { background: var(--success); }
+.kpi-loss::before     { background: var(--danger); }
+.kpi-due::before      { background: var(--purple); }
+.kpi-card--hero::before { height: 4px; }
+
+/* KPI header: label + icon side-by-side */
+.kpi-hd {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+}
+.kpi-icon {
+  width: 26px; height: 26px;
+  border-radius: 8px;
+  display: grid; place-items: center;
+  flex-shrink: 0;
+  background: var(--line2);
+  color: var(--muted2);
+}
+.kpi-icon svg {
+  width: 13px; height: 13px;
+  stroke: currentColor;
+  stroke-width: 2;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.kpi-sales   .kpi-icon { background: var(--primary-bg); color: var(--primary); }
+.kpi-cost    .kpi-icon { background: var(--warning-bg); color: var(--warning); }
+.kpi-gross   .kpi-icon { background: var(--success-bg); color: var(--success); }
+.kpi-gross-neg .kpi-icon { background: var(--danger-bg); color: var(--danger); }
+.kpi-expense .kpi-icon { background: var(--danger-bg);  color: var(--danger);  }
+.kpi-profit  .kpi-icon { background: var(--success-bg); color: var(--success); }
+.kpi-loss    .kpi-icon { background: var(--danger-bg);  color: var(--danger);  }
+.kpi-due     .kpi-icon { background: var(--purple-bg);  color: var(--purple);  }
+
+/* ── Quick actions: gradient primary, equal height ───────── */
+.qa-primary {
+  background: linear-gradient(135deg, var(--primary-dk), var(--primary));
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--primary) 40%, transparent);
+  min-height: 50px;
+  font-size: 0.92rem;
+  letter-spacing: -0.01em;
+}
+.qa-primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, var(--primary), var(--primary-hov));
+  box-shadow: 0 6px 20px color-mix(in srgb, var(--primary) 48%, transparent);
+}
+.qa-secondary {
+  min-height: 50px;
+  font-size: 0.92rem;
+}
+
+/* ── Sale row: avatar initial circle ───────────────────── */
+.sr-av {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  display: grid; place-items: center;
+  font-size: 0.76rem;
+  font-weight: 800;
+  flex-shrink: 0;
+  letter-spacing: 0.02em;
+  color: #fff;
+  align-self: center;
+}
+
+/* ── Home recent sections: card-style ──────────────────── */
+.home-recent-area {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 0 var(--page-pad) max(32px, env(safe-area-inset-bottom, 8px));
+}
+.home-recent-area .home-section {
+  margin-top: 0 !important;
+  border-top: none !important;
+  border-radius: var(--radius-lg) !important;
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+.home-recent-area .sale-row {
+  border-radius: 0;
+}
+.home-section-hdr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 11px 16px 9px;
+  border-bottom: 1px solid var(--line2);
+  background: color-mix(in srgb, var(--card) 100%, transparent);
+}
+.home-section-hd {
+  padding: 0 !important;
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted2);
+}
+
+/* ── Notification panel: colored left border per kind ───── */
+.notif-item-wrap {
+  border-left: 3px solid transparent;
+}
+.notif-kind-overdue,
+.notif-kind-emi-overdue,
+.notif-kind-recurring-overdue {
+  border-left-color: var(--danger);
+}
+.notif-kind-due-soon,
+.notif-kind-payment-due-today,
+.notif-kind-emi-today,
+.notif-kind-emi-tomorrow,
+.notif-kind-emi-soon,
+.notif-kind-emi-due-3d,
+.notif-kind-recurring-today,
+.notif-kind-recurring-soon {
+  border-left-color: var(--warning);
+}
+.notif-kind-stock {
+  border-left-color: var(--accent);
+}
+.notif-kind-servicing {
+  border-left-color: var(--success);
+}
+/* Notification panel: refined look */
+.notif-panel {
+  border-radius: var(--radius-lg);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.18), 0 4px 16px rgba(0, 0, 0, 0.08);
+}
+.notif-panel-hd {
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+}
+.notif-item-title {
+  font-size: 0.84rem;
+}
+.notif-item-sub {
+  font-size: 0.78rem;
+  color: var(--text2);
+}
+/* Bell button: pulse when alerts exist */
+.notif-bell-btn {
+  position: relative;
+}
+.notif-badge {
+  position: absolute;
+  top: 4px; right: 4px;
+  min-width: 16px; height: 16px;
+  border-radius: 999px;
+  background: var(--danger);
+  color: #fff;
+  font-size: 0.58rem;
+  font-weight: 800;
+  display: flex; align-items: center; justify-content: center;
+  padding: 0 4px;
+  border: 2px solid var(--card);
+  line-height: 1;
+}
+
+/* ── Status badges: slightly refined ──────────────────── */
+.status-badge {
+  font-size: 0.63rem;
+  padding: 3px 8px;
+  letter-spacing: 0.03em;
+}
+
+/* ── Tab appbar: clean hairline ─────────────────────── */
+.tab-appbar {
+  box-shadow: 0 1px 0 var(--line);
+}
+
+/* ── Form cards: more visible separation ──────────────── */
+.form-card {
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--line);
+  background: var(--card);
+  box-shadow: var(--shadow-xs);
+}
+.form-card-title {
+  font-size: 0.88rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+
+/* ── Section headers on list screens ──────────────────── */
+.home-section-hd,
+.fin-section h2,
+.bs-section-hd {
+  letter-spacing: 0.08em;
+}
+
+/* ── Dark mode refinements ─────────────────────────────── */
+[data-theme="dark"] .qa-primary {
+  box-shadow: 0 4px 18px color-mix(in srgb, var(--primary) 55%, transparent);
+}
+[data-theme="dark"] .home-recent-area .home-section {
+  border-color: var(--line);
+}
+[data-theme="dark"] .kpi-card::before {
+  opacity: 0.9;
+}
+[data-theme="dark"] .notif-panel {
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.55), 0 4px 16px rgba(0, 0, 0, 0.35);
+}
+
+/* ── Small phone tweaks ────────────────────────────────── */
+@media (max-width: 399px) {
+  .kpi-icon { display: none; }
+  .kpi-hd { display: block; }
+}
+
+/* ── Desktop: KPI cards get a bit more padding ─────────── */
+@media (min-width: 900px) {
+  .kpi-grid-home .kpi-card { padding: 16px; }
+  .home-recent-area { padding-left: var(--page-pad); padding-right: var(--page-pad); }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   FULL APP OVERHAUL — Every Screen, Every Component
+   ─────────────────────────────────────────────────────────────
+   Tab pages · List rows · Seg-bars · Forms · Details · Settings
+   Reports · Purchases · Expenses · Banking · Inventory · FAB
+══════════════════════════════════════════════════════════════ */
+
+/* ── Tab appbar: premium gradient on every page ─────────── */
+.tab-appbar {
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--primary) 5%, var(--card)) 0%,
+    var(--card) 65%
+  );
+  box-shadow: 0 1px 0 var(--line), 0 2px 8px rgba(15, 23, 42, 0.03);
+}
+.tab-title {
+  font-size: clamp(0.96rem, 2.4vw, 1.1rem);
+  font-weight: 800;
+  letter-spacing: -0.022em;
+}
+
+/* ── Page header (overlay / detail screens) ─────────────── */
+.page-hdr {
+  background: var(--card);
+  box-shadow: 0 1px 0 var(--line);
+}
+.page-hdr-title {
+  font-size: 1.0rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+/* ── Seg-bar: PILL TABS — replaces underline style ─────── */
+.seg-bar {
+  background: var(--bg);
+  border-bottom: 1px solid var(--line);
+  padding: 8px var(--page-pad);
+  gap: 6px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.seg-bar::-webkit-scrollbar { display: none; }
+.seg-btn {
+  padding: 6px 16px;
+  border-radius: var(--radius-pill);
+  background: var(--card);
+  border: 1px solid var(--line);
+  color: var(--text2);
+  font-size: 0.82rem;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background 0.14s, color 0.14s, border-color 0.14s, box-shadow 0.14s;
+}
+.seg-btn:hover:not(.active) {
+  background: var(--line2);
+  border-color: var(--line-strong);
+  color: var(--text);
+}
+.seg-btn.active {
+  background: var(--primary);
+  color: #fff;
+  border-color: transparent;
+  font-weight: 700;
+  box-shadow: 0 2px 10px color-mix(in srgb, var(--primary) 38%, transparent);
+}
+.seg-btn.active::after { display: none; }
+.seg-sort-hint { font-size: 0.72rem; color: var(--muted2); }
+.seg-count    { font-size: 0.74rem; color: var(--muted2); font-weight: 500; }
+
+/* ── Sort bar: pill chips ───────────────────────────────── */
+.sort-bar {
+  background: var(--bg);
+  border-bottom: 1px solid var(--line2);
+  padding: 8px var(--page-pad);
+  gap: 6px;
+}
+.sort-chip {
+  padding: 5px 12px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--text2);
+  transition: background 0.14s, color 0.14s, border-color 0.14s;
+}
+.sort-chip:hover:not(.active) { background: var(--line2); }
+.sort-chip.active {
+  background: var(--primary);
+  border-color: transparent;
+  color: #fff;
+  font-weight: 700;
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--primary) 35%, transparent);
+}
+.sort-chip.active:hover { background: var(--primary-hov); }
+
+/* ── Sale rows: persistent status left border ───────────── */
+.sale-row { padding-left: calc(var(--page-pad) + 1px); }
+.sale-row::before { width: 4px; border-radius: 0 2px 2px 0; }
+.sale-row--s-overdue::before { background: var(--danger);  opacity: 1; }
+.sale-row--s-partial::before { background: var(--warning); opacity: 1; }
+.sale-row--s-unpaid::before  { background: var(--purple);  opacity: 1; }
+.sale-row--s-paid::before    { background: transparent; }
+
+/* ── Period bar: card bg ────────────────────────────────── */
+.period-bar {
+  background: var(--card);
+  border-bottom: 1px solid var(--line);
+}
+
+/* ── Activity rows (Purchases / Ledger / Banking) ────────── */
+.activity-row {
+  transition: background 0.12s;
+}
+.activity-icon-wrap {
+  width: 38px; height: 38px;
+  border-radius: 11px;
+  flex-shrink: 0;
+}
+.activity-icon-wrap svg { width: 17px; height: 17px; }
+.activity-icon-purchase { background: color-mix(in srgb, var(--warning) 14%, var(--card)); color: var(--warning); }
+.activity-icon-sale     { background: var(--primary-bg); color: var(--primary); }
+.activity-icon-expense  { background: var(--danger-bg);  color: var(--danger);  }
+.activity-icon-payment  { background: var(--success-bg); color: var(--success); }
+.activity-icon-transfer { background: color-mix(in srgb, var(--accent) 14%, var(--card)); color: var(--accent); }
+.activity-icon-stock    { background: color-mix(in srgb, var(--purple) 14%, var(--card)); color: var(--purple); }
+.activity-icon-income   { background: var(--success-bg); color: var(--success); }
+
+/* ── Expense category rows: danger left accent ──────────── */
+.exp-cat-nav-row {
+  position: relative;
+  padding: 14px 12px 14px var(--page-pad);
+}
+.exp-cat-nav-row::before {
+  content: "";
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 4px;
+  background: var(--danger);
+  opacity: 0.3;
+  border-radius: 0 2px 2px 0;
+  transition: opacity 0.12s;
+}
+.exp-cat-nav-row:hover::before { opacity: 0.7; }
+.exp-cat-nav-name { font-size: 0.92rem; }
+.exp-cat-nav-amt  { font-size: 0.98rem; }
+
+/* ── Detail screens: gradient hero ─────────────────────── */
+.detail-hero-v2 {
+  background: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--primary) 8%, var(--card)) 0%,
+    var(--card) 62%
+  );
+}
+.dh-name {
+  font-size: 1.1rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.dh-bal-amt {
+  font-size: clamp(1.6rem, 5vw, 2.2rem);
+  letter-spacing: -0.04em;
+}
+
+/* ── Settings hub rows: colored icons + hover ───────────── */
+.settings-hub-row {
+  border-radius: var(--radius-md);
+  transition: background 0.14s, border-color 0.14s;
+}
+.settings-hub-row:hover {
+  background: color-mix(in srgb, var(--primary) 3%, var(--card));
+  border-color: var(--primary-mid);
+}
+.settings-hub-row-ic {
+  background: var(--primary-bg);
+  color: var(--primary);
+  border-radius: var(--radius-md);
+  box-shadow: 0 1px 4px color-mix(in srgb, var(--primary) 16%, transparent);
+}
+.settings-hub-row-ic svg { width: 18px; height: 18px; }
+.settings-hub-row-title { font-size: 0.9375rem; font-weight: 700; letter-spacing: -0.01em; }
+
+/* ── Empty states: premium icon, better text ────────────── */
+.empty-state {
+  padding: clamp(44px, 10vh, 68px) var(--page-pad);
+}
+.empty-icon {
+  width: 64px; height: 64px;
+  border-radius: 20px;
+  background: var(--primary-bg);
+  color: var(--primary);
+  border: none;
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--primary) 20%, transparent);
+}
+.empty-icon svg { width: 28px; height: 28px; stroke-width: 1.6; }
+.empty-title {
+  font-size: 1.0rem;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+.empty-sub { font-size: 0.84rem; max-width: 260px; margin: 0 auto; }
+
+/* ── Search strip ────────────────────────────────────────── */
+.overlay-search-strip {
+  background: var(--bg);
+  border-bottom: 1px solid var(--line);
+  padding: 8px var(--page-pad);
+}
+.search-box {
+  border-radius: var(--radius-pill) !important;
+  height: 40px;
+}
+
+/* ── FAB: gradient + glow ───────────────────────────────── */
+.fab {
+  width: 54px; height: 54px;
+  background: linear-gradient(135deg, var(--primary-dk), var(--primary));
+  box-shadow: 0 6px 24px color-mix(in srgb, var(--primary) 48%, transparent), 0 2px 6px rgba(0, 0, 0, 0.12);
+}
+.fab:active { box-shadow: 0 2px 10px color-mix(in srgb, var(--primary) 35%, transparent); }
+.fab svg { width: 26px; height: 26px; stroke-width: 2.2; }
+
+/* ── Form fields: label caps + rounded inputs ───────────── */
+.field-lbl {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted2);
+}
+.field input,
+.field select,
+.field textarea {
+  border-radius: var(--radius-md);
+}
+
+/* ── Customer rows ──────────────────────────────────────── */
+.customer-row {
+  padding: 13px var(--page-pad);
+  gap: 12px;
+}
+.customer-row .avatar {
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.14);
+}
+.customer-name { font-size: 0.94rem; font-weight: 700; letter-spacing: -0.01em; }
+
+/* ── Sub-tabs (detail screens): pill style ──────────────── */
+.sub-tabs {
+  background: var(--bg);
+  border-bottom: 1px solid var(--line);
+  padding: 8px var(--page-pad);
+  gap: 6px;
+}
+.sub-tab {
+  padding: 6px 16px;
+  border-radius: var(--radius-pill);
+  background: var(--card);
+  border: 1px solid var(--line);
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text2);
+  margin: 0;
+  flex: 0 0 auto;
+  transition: all 0.14s;
+}
+.sub-tab.active {
+  background: var(--primary);
+  border-color: transparent;
+  color: #fff;
+  font-weight: 700;
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--primary) 35%, transparent);
+}
+.sub-tab.active::after { display: none; }
+
+/* ── Reports KPI grid ───────────────────────────────────── */
+.rep-kpi {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-xs);
+}
+.rep-kpi-l {
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+/* ── FY chip: branded ───────────────────────────────────── */
+.fy-chip {
+  background: var(--primary-bg);
+  color: var(--primary);
+  border: 1px solid var(--primary-mid);
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: var(--radius-pill);
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+/* ── Banking account rows ───────────────────────────────── */
+.banking-acct-row { transition: background 0.12s; }
+.banking-acct-row:hover { background: var(--line2); }
+
+/* ── Tab page scroll area ───────────────────────────────── */
+.tab-page-scroll { background: var(--bg); }
+
+/* ── Overlay screen ─────────────────────────────────────── */
+.overlay-screen { background: var(--bg); }
+
+/* ── Mobile app bar titles ──────────────────────────────── */
+.mobile-appbar-title {
+  font-size: clamp(0.95rem, 2.8vw, 1.05rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+/* ── Dark mode refinements ─────────────────────────────── */
+[data-theme="dark"] .tab-appbar {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--primary) 9%, var(--card)) 0%, var(--card) 65%);
+}
+[data-theme="dark"] .seg-btn {
+  background: var(--card);
+  border-color: var(--line);
+  color: var(--text2);
+}
+[data-theme="dark"] .seg-btn.active {
+  background: var(--primary);
+  border-color: transparent;
+}
+[data-theme="dark"] .sort-chip { background: var(--card); border-color: var(--line); }
+[data-theme="dark"] .sort-chip.active { background: var(--primary); border-color: transparent; }
+[data-theme="dark"] .empty-icon {
+  background: var(--primary-bg);
+  box-shadow: 0 4px 18px color-mix(in srgb, var(--primary) 32%, transparent);
+}
+[data-theme="dark"] .detail-hero-v2 {
+  background: linear-gradient(145deg, color-mix(in srgb, var(--primary) 12%, var(--card)) 0%, var(--card) 56%);
+}
+[data-theme="dark"] .settings-hub-row:hover {
+  background: color-mix(in srgb, var(--primary) 7%, var(--card));
+  border-color: var(--primary-mid);
+}
+[data-theme="dark"] .period-bar { background: var(--card); }
+[data-theme="dark"] .sort-bar { background: var(--bg); }
+[data-theme="dark"] .fab {
+  box-shadow: 0 6px 28px color-mix(in srgb, var(--primary) 60%, transparent), 0 2px 8px rgba(0, 0, 0, 0.25);
+}
