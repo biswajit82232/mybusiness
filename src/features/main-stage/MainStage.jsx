@@ -155,6 +155,7 @@ export function MainStage(props) {
     removeFixed,
     saveFixed,
     patchInventoryProductCategory,
+    patchInventoryProductTaxMeta,
     renameInventoryProduct,
     saveOtherBalance,
     saveOwnerCapitalInvested,
@@ -604,6 +605,8 @@ export function MainStage(props) {
           billOfSupplyPrefix={state.settings?.billOfSupplyPrefix}
           invoiceNextNumber={state.settings?.invoiceNextNumber}
           billOfSupplyNextNumber={state.settings?.billOfSupplyNextNumber}
+          defaultProductHsn={state.settings?.defaultProductHsn}
+          defaultProductGstRate={state.settings?.defaultProductGstRate}
           onSubmit={onSaveSale}
           onClose={closeNewSale}
         />
@@ -682,6 +685,7 @@ export function MainStage(props) {
           branches={state.settings?.branches}
           stockCategorySuggestions={stockCategorySuggestions}
           onSaveProductCategory={patchInventoryProductCategory}
+          onSaveProductTaxMeta={patchInventoryProductTaxMeta}
           onRenameProduct={renameInventoryProduct}
           onClose={closeInventoryItemDetail}
           onEditEntry={(id) => openEditInventoryEntry(id, "inventoryItem")}

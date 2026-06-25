@@ -984,6 +984,22 @@ export function buildEmiWhatsAppReminderMessage(emi, dueDateStr, { businessName 
   return lines.join("\n");
 }
 
+/** WhatsApp body when sharing an invoice or bill of supply from sale detail. */
+export function buildSaleShareWhatsAppMessage(sale, { businessName } = {}) {
+  const isBos = sale?.docType === "billOfSupply";
+  const docLabel = isBos ? "Bill of Supply" : "Invoice";
+  const name = String(sale?.customerName || "").trim() || "Customer";
+  const biz = String(businessName || "").trim();
+  const lines = [
+    `Hi ${name},`,
+    biz ? `Thank you for your purchase from ${biz}!` : "Thank you for your purchase!",
+    "",
+    `${docLabel}: ${sale?.invoiceNo || "—"}`,
+    `Amount due: ${moneyFull(sale?.outstanding)}`,
+  ];
+  return appendWhatsAppReviewRequest(lines.join("\n"));
+}
+
 /**
  * Bell/OS alerts for one EMI entry — one notification per unpaid due date, only at T-3 days.
  * @returns {Array<object>}
@@ -1040,6 +1056,19 @@ export function resolveSaleDueDate(sale, defaultDueDays = 30) {
   if (explicit) return explicit;
   const base = String(sale?.date || "").slice(0, 10) || todayStr();
   return addDaysStr(base, Math.max(1, num(defaultDueDays) || 30));
+}
+
+export const CUSTOMER_REVIEWS_URL = "https://www.biswajitpowerhub.in/reviews";
+
+/** Append a review request footer to customer-facing WhatsApp messages. */
+export function appendWhatsAppReviewRequest(message) {
+  const base = String(message ?? "").trimEnd();
+  const footer = [
+    "",
+    "We'd love your feedback! Please leave us a review:",
+    CUSTOMER_REVIEWS_URL,
+  ].join("\n");
+  return base ? `${base}${footer}` : footer.trimStart();
 }
 
 export function digitsOnly(s)  { return String(s||"").replace(/\D/g,""); }
@@ -1331,6 +1360,11 @@ export function defSaleLineItem() {
     qty: "1",
     salePrice: "",
     costPrice: "",
+    hsn: "",
+    gstRate: "",
+    chassisNo: "",
+    motorNo: "",
+    batterySerialNo: "",
     /** "__custom__" | lowercase item key — UI only for stock picker when auto stock-out is on */
     itemProductPick: "__custom__",
   };
@@ -1350,6 +1384,9 @@ export function defSale() {
     customerCity: "",
     customerState: "",
     customerPincode: "",
+    customerGstin: "",
+    reverseCharge: false,
+    invoiceCopyType: "original",
     /** Legacy single-line mirror fields; the source of truth is `lineItems[0]`. */
     item: "",
     /** Set when selling a defined bundle; invoice line uses bundle name, stock-out uses component lines. */
@@ -1431,7 +1468,12 @@ export function saleToEntry(sale, emi) {
     qty: String(li?.qty ?? "1"),
     salePrice: li?.salePrice != null && li.salePrice !== "" ? String(li.salePrice) : "",
     costPrice: li?.costPrice != null && li.costPrice !== "" ? String(li.costPrice) : "",
-    itemProductPick: "__custom__",
+    hsn: li?.hsn != null ? String(li.hsn) : "",
+    gstRate: li?.gstRate != null && li.gstRate !== "" ? String(li.gstRate) : "",
+    chassisNo: String(li?.chassisNo || ""),
+    motorNo: String(li?.motorNo || ""),
+    batterySerialNo: String(li?.batterySerialNo || ""),
+    itemProductPick: String(li?.itemProductPick || "__custom__"),
   }));
   const first = lineItems[0];
   return {
@@ -1446,6 +1488,9 @@ export function saleToEntry(sale, emi) {
     customerCity: sale.customerCity || "",
     customerState: sale.customerState || "",
     customerPincode: sale.customerPincode || "",
+    customerGstin: sale.customerGstin || "",
+    reverseCharge: sale.reverseCharge === true,
+    invoiceCopyType: sale.invoiceCopyType || "original",
     /* Legacy mirror fields — kept in sync with first line for back-compat. */
     item: first.item,
     itemProductPick: first.itemProductPick,
@@ -2687,6 +2732,11 @@ export function normSaleLineItems(raw, legacyFallback) {
       qty: num(x.qty),
       salePrice: num(x.salePrice),
       costPrice: num(x.costPrice),
+      hsn: String(x.hsn || "").trim(),
+      gstRate: num(x.gstRate),
+      chassisNo: String(x.chassisNo || "").trim(),
+      motorNo: String(x.motorNo || "").trim(),
+      batterySerialNo: String(x.batterySerialNo || "").trim(),
     }));
   if (clean.length > 0) return clean;
   const fb = legacyFallback || {};
@@ -2730,15 +2780,6 @@ export function normSalesList(raw, bankAccountsForDefault = null) {
   return raw
     .filter((x) => x && typeof x === "object")
     .map((x) => {
-      const {
-        customerGstin: _legacyCustomerGstin,
-        gstCgst: _legacyGstCgst,
-        gstSgst: _legacyGstSgst,
-        gstIgst: _legacyGstIgst,
-        hsn: _legacyHsn,
-        autoGst: _legacyAutoGst,
-        ...rest
-      } = x;
       let paymentEntries = normalizePaymentEntries(x);
       let received = roundMoney2(paymentEntries.reduce((s, p) => s + num(p.amount), 0));
       if (paymentEntries.length === 0) {
@@ -2780,7 +2821,7 @@ export function normSalesList(raw, bankAccountsForDefault = null) {
       const grossProfit = roundMoney2(totalSale - totalCost);
       const outstanding = roundMoney2(Math.max(0, totalSale - received));
       return {
-        ...rest,
+        ...x,
         docType: x.docType === "billOfSupply" ? "billOfSupply" : "invoice",
         id: String(x.id || makeId()),
         date: String(x.date || todayStr()).slice(0, 10),
@@ -2791,6 +2832,11 @@ export function normSalesList(raw, bankAccountsForDefault = null) {
         customerCity: String(x.customerCity || ""),
         customerState: String(x.customerState || ""),
         customerPincode: String(x.customerPincode || ""),
+        customerGstin: String(x.customerGstin || "").trim().toUpperCase(),
+        reverseCharge: x.reverseCharge === true,
+        invoiceCopyType: ["duplicate", "triplicate"].includes(String(x.invoiceCopyType || "").toLowerCase())
+          ? String(x.invoiceCopyType).toLowerCase()
+          : "original",
         item: legacyItem,
         qty: legacyQty,
         salePrice: legacySalePrice,
@@ -2940,9 +2986,12 @@ export function computeInvRowsForBranch(entries, branchId, branches) {
     if (effectiveEntryBranchId(e, branches) !== bid) continue;
     const key = (e.item || "").toLowerCase();
     if (!key) continue;
-    if (!map[key]) map[key] = { item: e.item, qtyIn: 0, qtyOut: 0, totalCost: 0, salesPrice: 0, category: "" };
+    if (!map[key]) map[key] = { item: e.item, qtyIn: 0, qtyOut: 0, totalCost: 0, salesPrice: 0, category: "", hsn: "", gstRate: 0 };
     const cat = String(e.category || "").trim();
     if (cat && !map[key].category) map[key].category = cat;
+    const hsn = String(e.hsn || "").trim();
+    if (hsn && !map[key].hsn) map[key].hsn = hsn;
+    if (num(e.gstRate) > 0 && !map[key].gstRate) map[key].gstRate = num(e.gstRate);
     const isIn = !e.type || e.type === "in" || e.type === "opening";
     const qty = num(e.qty ?? e.qtyIn);
     if (isIn) {
@@ -2969,9 +3018,12 @@ export function computeInvRowsAggregated(entries) {
     if (!e || typeof e !== "object") continue;
     const key = (e.item || "").toLowerCase();
     if (!key) continue;
-    if (!map[key]) map[key] = { item: e.item, qtyIn: 0, qtyOut: 0, totalCost: 0, salesPrice: 0, category: "" };
+    if (!map[key]) map[key] = { item: e.item, qtyIn: 0, qtyOut: 0, totalCost: 0, salesPrice: 0, category: "", hsn: "", gstRate: 0 };
     const cat = String(e.category || "").trim();
     if (cat && !map[key].category) map[key].category = cat;
+    const hsn = String(e.hsn || "").trim();
+    if (hsn && !map[key].hsn) map[key].hsn = hsn;
+    if (num(e.gstRate) > 0 && !map[key].gstRate) map[key].gstRate = num(e.gstRate);
     const isIn = !e.type || e.type === "in" || e.type === "opening";
     const qty = num(e.qty ?? e.qtyIn);
     if (isIn) {
@@ -3007,6 +3059,8 @@ export function normInventoryList(raw) {
       salesPrice: num(x.salesPrice),
       note: String(x.note || ""),
       category: String(x.category || "").trim(),
+      hsn: String(x.hsn || "").trim(),
+      gstRate: num(x.gstRate),
       bankAccountId: String(x.bankAccountId || "").trim(),
       branchId: String(x.branchId || "").trim(),
       purchaseId: String(x.purchaseId || "").trim(),
@@ -4274,6 +4328,19 @@ export const defaultState = applyComputedBankBalances({
     businessName:"My Business",
     businessPhone:"",
     businessWhatsapp:"",
+    businessAddress:"",
+    businessCity:"",
+    businessState:"",
+    businessStateCode:"",
+    businessPincode:"",
+    businessGstin:"",
+    businessPan:"",
+    businessLogo:"",
+    invoiceNotes: "",
+    invoiceTerms: "",
+    invoiceSignatory: "",
+    defaultProductHsn: "8711",
+    defaultProductGstRate: 5,
     defaultDueDays:30,
     /** Monthly sales count goal. 0 = not set; shown on dashboard. */
     monthlySalesTarget: 0,
@@ -4327,12 +4394,7 @@ export const defaultState = applyComputedBankBalances({
 export function mergePersistedPayload(p) {
   if (!p || typeof p !== "object" || Array.isArray(p)) return null;
   try {
-    const {
-      businessGstin: _legacyBusinessGstin,
-      invoiceGstPercent: _legacyInvoiceGstPercent,
-      autoInvoiceGst: _legacyAutoInvoiceGst,
-      ...settingsIn
-    } = p.settings || {};
+    const settingsIn = p.settings || {};
     const balanceMerged = normBalance({ ...defaultState.balance, ...(p.balance || {}) });
     const merged = {
       ...defaultState, ...p,
@@ -4374,6 +4436,19 @@ export function mergePersistedPayload(p) {
         bundles: normBundlesList(settingsIn?.bundles),
         accountingBasis: settingsIn?.accountingBasis === "accrual" ? "accrual" : "cash",
         autoStockOutOnSale: settingsIn?.autoStockOutOnSale === true,
+        businessAddress: String(settingsIn?.businessAddress ?? "").trim(),
+        businessCity: String(settingsIn?.businessCity ?? "").trim(),
+        businessState: String(settingsIn?.businessState ?? "").trim(),
+        businessStateCode: String(settingsIn?.businessStateCode ?? "").trim(),
+        businessPincode: String(settingsIn?.businessPincode ?? "").trim(),
+        businessGstin: String(settingsIn?.businessGstin ?? "").trim().toUpperCase(),
+        businessPan: String(settingsIn?.businessPan ?? "").trim().toUpperCase(),
+        businessLogo: String(settingsIn?.businessLogo ?? "").trim(),
+        invoiceNotes: String(settingsIn?.invoiceNotes ?? "").trim(),
+        invoiceTerms: String(settingsIn?.invoiceTerms ?? "").trim(),
+        invoiceSignatory: String(settingsIn?.invoiceSignatory ?? "").trim(),
+        defaultProductHsn: String(settingsIn?.defaultProductHsn ?? "8711").trim() || "8711",
+        defaultProductGstRate: Math.max(0, num(settingsIn?.defaultProductGstRate ?? 5)),
         darkMode: settingsIn?.darkMode === true ? true : settingsIn?.darkMode === false ? false : undefined,
       },
       balance: balanceMerged,

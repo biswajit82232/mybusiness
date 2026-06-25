@@ -2,6 +2,37 @@
 
 All notable changes are tracked here. The Settings screen shows **Version** from `package.json`.
 
+## [7.3.21] — 2026-06-26
+
+### Features
+- **Invoices — professional GST print** — Tax invoice PDF/print layout matched to standard GST billing format: customer detail block, HSN/CGST/SGST table, HSN summary, amount in words, terms, and tax totals panel.
+- **Invoices — Bill of Supply print** — Simple BOS print layout (no GST columns).
+- **Settings** — Business address, GSTIN, PAN, logo upload, invoice notes/terms/signatory, default HSN/GST.
+- **Sales form** — Customer GSTIN, reverse charge, print copy type, per-line HSN/GST, chassis/motor/battery serials.
+- **Products** — HSN and GST % defaults per product for invoice lines.
+
+App version **7.3.21**; service worker cache **v97**.
+
+---
+
+## [7.3.20] — 2026-06-26
+
+### Improvements
+- **WhatsApp (sales only)** — Invoice/BOS share message includes the review link; EMI and service reminders no longer include it.
+
+App version **7.3.20**; service worker cache **v96**.
+
+---
+
+## [7.3.19] — 2026-06-26
+
+### Improvements
+- **WhatsApp** — Customer messages (invoice share, EMI reminders, service reminders) now include a review link to [biswajitpowerhub.in/reviews](https://www.biswajitpowerhub.in/reviews).
+
+App version **7.3.19**; service worker cache **v95**.
+
+---
+
 ## [7.3.18] — 2026-06-25
 
 ### Features

@@ -75,5 +75,34 @@ export function useInventoryActions({ state, showToast, setState, persistWholeSt
     [persistWholeStateImmediate, setState, showToast, state],
   );
 
-  return { patchInventoryProductCategory, renameInventoryProduct };
+  const patchInventoryProductTaxMeta = useCallback(
+    async (itemKey, { hsn, gstRate }) => {
+      const k = String(itemKey || "").toLowerCase();
+      if (!k) return;
+      const hsnVal = String(hsn ?? "").trim();
+      const rateVal = Math.max(0, Number(gstRate) || 0);
+      const next = {
+        ...state,
+        inventoryEntries: (state.inventoryEntries || []).map((e) =>
+          e && (e.item || "").toLowerCase() === k
+            ? { ...e, hsn: hsnVal, gstRate: rateVal }
+            : e,
+        ),
+      };
+      try {
+        const __p = await persistWholeStateImmediate(next);
+        if (__p) {
+          setState(__p);
+          showToast("Product tax info saved");
+        } else {
+          showToast("Could not save product tax info");
+        }
+      } catch {
+        showToast("Could not save product tax info");
+      }
+    },
+    [persistWholeStateImmediate, setState, showToast, state],
+  );
+
+  return { patchInventoryProductCategory, patchInventoryProductTaxMeta, renameInventoryProduct };
 }

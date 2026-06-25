@@ -27,6 +27,7 @@ export function InventoryItemDetailScreen({
   branches = [],
   stockCategorySuggestions = [],
   onSaveProductCategory,
+  onSaveProductTaxMeta,
   onRenameProduct,
   onClose,
   onEditEntry,
@@ -77,6 +78,15 @@ export function InventoryItemDetailScreen({
   const [editingCat, setEditingCat] = useState(false);
   const [nameDraft, setNameDraft] = useState(displayName || "");
   const [editingName, setEditingName] = useState(false);
+  const [hsnDraft, setHsnDraft] = useState(summaryRow?.hsn || "8711");
+  const [gstDraft, setGstDraft] = useState(
+    summaryRow?.gstRate > 0 ? String(summaryRow.gstRate) : "5",
+  );
+
+  useEffect(() => {
+    setHsnDraft(summaryRow?.hsn || "8711");
+    setGstDraft(summaryRow?.gstRate > 0 ? String(summaryRow.gstRate) : "5");
+  }, [summaryRow?.gstRate, summaryRow?.hsn, itemKey]);
 
   useEffect(() => {
     setCatDraft(resolvedCategory);
@@ -252,6 +262,42 @@ export function InventoryItemDetailScreen({
               </p>
             )}
           </div>
+
+          {typeof onSaveProductTaxMeta === "function" ? (
+            <div className="form-card">
+              <span className="form-card-title">Invoice tax (product)</span>
+              <div className="form-stack" style={{ padding: "0 14px 14px" }}>
+                <label className="field">
+                  <span className="field-lbl">HSN / SAC</span>
+                  <input
+                    type="text"
+                    value={hsnDraft}
+                    onChange={(e) => setHsnDraft(e.target.value)}
+                    placeholder="8711"
+                  />
+                </label>
+                <label className="field">
+                  <span className="field-lbl">GST %</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={gstDraft}
+                    onChange={(e) => setGstDraft(e.target.value)}
+                  />
+                </label>
+                <button
+                  type="button"
+                  className="ghost-btn ghost-btn--full"
+                  onClick={() =>
+                    onSaveProductTaxMeta(itemKey, { hsn: hsnDraft, gstRate: gstDraft })
+                  }
+                >
+                  Save tax defaults
+                </button>
+              </div>
+            </div>
+          ) : null}
 
           <div className="inv-item-detail-actions">
             <button type="button" className="inv-detail-act inv-detail-act-in inv-detail-act--solo" onClick={openAdd}>

@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import {
   addDaysStr,
+  buildSaleShareWhatsAppMessage,
   buildServicingWhatsAppMessage,
   dateHuman,
   dateSlash,
@@ -17,6 +18,7 @@ import {
 } from "@/domain/index.js";
 import { IcEdit, IcPrint, IcServicing, IcTrash, IcWhatsApp } from "@/shared/ui/icons/AppIcons.jsx";
 import { ContactIcons, OverlayScreen, PageHeader } from "@/shared/ui/layout/AppChrome.jsx";
+import { InvoicePrintSheet } from "./InvoicePrintSheet.jsx";
 
 /**
  * @param {object} [invoiceCompany] — from settings: businessName, businessPhone, businessWhatsapp
@@ -40,7 +42,6 @@ export function SaleDetailScreen({
 }) {
   const isBos = sale?.docType === "billOfSupply";
   const docLabel = isBos ? "Bill of Supply" : "Invoice";
-  const docLabelUpper = isBos ? "BILL OF SUPPLY" : "INVOICE";
   const st = saleStatus(sale, defaultDueDays);
   const dueDate = sale.dueDate || addDaysStr(sale.date, defaultDueDays);
   const payRows = useMemo(() => normalizePaymentEntries(sale), [sale]);
@@ -71,14 +72,7 @@ export function SaleDetailScreen({
     const a = bankAccounts.find((b) => b && String(b.id) === String(id));
     return (a?.name || "").trim() || "Account";
   };
-  const waLink = waMessageHref(
-    sale.customerNo1,
-    `${docLabel} ${sale.invoiceNo || "—"} · ${sale.customerName || "Customer"} · Due ${moneyFull(sale.outstanding)}`,
-  );
-
-  const coName = String(invoiceCompany.businessName || "").trim() || "Invoice";
-  const coPhone = String(invoiceCompany.businessPhone || "").trim();
-  const coWa = String(invoiceCompany.businessWhatsapp || "").trim();
+  const waLink = waMessageHref(sale.customerNo1, buildSaleShareWhatsAppMessage(sale, { businessName }));
 
   return (
     <OverlayScreen className="sale-detail-print">
@@ -118,103 +112,7 @@ export function SaleDetailScreen({
       />
 
       <div className="invoice-print-only" aria-hidden="true">
-        <div className="invoice-print-sheet">
-          <header className="ips-head">
-            <div className="ips-brand">
-              <h1 className="ips-co-name">{coName}</h1>
-              {(coPhone || coWa) && (
-                <p className="ips-co-line">
-                  {[coPhone ? `Tel: ${coPhone}` : null, coWa ? `WhatsApp: ${coWa}` : null].filter(Boolean).join(" · ")}
-                </p>
-              )}
-            </div>
-            <div className="ips-doc-title">
-              <h2>{docLabelUpper}</h2>
-            </div>
-          </header>
-
-          <div className="ips-meta-grid">
-            <div className="ips-meta-box">
-              <div className="ips-meta-row">
-                <span>{docLabel} no.</span>
-                <strong>{sale.invoiceNo || "—"}</strong>
-              </div>
-              <div className="ips-meta-row">
-                <span>{docLabel} date</span>
-                <strong>{dateSlash(sale.date)}</strong>
-              </div>
-            </div>
-            <div className="ips-bill-to">
-              <h3>{docLabel} to</h3>
-              <p className="ips-bill-name">{sale.customerName || "—"}</p>
-              {sale.customerNo1 ? <p className="ips-bill-line">{sale.customerNo1}</p> : null}
-              {sale.customerNo2?.trim() ? <p className="ips-bill-line">{sale.customerNo2}</p> : null}
-              {hasSaleAddress(sale) && (
-                <p className="ips-bill-addr">{saleAddressLines(sale).join(", ")}</p>
-              )}
-            </div>
-          </div>
-
-          <table className="ips-table">
-            <thead>
-              <tr>
-                <th className="ips-col-desc">Description</th>
-                <th className="ips-col-qty">Qty</th>
-                <th className="ips-col-rate">Rate (₹)</th>
-                <th className="ips-col-amt">Amount (₹)</th>
-              </tr>
-            </thead>
-            <tbody>
-              {invoiceLines.map((li, idx) => (
-                <tr key={li.id || idx}>
-                  <td className="ips-col-desc">
-                    <span className="ips-item-name">{li.item || "—"}</span>
-                    {idx === 0 && sale.description?.trim() ? (
-                      <span className="ips-item-sub">{sale.description.trim()}</span>
-                    ) : null}
-                  </td>
-                  <td className="ips-col-qty">{num(li.qty)}</td>
-                  <td className="ips-col-rate">{moneyFull(li.salePrice)}</td>
-                  <td className="ips-col-amt">{moneyFull(num(li.qty) * num(li.salePrice))}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-
-          <div className="ips-summary">
-            <div className="ips-summary-rows">
-              {num(sale.discount) > 0 ? (
-                <>
-                  <div className="ips-sum-row">
-                    <span>Subtotal</span>
-                    <span>{moneyFull(lineSubtotal)}</span>
-                  </div>
-                  <div className="ips-sum-row">
-                    <span>Discount</span>
-                    <span>−{moneyFull(sale.discount)}</span>
-                  </div>
-                </>
-              ) : null}
-              <div className="ips-sum-row ips-sum-row--grand">
-                <span>Total</span>
-                <span>{moneyFull(sale.totalSale)}</span>
-              </div>
-              <div className="ips-sum-row">
-                <span>Amount received</span>
-                <span>{moneyFull(sale.received)}</span>
-              </div>
-              <div className="ips-sum-row ips-sum-row--due">
-                <span>Balance due</span>
-                <span>{moneyFull(sale.outstanding)}</span>
-              </div>
-            </div>
-          </div>
-
-          <footer className="ips-footer">
-            <p>Thank you for your business.</p>
-            {coPhone ? <p className="ips-footer-small">For queries, call {coPhone}</p> : null}
-          </footer>
-        </div>
+        <InvoicePrintSheet sale={sale} settings={invoiceCompany} />
       </div>
 
       <div className="overlay-scroll detail-scroll invoice-screen-only">

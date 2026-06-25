@@ -25,6 +25,11 @@ function blankLine() {
     qty: "1",
     salePrice: "",
     costPrice: "",
+    hsn: "",
+    gstRate: "",
+    chassisNo: "",
+    motorNo: "",
+    batterySerialNo: "",
     itemProductPick: "__custom__",
   };
 }
@@ -44,6 +49,11 @@ function hydrateLineItems(entry) {
       qty: li?.qty != null ? String(li.qty) : "",
       salePrice: li?.salePrice != null ? String(li.salePrice) : "",
       costPrice: li?.costPrice != null ? String(li.costPrice) : "",
+      hsn: li?.hsn != null ? String(li.hsn) : "",
+      gstRate: li?.gstRate != null && li.gstRate !== "" ? String(li.gstRate) : "",
+      chassisNo: String(li?.chassisNo || ""),
+      motorNo: String(li?.motorNo || ""),
+      batterySerialNo: String(li?.batterySerialNo || ""),
       itemProductPick: String(li?.itemProductPick || "__custom__"),
     }));
   }
@@ -54,6 +64,11 @@ function hydrateLineItems(entry) {
       qty: entry.qty != null ? String(entry.qty) : "1",
       salePrice: entry.salePrice != null ? String(entry.salePrice) : "",
       costPrice: entry.costPrice != null ? String(entry.costPrice) : "",
+      hsn: entry.hsn != null ? String(entry.hsn) : "",
+      gstRate: entry.gstRate != null && entry.gstRate !== "" ? String(entry.gstRate) : "",
+      chassisNo: String(entry.chassisNo || ""),
+      motorNo: String(entry.motorNo || ""),
+      batterySerialNo: String(entry.batterySerialNo || ""),
       itemProductPick: String(entry.itemProductPick || "__custom__"),
     },
   ];
@@ -79,6 +94,8 @@ export function NewSaleScreen({
   billOfSupplyPrefix = "BOS",
   invoiceNextNumber = 1,
   billOfSupplyNextNumber = 1,
+  defaultProductHsn = "8711",
+  defaultProductGstRate = 5,
   onSubmit,
   onClose,
 }) {
@@ -279,6 +296,40 @@ export function NewSaleScreen({
                   onChange={(e) => upd("dueDate", e.target.value)}
                 />
               </Field>
+              {currentDocType === "invoice" ? (
+                <>
+                  <Field label="Customer GSTIN (optional)">
+                    <input
+                      type="text"
+                      value={entry.customerGstin ?? ""}
+                      onChange={(e) => upd("customerGstin", e.target.value.toUpperCase())}
+                      autoComplete="off"
+                      placeholder="15-character GSTIN"
+                    />
+                  </Field>
+                  <Field label="Reverse charge">
+                    <MenuSelect
+                      value={entry.reverseCharge ? "yes" : "no"}
+                      onChange={(v) => upd("reverseCharge", v === "yes")}
+                      options={[
+                        { value: "no", label: "No" },
+                        { value: "yes", label: "Yes" },
+                      ]}
+                    />
+                  </Field>
+                  <Field label="Print copy">
+                    <MenuSelect
+                      value={entry.invoiceCopyType || "original"}
+                      onChange={(v) => upd("invoiceCopyType", v)}
+                      options={[
+                        { value: "original", label: "Original for recipient" },
+                        { value: "duplicate", label: "Duplicate for supplier" },
+                        { value: "triplicate", label: "Triplicate for supplier" },
+                      ]}
+                    />
+                  </Field>
+                </>
+              ) : null}
             </div>
           </div>
 
@@ -443,6 +494,9 @@ export function NewSaleScreen({
                   showStockItemPick={showStockItemPick}
                   stockPickRows={stockPickRows}
                   invRows={invRows}
+                  showGstFields={currentDocType === "invoice"}
+                  defaultHsn={defaultProductHsn}
+                  defaultGstRate={defaultProductGstRate}
                   onUpdate={(patch) => updLine(idx, patch)}
                   onRemove={() => removeLine(idx)}
                 />
@@ -699,6 +753,9 @@ function LineItemRow({
   showStockItemPick,
   stockPickRows,
   invRows,
+  showGstFields = true,
+  defaultHsn = "8711",
+  defaultGstRate = 5,
   onUpdate,
   onRemove,
 }) {
@@ -738,6 +795,10 @@ function LineItemRow({
                   item: row.item,
                   costPrice: row.avgCost != null ? String(row.avgCost) : "",
                   ...(num(row.salesPrice) > 0 ? { salePrice: String(row.salesPrice) } : {}),
+                  ...(row.hsn ? { hsn: String(row.hsn) } : { hsn: defaultHsn }),
+                  ...(num(row.gstRate) > 0
+                    ? { gstRate: String(row.gstRate) }
+                    : { gstRate: String(defaultGstRate) }),
                 });
               }}
             />
@@ -782,6 +843,54 @@ function LineItemRow({
               className="input-readonly-auto"
               value={money(lineSubtotal)}
               aria-readonly="true"
+            />
+          </Field>
+        </div>
+        {showGstFields ? (
+          <div className="line-item-metrics line-item-metrics--gst">
+            <Field label="HSN / SAC">
+              <input
+                type="text"
+                value={line.hsn || defaultHsn}
+                onChange={(e) => onUpdate({ hsn: e.target.value })}
+                placeholder={defaultHsn}
+              />
+            </Field>
+            <Field label="GST %">
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={line.gstRate !== "" ? line.gstRate : defaultGstRate}
+                onChange={(e) => onUpdate({ gstRate: e.target.value })}
+              />
+            </Field>
+          </div>
+        ) : null}
+        <div className="line-item-serials">
+          <Field label="Chassis No">
+            <input
+              type="text"
+              value={line.chassisNo || ""}
+              onChange={(e) => onUpdate({ chassisNo: e.target.value })}
+              placeholder="Optional"
+            />
+          </Field>
+          <Field label="Motor No">
+            <input
+              type="text"
+              value={line.motorNo || ""}
+              onChange={(e) => onUpdate({ motorNo: e.target.value })}
+              placeholder="Optional"
+            />
+          </Field>
+          <Field label="Battery serial no.">
+            <textarea
+              className="textarea-compact"
+              rows={2}
+              value={line.batterySerialNo || ""}
+              onChange={(e) => onUpdate({ batterySerialNo: e.target.value })}
+              placeholder="One per line if multiple"
             />
           </Field>
         </div>

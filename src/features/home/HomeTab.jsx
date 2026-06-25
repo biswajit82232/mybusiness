@@ -173,7 +173,10 @@ export function HomeTab({
 
   const targetMonthSalesCount = useMemo(() => {
     if (monthlyTarget <= 0) return 0;
-    return safeSales.filter((s) => String(s.date || "").startsWith(targetMonth)).length;
+    return safeSales.filter(
+      (s) =>
+        String(s.date || "").startsWith(targetMonth) && s?.docType !== "billOfSupply",
+    ).length;
   }, [monthlyTarget, targetMonth, safeSales]);
 
   const salesTargetDisplay = useMemo(() => {

@@ -5,6 +5,8 @@ import { getResolvedUserId, getSupabaseSessionUser } from "@/data/auth/auth.js";
 import { getPendingOutboxCount, getPendingOutboxEntries } from "@/data/local/indexedDbStore.js";
 import {
   MONTHS,
+  DEFAULT_INVOICE_NOTES,
+  DEFAULT_INVOICE_TERMS,
   detectFyYear,
   fyLabel,
   getExpenseCategoriesList,
@@ -454,27 +456,7 @@ export function SettingsScreen({
         )}
 
         {sub === "business" && (
-          <form
-            className="form-sections settings-sub-pad"
-            onSubmit={(e) => {
-              e.preventDefault();
-              const d = new FormData(e.currentTarget);
-              onSavePartial({
-                businessName: d.get("businessName"),
-                businessPhone: d.get("businessPhone"),
-                businessWhatsapp: d.get("businessWhatsapp"),
-              });
-            }}
-          >
-            <div className="form-card">
-              <div className="form-stack">
-                <Field label="Business name"><input name="businessName" type="text" key={`bn-${settings.businessName}`} defaultValue={settings.businessName} required /></Field>
-                <Field label="Phone (call)"><input name="businessPhone" type="tel" key={`bp-${settings.businessPhone}`} defaultValue={settings.businessPhone} placeholder="10-digit mobile" /></Field>
-                <Field label="WhatsApp (optional)"><input name="businessWhatsapp" type="tel" key={`bw-${settings.businessWhatsapp}`} defaultValue={settings.businessWhatsapp} /></Field>
-              </div>
-            </div>
-            <button type="submit" className="primary-btn submit-btn">Save</button>
-          </form>
+          <BusinessSettingsForm settings={settings} onSavePartial={onSavePartial} />
         )}
 
         {sub === "invoice" && (
@@ -490,6 +472,11 @@ export function SettingsScreen({
                   billOfSupplyNextNumber: num(d.get("billOfSupplyNextNumber")),
                   defaultDueDays: num(d.get("defaultDueDays")),
                   monthlySalesTarget: num(d.get("monthlySalesTarget")),
+                  defaultProductHsn: d.get("defaultProductHsn"),
+                  defaultProductGstRate: num(d.get("defaultProductGstRate")),
+                  invoiceNotes: d.get("invoiceNotes"),
+                  invoiceTerms: d.get("invoiceTerms"),
+                  invoiceSignatory: d.get("invoiceSignatory"),
                 });
               }}
             >
@@ -540,6 +527,56 @@ export function SettingsScreen({
                       key={`mst-${settings.monthlySalesTarget ?? 0}`}
                       defaultValue={settings.monthlySalesTarget ?? 0}
                       placeholder="e.g. 10"
+                    />
+                  </Field>
+                </div>
+              </div>
+              <div className="form-card">
+                <div className="form-card-title">Print invoice (GST)</div>
+                <div className="form-stack">
+                  <Field label="Default HSN / SAC">
+                    <input
+                      name="defaultProductHsn"
+                      type="text"
+                      key={`hsn-${settings.defaultProductHsn || "8711"}`}
+                      defaultValue={settings.defaultProductHsn || "8711"}
+                      placeholder="8711"
+                    />
+                  </Field>
+                  <Field label="Default GST % (inclusive price)">
+                    <input
+                      name="defaultProductGstRate"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      key={`gstr-${settings.defaultProductGstRate ?? 5}`}
+                      defaultValue={settings.defaultProductGstRate ?? 5}
+                    />
+                  </Field>
+                  <Field label="Print notes">
+                    <input
+                      name="invoiceNotes"
+                      type="text"
+                      key={`in-${settings.invoiceNotes || DEFAULT_INVOICE_NOTES}`}
+                      defaultValue={settings.invoiceNotes || DEFAULT_INVOICE_NOTES}
+                    />
+                  </Field>
+                  <Field label="Signatory line">
+                    <input
+                      name="invoiceSignatory"
+                      type="text"
+                      key={`is-${settings.invoiceSignatory || ""}`}
+                      defaultValue={settings.invoiceSignatory || ""}
+                      placeholder={`For ${(settings.businessName || "YOUR BUSINESS").toUpperCase()}`}
+                    />
+                  </Field>
+                  <Field label="Terms &amp; conditions">
+                    <textarea
+                      name="invoiceTerms"
+                      className="textarea-compact"
+                      rows={5}
+                      key={`it-${settings.invoiceTerms || DEFAULT_INVOICE_TERMS}`}
+                      defaultValue={settings.invoiceTerms || DEFAULT_INVOICE_TERMS}
                     />
                   </Field>
                 </div>
@@ -1140,5 +1177,113 @@ function ThemeAppearanceSection({ darkMode, setDarkMode }) {
         </p>
       </div>
     </div>
+  );
+}
+
+function BusinessSettingsForm({ settings, onSavePartial }) {
+  const [logo, setLogo] = useState(String(settings.businessLogo || ""));
+
+  useEffect(() => {
+    setLogo(String(settings.businessLogo || ""));
+  }, [settings.businessLogo]);
+
+  const onLogoFile = (e) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    if (f.size > 350000) {
+      window.alert("Logo must be under 350 KB");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => setLogo(String(reader.result || ""));
+    reader.readAsDataURL(f);
+  };
+
+  return (
+    <form
+      className="form-sections settings-sub-pad"
+      onSubmit={(e) => {
+        e.preventDefault();
+        const d = new FormData(e.currentTarget);
+        onSavePartial({
+          businessName: d.get("businessName"),
+          businessPhone: d.get("businessPhone"),
+          businessWhatsapp: d.get("businessWhatsapp"),
+          businessAddress: d.get("businessAddress"),
+          businessCity: d.get("businessCity"),
+          businessState: d.get("businessState"),
+          businessStateCode: d.get("businessStateCode"),
+          businessPincode: d.get("businessPincode"),
+          businessGstin: d.get("businessGstin"),
+          businessPan: d.get("businessPan"),
+          businessLogo: logo,
+        });
+      }}
+    >
+      <div className="form-card">
+        <div className="form-card-title">Contact</div>
+        <div className="form-stack">
+          <Field label="Business name">
+            <input name="businessName" type="text" key={`bn-${settings.businessName}`} defaultValue={settings.businessName} required />
+          </Field>
+          <Field label="Phone (call)">
+            <input name="businessPhone" type="tel" key={`bp-${settings.businessPhone}`} defaultValue={settings.businessPhone} placeholder="10-digit mobile" />
+          </Field>
+          <Field label="WhatsApp (optional)">
+            <input name="businessWhatsapp" type="tel" key={`bw-${settings.businessWhatsapp}`} defaultValue={settings.businessWhatsapp} />
+          </Field>
+        </div>
+      </div>
+      <div className="form-card">
+        <div className="form-card-title">Address &amp; tax IDs</div>
+        <div className="form-stack">
+          <Field label="Street / area">
+            <textarea name="businessAddress" className="textarea-compact" rows={2} key={`ba-${settings.businessAddress}`} defaultValue={settings.businessAddress} />
+          </Field>
+          <div className="field-row">
+            <Field label="City">
+              <input name="businessCity" type="text" key={`bc-${settings.businessCity}`} defaultValue={settings.businessCity} />
+            </Field>
+            <Field label="State">
+              <input name="businessState" type="text" key={`bs-${settings.businessState}`} defaultValue={settings.businessState} placeholder="West Bengal" />
+            </Field>
+          </div>
+          <div className="field-row">
+            <Field label="State code (GST)">
+              <input name="businessStateCode" type="text" inputMode="numeric" key={`bsc-${settings.businessStateCode}`} defaultValue={settings.businessStateCode} placeholder="19" maxLength={2} />
+            </Field>
+            <Field label="PIN code">
+              <input name="businessPincode" type="text" inputMode="numeric" key={`bpin-${settings.businessPincode}`} defaultValue={settings.businessPincode} />
+            </Field>
+          </div>
+          <Field label="GSTIN">
+            <input name="businessGstin" type="text" key={`bg-${settings.businessGstin}`} defaultValue={settings.businessGstin} placeholder="15-character GSTIN" />
+          </Field>
+          <Field label="PAN (optional)">
+            <input name="businessPan" type="text" key={`bpan-${settings.businessPan}`} defaultValue={settings.businessPan} />
+          </Field>
+        </div>
+      </div>
+      <div className="form-card">
+        <div className="form-card-title">Logo (print)</div>
+        <div className="form-stack">
+          {logo ? (
+            <div className="settings-logo-preview">
+              <img src={logo} alt="" />
+              <button type="button" className="ghost-btn ghost-btn--compact" onClick={() => setLogo("")}>
+                Remove logo
+              </button>
+            </div>
+          ) : null}
+          <Field label="Upload logo">
+            <input type="file" accept="image/png,image/jpeg,image/webp,image/gif" onChange={onLogoFile} />
+          </Field>
+          <p className="form-hint">Shown on printed invoices. PNG or JPG, max 350 KB.</p>
+        </div>
+      </div>
+      <button type="submit" className="primary-btn submit-btn">
+        Save
+      </button>
+    </form>
   );
 }

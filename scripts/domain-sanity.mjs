@@ -20,6 +20,8 @@ import {
   buildBankAccountTransactions,
   buildEmiAlertsForEntry,
   buildEmiWhatsAppReminderMessage,
+  buildSaleShareWhatsAppMessage,
+  CUSTOMER_REVIEWS_URL,
   classifyEmiReminderDiff,
   EMI_REMINDER_DAYS_BEFORE,
   computeAccountActivityNet,
@@ -1019,6 +1021,17 @@ ok("buildEmiWhatsAppReminderMessage: includes business and due date", () => {
   assert.match(msg, /Acme/);
   assert.match(msg, /3 days/);
   assert.match(msg, /MB-1/);
+});
+
+ok("buildSaleShareWhatsAppMessage: includes review link", () => {
+  const msg = buildSaleShareWhatsAppMessage(
+    { customerName: "Ravi", invoiceNo: "MB-1", outstanding: 25000 },
+    { businessName: "Acme" },
+  );
+  assert.match(msg, /Hi Ravi/);
+  assert.match(msg, /Acme/);
+  assert.match(msg, /MB-1/);
+  assert.match(msg, new RegExp(CUSTOMER_REVIEWS_URL.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
 });
 
 ok("normCustomerDirectory + hasSaleAddress", () => {

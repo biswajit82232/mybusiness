@@ -117,6 +117,11 @@ export function useSalesActions({
           qty: num(li?.qty),
           salePrice: num(li?.salePrice),
           costPrice: num(li?.costPrice),
+          hsn: String(li?.hsn || "").trim(),
+          gstRate: num(li?.gstRate),
+          chassisNo: String(li?.chassisNo || "").trim(),
+          motorNo: String(li?.motorNo || "").trim(),
+          batterySerialNo: String(li?.batterySerialNo || "").trim(),
         }))
         .filter((li) => li.item || li.qty > 0 || li.salePrice > 0 || li.costPrice > 0);
       if (lineItemsCoerced.length === 0) {
@@ -206,6 +211,13 @@ export function useSalesActions({
         customerCity: (saleEntry.customerCity || "").trim(),
         customerState: (saleEntry.customerState || "").trim(),
         customerPincode: (saleEntry.customerPincode || "").trim(),
+        customerGstin: (saleEntry.customerGstin || "").trim().toUpperCase(),
+        reverseCharge: saleEntry.reverseCharge === true,
+        invoiceCopyType: ["duplicate", "triplicate"].includes(
+          String(saleEntry.invoiceCopyType || "").toLowerCase(),
+        )
+          ? String(saleEntry.invoiceCopyType).toLowerCase()
+          : "original",
         item: first.item,
         description: (saleEntry.description || "").trim(),
         note: (saleEntry.note || "").trim(),

@@ -30,6 +30,23 @@ export function useSettingsActions({
       if ("businessPhone" in updates) s.businessPhone = String(updates.businessPhone ?? "").trim();
       if ("businessWhatsapp" in updates)
         s.businessWhatsapp = String(updates.businessWhatsapp ?? "").trim();
+      if ("businessAddress" in updates) s.businessAddress = String(updates.businessAddress ?? "").trim();
+      if ("businessCity" in updates) s.businessCity = String(updates.businessCity ?? "").trim();
+      if ("businessState" in updates) s.businessState = String(updates.businessState ?? "").trim();
+      if ("businessStateCode" in updates)
+        s.businessStateCode = String(updates.businessStateCode ?? "").trim();
+      if ("businessPincode" in updates) s.businessPincode = String(updates.businessPincode ?? "").trim();
+      if ("businessGstin" in updates)
+        s.businessGstin = String(updates.businessGstin ?? "").trim().toUpperCase();
+      if ("businessPan" in updates) s.businessPan = String(updates.businessPan ?? "").trim().toUpperCase();
+      if ("businessLogo" in updates) s.businessLogo = String(updates.businessLogo ?? "").trim();
+      if ("invoiceNotes" in updates) s.invoiceNotes = String(updates.invoiceNotes ?? "").trim();
+      if ("invoiceTerms" in updates) s.invoiceTerms = String(updates.invoiceTerms ?? "").trim();
+      if ("invoiceSignatory" in updates) s.invoiceSignatory = String(updates.invoiceSignatory ?? "").trim();
+      if ("defaultProductHsn" in updates)
+        s.defaultProductHsn = String(updates.defaultProductHsn ?? "8711").trim() || "8711";
+      if ("defaultProductGstRate" in updates)
+        s.defaultProductGstRate = Math.max(0, num(updates.defaultProductGstRate ?? 5));
       if ("invoicePrefix" in updates)
         s.invoicePrefix = sanitizePrefix(updates.invoicePrefix ?? s.invoicePrefix);
       if ("billOfSupplyPrefix" in updates)

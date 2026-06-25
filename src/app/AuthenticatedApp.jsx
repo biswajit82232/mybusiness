@@ -1292,7 +1292,7 @@ export default function AuthenticatedApp() {
     persistWholeStateImmediate,
   });
 
-  const { patchInventoryProductCategory, renameInventoryProduct } = useInventoryActions({
+  const { patchInventoryProductCategory, patchInventoryProductTaxMeta, renameInventoryProduct } = useInventoryActions({
     state,
     showToast,
     setState,
@@ -1498,6 +1498,7 @@ export default function AuthenticatedApp() {
     removeFixed,
     saveFixed,
     patchInventoryProductCategory,
+    patchInventoryProductTaxMeta,
     renameInventoryProduct: renameInventoryProductDetail,
     saveOtherBalance,
     saveOwnerCapitalInvested,
@@ -1598,7 +1599,8 @@ export default function AuthenticatedApp() {
     openExpenseCategory, openSaleDetailFromInvoice,
     saveBranchesList, removeBranchById, addBank, addBankTransfer,
     patchFixed, addFixed, removeFixed, saveFixed,
-    patchInventoryProductCategory, renameInventoryProductDetail,
+    patchInventoryProductCategory,
+    patchInventoryProductTaxMeta, renameInventoryProductDetail,
     saveOtherBalance, saveOwnerCapitalInvested, saveSettingsPartial,
     exportBackup, importBackupFile, requestResetAllData,
     executeCloudSync, resolveSyncConflict, restoreSyncConflict,

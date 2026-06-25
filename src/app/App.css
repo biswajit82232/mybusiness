@@ -4425,6 +4425,29 @@ button.bank-tx-row-btn.bank-tx-row {
   border: 1px dashed color-mix(in srgb, var(--line) 65%, var(--primary));
   border-radius: var(--radius-sm);
 }
+.line-item-serials {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+}
+.line-item-metrics--gst {
+  margin-top: 8px;
+}
+.settings-logo-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+.settings-logo-preview img {
+  max-height: 72px;
+  max-width: 200px;
+  object-fit: contain;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 6px;
+  background: #fff;
+}
 
 .line-items-actions { display: flex; }
 .ghost-btn--full {
@@ -9739,7 +9762,267 @@ button.activity-row.activity-row--clickable:active { background: var(--line2); }
     color: #94a3b8;
   }
 
-  @page { margin: 14mm 16mm; }
+  @page { margin: 10mm 12mm; }
+
+  /* —— GST tax invoice: reference PDF layout (BPH-style) —— */
+  .invoice-print-sheet--gst-ref,
+  .invoice-print-sheet {
+    max-width: 100%;
+    width: 100%;
+    font-family: Arial, Helvetica, "Segoe UI", sans-serif;
+    font-size: 9pt;
+    line-height: 1.35;
+    color: #000;
+  }
+
+  .invoice-print-sheet--gst-ref table,
+  .invoice-print-sheet table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .invoice-print-sheet--gst-ref th,
+  .invoice-print-sheet--gst-ref td,
+  .invoice-print-sheet th,
+  .invoice-print-sheet td {
+    border: 1pt solid #000;
+    padding: 4pt 6pt;
+    vertical-align: top;
+  }
+
+  .invoice-print-sheet--gst-ref .tc,
+  .invoice-print-sheet .tc { text-align: center; }
+  .invoice-print-sheet--gst-ref .tr,
+  .invoice-print-sheet .tr { text-align: right; white-space: nowrap; }
+  .invoice-print-sheet--gst-ref .tl,
+  .invoice-print-sheet .tl { text-align: left; }
+
+  .ips-ref-top td {
+    border: 1pt solid #000;
+    padding: 6pt 8pt;
+    font-weight: 700;
+    vertical-align: middle;
+  }
+  .ips-ref-top-gstin {
+    width: 33%;
+    text-align: left;
+    font-size: 9pt;
+  }
+  .ips-ref-top-title {
+    width: 34%;
+    text-align: center;
+    font-size: 11pt;
+    letter-spacing: 0.04em;
+  }
+  .ips-ref-top-copy {
+    width: 33%;
+    text-align: right;
+    font-size: 8pt;
+    font-weight: 700;
+  }
+
+  .ips-ref-section-hd {
+    text-align: left;
+    font-weight: 700;
+    font-size: 9pt;
+    background: #fff;
+    padding: 5pt 8pt;
+  }
+  .ips-ref-lbl {
+    width: 18%;
+    font-weight: 700;
+    background: #fff;
+  }
+
+  .ips-ref-customer {
+    margin-top: -1pt;
+    margin-bottom: 0;
+    page-break-inside: avoid;
+  }
+
+  .ips-ref-lines {
+    margin-top: -1pt;
+    font-size: 8.5pt;
+  }
+  .ips-ref-lines thead th {
+    text-align: center;
+    font-weight: 700;
+    font-size: 8pt;
+    background: #fff;
+    padding: 4pt 3pt;
+  }
+  .ips-ref-sno { width: 4%; }
+  .ips-ref-desc { width: 28%; text-align: left; }
+  .ips-ref-total-row td {
+    font-weight: 700;
+    background: #fff;
+  }
+
+  .ips-prod-cell { font-size: 8.5pt; line-height: 1.35; }
+  .ips-prod-name { font-weight: 700; margin-bottom: 2pt; }
+  .ips-serial-block { margin-top: 2pt; }
+  .ips-serial-lbl { display: block; }
+  .ips-serial-val { display: block; }
+  .ips-serial-inline { display: block; margin-top: 2pt; }
+
+  .ips-ref-bottom {
+    display: flex;
+    align-items: stretch;
+    margin-top: -1pt;
+    page-break-inside: avoid;
+  }
+  .ips-ref-bottom-left {
+    flex: 1;
+    min-width: 0;
+  }
+  .ips-ref-bottom-right {
+    width: 38%;
+    flex-shrink: 0;
+    margin-left: -1pt;
+  }
+  .ips-ref-bottom-right--solo {
+    width: 42%;
+    margin-left: auto;
+    margin-top: 8pt;
+  }
+
+  .ips-ref-hsn {
+    margin-top: 0;
+    font-size: 8pt;
+    border-top: none;
+  }
+  .ips-ref-hsn thead th {
+    text-align: center;
+    font-weight: 700;
+    font-size: 7.5pt;
+    padding: 3pt 2pt;
+  }
+
+  .ips-ref-words {
+    border: 1pt solid #000;
+    border-top: none;
+    padding: 5pt 8pt;
+  }
+  .ips-ref-words-lbl {
+    font-weight: 700;
+    font-size: 8.5pt;
+    margin-bottom: 3pt;
+  }
+  .ips-ref-words-val {
+    font-weight: 700;
+    font-size: 9pt;
+    text-transform: uppercase;
+  }
+
+  .ips-notes-block {
+    border: 1pt solid #000;
+    border-top: none;
+    padding: 5pt 8pt;
+    page-break-inside: avoid;
+  }
+  .ips-notes-title {
+    font-weight: 700;
+    font-size: 8.5pt;
+    margin-bottom: 3pt;
+  }
+  .ips-notes-body,
+  .ips-terms-ol {
+    margin: 0;
+    font-size: 8.5pt;
+    line-height: 1.4;
+  }
+  .ips-terms-ol {
+    padding-left: 14pt;
+  }
+
+  .ips-tax-panel {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 8.5pt;
+    height: 100%;
+  }
+  .ips-tax-panel td {
+    border: 1pt solid #000;
+    padding: 4pt 6pt;
+  }
+  .ips-tax-panel td:first-child {
+    font-weight: 400;
+    width: 58%;
+  }
+  .ips-tax-panel td:last-child {
+    text-align: right;
+    white-space: nowrap;
+    font-weight: 700;
+  }
+  .ips-tax-panel-grand td {
+    font-weight: 700;
+  }
+
+  .ips-ref-footer {
+    display: grid;
+    grid-template-columns: 1fr 2fr 1fr;
+    gap: 8pt;
+    align-items: end;
+    margin-top: 16pt;
+    font-size: 8pt;
+    page-break-inside: avoid;
+  }
+  .ips-ref-eoe { align-self: end; }
+  .ips-ref-cert { text-align: center; align-self: end; }
+  .ips-ref-sign {
+    text-align: right;
+    align-self: end;
+  }
+  .ips-ref-sign-for {
+    font-weight: 700;
+    margin-bottom: 28pt;
+    font-size: 9pt;
+  }
+
+  /* Bill of Supply — simple */
+  .invoice-print-sheet--bos {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 9pt;
+    color: #000;
+  }
+  .invoice-print-sheet--bos .ips-head--bos {
+    display: flex;
+    justify-content: space-between;
+    gap: 12pt;
+    border-bottom: 1pt solid #000;
+    padding-bottom: 8pt;
+    margin-bottom: 10pt;
+  }
+  .invoice-print-sheet--bos .ips-co-name {
+    font-size: 12pt;
+    font-weight: 700;
+    margin: 0 0 4pt;
+  }
+  .invoice-print-sheet--bos .ips-co-line {
+    margin: 0 0 2pt;
+    font-size: 8.5pt;
+  }
+  .invoice-print-sheet--bos .ips-bos-meta,
+  .invoice-print-sheet--bos .ips-table--simple {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: -1pt;
+  }
+  .invoice-print-sheet--bos th,
+  .invoice-print-sheet--bos td {
+    border: 1pt solid #000;
+    padding: 4pt 6pt;
+  }
+  .ips-tax-panel--bos {
+    width: 42%;
+    margin-left: auto;
+    margin-top: 8pt;
+  }
+  .ips-bos-thanks {
+    margin-top: 12pt;
+    text-align: center;
+    font-size: 8.5pt;
+  }
 }
 
 /* ── Welcome modal (first visit) ───────────────────────────── */
