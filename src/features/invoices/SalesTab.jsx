@@ -70,12 +70,14 @@ export function SalesTab({
           { v: "all", l: "All" },
           { v: "unpaid", l: `Unpaid${unpaidCt ? ` (${unpaidCt})` : ""}` },
           { v: "overdue", l: `Overdue${overdueCt ? ` (${overdueCt})` : ""}` },
-        ].map(({ v, l }) => (
+          { v: "bos", l: "BOS", title: "Bill of Supply" },
+        ].map(({ v, l, title }) => (
           <button
             key={v}
             type="button"
             className={`seg-btn${saleView === v ? " active" : ""}`}
             aria-pressed={saleView === v}
+            title={title}
             onClick={() => setSaleView(v)}
           >
             {l}
@@ -95,7 +97,17 @@ export function SalesTab({
           emptyState={
             <EmptyState
               icon={<IcSales />}
-              title={searchTerm ? `No results for "${searchTerm}"` : businessMonth ? "No sales in this month" : "No sales yet"}
+              title={
+                searchTerm
+                  ? `No results for "${searchTerm}"`
+                  : saleView === "bos"
+                    ? businessMonth
+                      ? "No bills of supply in this month"
+                      : "No bills of supply yet"
+                    : businessMonth
+                      ? "No sales in this month"
+                      : "No sales yet"
+              }
             />
           }
         />

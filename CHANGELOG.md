@@ -2,6 +2,15 @@
 
 All notable changes are tracked here. The Settings screen shows **Version** from `package.json`.
 
+## [7.3.18] — 2026-06-25
+
+### Features
+- **Invoices** — New **BOS** filter on the list page to show only Bill of Supply documents (month and search filters still apply).
+
+App version **7.3.18**; service worker cache **v94**.
+
+---
+
 ## [7.3.17] — 2026-06-24
 
 ### Improvements

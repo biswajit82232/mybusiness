@@ -1,5 +1,5 @@
 /* MyBusiness SW — secure, crash-safe, release-ready */
-const VERSION = "v93";
+const VERSION = "v94";
 const CACHE = `mybiz-${VERSION}`;
 const PRECACHE = [
   "/",

@@ -647,6 +647,7 @@ export default function AuthenticatedApp() {
     }
     if (saleView==="unpaid")  return list.filter((s) => s.outstanding > 0 && !isOverdue(resolveSaleDueDate(s, state.settings?.defaultDueDays)));
     if (saleView==="overdue") return list.filter((s) => s.outstanding > 0 && isOverdue(resolveSaleDueDate(s, state.settings?.defaultDueDays)));
+    if (saleView==="bos") return list.filter((s) => s?.docType === "billOfSupply");
     return list;
   }, [safeSales, saleView, searchTerm, businessMonth, state.settings?.defaultDueDays, state.settings]);
 
