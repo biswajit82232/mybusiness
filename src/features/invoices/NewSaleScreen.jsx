@@ -96,11 +96,13 @@ export function NewSaleScreen({
   billOfSupplyNextNumber = 1,
   defaultProductHsn = "8711",
   defaultProductGstRate = 5,
+  gstEnabled = true,
   onSubmit,
   onClose,
 }) {
   const lineItems = useMemo(() => hydrateLineItems(entry), [entry]);
   const invoiceManualRef = useRef(false);
+  const gstOn = gstEnabled !== false;
 
   /**
    * Persist the new line-items array AND mirror the first line into the
@@ -296,7 +298,7 @@ export function NewSaleScreen({
                   onChange={(e) => upd("dueDate", e.target.value)}
                 />
               </Field>
-              {currentDocType === "invoice" ? (
+              {gstOn && currentDocType === "invoice" ? (
                 <>
                   <Field label="Customer GSTIN (optional)">
                     <input
@@ -494,7 +496,7 @@ export function NewSaleScreen({
                   showStockItemPick={showStockItemPick}
                   stockPickRows={stockPickRows}
                   invRows={invRows}
-                  showGstFields={currentDocType === "invoice"}
+                  showGstFields={gstOn && currentDocType === "invoice"}
                   defaultHsn={defaultProductHsn}
                   defaultGstRate={defaultProductGstRate}
                   onUpdate={(patch) => updLine(idx, patch)}
@@ -795,10 +797,14 @@ function LineItemRow({
                   item: row.item,
                   costPrice: row.avgCost != null ? String(row.avgCost) : "",
                   ...(num(row.salesPrice) > 0 ? { salePrice: String(row.salesPrice) } : {}),
-                  ...(row.hsn ? { hsn: String(row.hsn) } : { hsn: defaultHsn }),
-                  ...(num(row.gstRate) > 0
-                    ? { gstRate: String(row.gstRate) }
-                    : { gstRate: String(defaultGstRate) }),
+                  ...(showGstFields
+                    ? {
+                        ...(row.hsn ? { hsn: String(row.hsn) } : { hsn: defaultHsn }),
+                        ...(num(row.gstRate) > 0
+                          ? { gstRate: String(row.gstRate) }
+                          : { gstRate: String(defaultGstRate) }),
+                      }
+                    : {}),
                 });
               }}
             />

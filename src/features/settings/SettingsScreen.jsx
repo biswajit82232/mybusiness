@@ -153,7 +153,7 @@ export function SettingsScreen({
           icon: <IcSales />,
           title: "Invoice settings",
           subtitle: "Prefix, due days, sales target",
-          keywords: ["invoice", "prefix", "due", "payment", "sale", "bill", "target", "goal", "monthly"],
+          keywords: ["invoice", "prefix", "due", "payment", "sale", "bill", "target", "goal", "monthly", "gst", "hsn", "tax"],
         },
         {
           k: "accounting",
@@ -461,10 +461,29 @@ export function SettingsScreen({
 
         {sub === "invoice" && (
           <div className="form-sections settings-sub-pad">
+            <div className="form-card">
+              <div className="toggle-row">
+                <div>
+                  <div className="toggle-label">GST invoicing</div>
+                  <p className="settings-notif-hint">
+                    HSN/GST on products and sales, business GSTIN, and tax-invoice print layout
+                  </p>
+                </div>
+                <label className="toggle-switch" aria-label="GST invoicing">
+                  <input
+                    type="checkbox"
+                    checked={settings.gstEnabled !== false}
+                    onChange={(e) => onSavePartial({ gstEnabled: e.target.checked }, { silent: true })}
+                  />
+                  <span className="toggle-track" />
+                </label>
+              </div>
+            </div>
             <form
               onSubmit={(e) => {
                 e.preventDefault();
                 const d = new FormData(e.currentTarget);
+                const gstOn = settings.gstEnabled !== false;
                 onSavePartial({
                   invoicePrefix: d.get("invoicePrefix"),
                   billOfSupplyPrefix: d.get("billOfSupplyPrefix"),
@@ -472,8 +491,12 @@ export function SettingsScreen({
                   billOfSupplyNextNumber: num(d.get("billOfSupplyNextNumber")),
                   defaultDueDays: num(d.get("defaultDueDays")),
                   monthlySalesTarget: num(d.get("monthlySalesTarget")),
-                  defaultProductHsn: d.get("defaultProductHsn"),
-                  defaultProductGstRate: num(d.get("defaultProductGstRate")),
+                  ...(gstOn
+                    ? {
+                        defaultProductHsn: d.get("defaultProductHsn"),
+                        defaultProductGstRate: num(d.get("defaultProductGstRate")),
+                      }
+                    : {}),
                   invoiceNotes: d.get("invoiceNotes"),
                   invoiceTerms: d.get("invoiceTerms"),
                   invoiceSignatory: d.get("invoiceSignatory"),
@@ -532,27 +555,33 @@ export function SettingsScreen({
                 </div>
               </div>
               <div className="form-card">
-                <div className="form-card-title">Print invoice (GST)</div>
+                <div className="form-card-title">
+                  {settings.gstEnabled !== false ? "Print invoice (GST)" : "Print invoice"}
+                </div>
                 <div className="form-stack">
-                  <Field label="Default HSN / SAC">
-                    <input
-                      name="defaultProductHsn"
-                      type="text"
-                      key={`hsn-${settings.defaultProductHsn || "8711"}`}
-                      defaultValue={settings.defaultProductHsn || "8711"}
-                      placeholder="8711"
-                    />
-                  </Field>
-                  <Field label="Default GST % (inclusive price)">
-                    <input
-                      name="defaultProductGstRate"
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      key={`gstr-${settings.defaultProductGstRate ?? 5}`}
-                      defaultValue={settings.defaultProductGstRate ?? 5}
-                    />
-                  </Field>
+                  {settings.gstEnabled !== false ? (
+                    <>
+                      <Field label="Default HSN / SAC">
+                        <input
+                          name="defaultProductHsn"
+                          type="text"
+                          key={`hsn-${settings.defaultProductHsn || "8711"}`}
+                          defaultValue={settings.defaultProductHsn || "8711"}
+                          placeholder="8711"
+                        />
+                      </Field>
+                      <Field label="Default GST % (inclusive price)">
+                        <input
+                          name="defaultProductGstRate"
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          key={`gstr-${settings.defaultProductGstRate ?? 5}`}
+                          defaultValue={settings.defaultProductGstRate ?? 5}
+                        />
+                      </Field>
+                    </>
+                  ) : null}
                   <Field label="Print notes">
                     <input
                       name="invoiceNotes"
@@ -1182,6 +1211,7 @@ function ThemeAppearanceSection({ darkMode, setDarkMode }) {
 
 function BusinessSettingsForm({ settings, onSavePartial }) {
   const [logo, setLogo] = useState(String(settings.businessLogo || ""));
+  const gstOn = settings.gstEnabled !== false;
 
   useEffect(() => {
     setLogo(String(settings.businessLogo || ""));
@@ -1212,10 +1242,14 @@ function BusinessSettingsForm({ settings, onSavePartial }) {
           businessAddress: d.get("businessAddress"),
           businessCity: d.get("businessCity"),
           businessState: d.get("businessState"),
-          businessStateCode: d.get("businessStateCode"),
+          ...(gstOn
+            ? {
+                businessStateCode: d.get("businessStateCode"),
+                businessGstin: d.get("businessGstin"),
+                businessPan: d.get("businessPan"),
+              }
+            : {}),
           businessPincode: d.get("businessPincode"),
-          businessGstin: d.get("businessGstin"),
-          businessPan: d.get("businessPan"),
           businessLogo: logo,
         });
       }}
@@ -1235,7 +1269,7 @@ function BusinessSettingsForm({ settings, onSavePartial }) {
         </div>
       </div>
       <div className="form-card">
-        <div className="form-card-title">Address &amp; tax IDs</div>
+        <div className="form-card-title">{gstOn ? "Address & tax IDs" : "Address"}</div>
         <div className="form-stack">
           <Field label="Street / area">
             <textarea name="businessAddress" className="textarea-compact" rows={2} key={`ba-${settings.businessAddress}`} defaultValue={settings.businessAddress} />
@@ -1249,19 +1283,25 @@ function BusinessSettingsForm({ settings, onSavePartial }) {
             </Field>
           </div>
           <div className="field-row">
-            <Field label="State code (GST)">
-              <input name="businessStateCode" type="text" inputMode="numeric" key={`bsc-${settings.businessStateCode}`} defaultValue={settings.businessStateCode} placeholder="19" maxLength={2} />
-            </Field>
+            {gstOn ? (
+              <Field label="State code (GST)">
+                <input name="businessStateCode" type="text" inputMode="numeric" key={`bsc-${settings.businessStateCode}`} defaultValue={settings.businessStateCode} placeholder="19" maxLength={2} />
+              </Field>
+            ) : null}
             <Field label="PIN code">
               <input name="businessPincode" type="text" inputMode="numeric" key={`bpin-${settings.businessPincode}`} defaultValue={settings.businessPincode} />
             </Field>
           </div>
-          <Field label="GSTIN">
-            <input name="businessGstin" type="text" key={`bg-${settings.businessGstin}`} defaultValue={settings.businessGstin} placeholder="15-character GSTIN" />
-          </Field>
-          <Field label="PAN (optional)">
-            <input name="businessPan" type="text" key={`bpan-${settings.businessPan}`} defaultValue={settings.businessPan} />
-          </Field>
+          {gstOn ? (
+            <>
+              <Field label="GSTIN">
+                <input name="businessGstin" type="text" key={`bg-${settings.businessGstin}`} defaultValue={settings.businessGstin} placeholder="15-character GSTIN" />
+              </Field>
+              <Field label="PAN (optional)">
+                <input name="businessPan" type="text" key={`bpan-${settings.businessPan}`} defaultValue={settings.businessPan} />
+              </Field>
+            </>
+          ) : null}
         </div>
       </div>
       <div className="form-card">

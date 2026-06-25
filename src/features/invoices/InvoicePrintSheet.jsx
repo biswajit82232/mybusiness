@@ -6,6 +6,7 @@ import {
   gstStateCode,
   hasSaleAddress,
   invoiceCopyLabel,
+  isGstEnabled,
   num,
   placeOfSupplyLabel,
   saleAddressLines,
@@ -168,7 +169,11 @@ export function InvoicePrintSheet({ sale, settings = {} }) {
   });
 
   const showGst =
-    !isBos && saleHasGstData(sale, settings) && !!coGstin && gstModel.hasGst;
+    isGstEnabled(settings) &&
+    !isBos &&
+    saleHasGstData(sale, settings) &&
+    !!coGstin &&
+    gstModel.hasGst;
   const customerGstin = String(sale?.customerGstin || "").trim();
   const pos =
     placeOfSupplyLabel(sale?.customerState, gstStateCode(sale?.customerState)) ||

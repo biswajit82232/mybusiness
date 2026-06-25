@@ -29,6 +29,7 @@ export function InventoryItemDetailScreen({
   onSaveProductCategory,
   onSaveProductTaxMeta,
   onRenameProduct,
+  gstEnabled = true,
   onClose,
   onEditEntry,
   openAddStock,
@@ -263,7 +264,7 @@ export function InventoryItemDetailScreen({
             )}
           </div>
 
-          {typeof onSaveProductTaxMeta === "function" ? (
+          {typeof onSaveProductTaxMeta === "function" && gstEnabled !== false ? (
             <div className="form-card">
               <span className="form-card-title">Invoice tax (product)</span>
               <div className="form-stack" style={{ padding: "0 14px 14px" }}>

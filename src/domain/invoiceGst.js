@@ -63,6 +63,11 @@ export const DEFAULT_INVOICE_NOTES = "Thanks For your business";
 export const DEFAULT_PRODUCT_HSN = "8711";
 export const DEFAULT_PRODUCT_GST_RATE = 5;
 
+/** Master switch — when false, GST fields and tax-invoice print are hidden app-wide. */
+export function isGstEnabled(settings = {}) {
+  return settings?.gstEnabled !== false;
+}
+
 export function normalizeGstStateKey(stateName) {
   return String(stateName || "")
     .trim()

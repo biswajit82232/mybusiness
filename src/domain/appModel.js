@@ -4339,6 +4339,8 @@ export const defaultState = applyComputedBankBalances({
     invoiceNotes: "",
     invoiceTerms: "",
     invoiceSignatory: "",
+    /** When false, HSN/GST fields and tax-invoice print are hidden app-wide. */
+    gstEnabled: true,
     defaultProductHsn: "8711",
     defaultProductGstRate: 5,
     defaultDueDays:30,
@@ -4447,6 +4449,7 @@ export function mergePersistedPayload(p) {
         invoiceNotes: String(settingsIn?.invoiceNotes ?? "").trim(),
         invoiceTerms: String(settingsIn?.invoiceTerms ?? "").trim(),
         invoiceSignatory: String(settingsIn?.invoiceSignatory ?? "").trim(),
+        gstEnabled: settingsIn?.gstEnabled !== false,
         defaultProductHsn: String(settingsIn?.defaultProductHsn ?? "8711").trim() || "8711",
         defaultProductGstRate: Math.max(0, num(settingsIn?.defaultProductGstRate ?? 5)),
         darkMode: settingsIn?.darkMode === true ? true : settingsIn?.darkMode === false ? false : undefined,

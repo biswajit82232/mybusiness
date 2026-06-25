@@ -2,6 +2,15 @@
 
 All notable changes are tracked here. The Settings screen shows **Version** from `package.json`.
 
+## [8.0.0] — 2026-06-26
+
+### Features
+- **Settings — GST master toggle** — Turn all GST-related features on or off from Invoice settings: HSN/GST on products and sales, business GSTIN/PAN/state code, and tax-invoice print layout. Bill of Supply and chassis/motor/battery fields remain available when GST is off.
+
+App version **8.0.0**; service worker cache **v99**.
+
+---
+
 ## [7.3.21] — 2026-06-26
 
 ### Features

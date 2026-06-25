@@ -607,6 +607,7 @@ export function MainStage(props) {
           billOfSupplyNextNumber={state.settings?.billOfSupplyNextNumber}
           defaultProductHsn={state.settings?.defaultProductHsn}
           defaultProductGstRate={state.settings?.defaultProductGstRate}
+          gstEnabled={state.settings?.gstEnabled}
           onSubmit={onSaveSale}
           onClose={closeNewSale}
         />
@@ -686,6 +687,7 @@ export function MainStage(props) {
           stockCategorySuggestions={stockCategorySuggestions}
           onSaveProductCategory={patchInventoryProductCategory}
           onSaveProductTaxMeta={patchInventoryProductTaxMeta}
+          gstEnabled={state.settings?.gstEnabled}
           onRenameProduct={renameInventoryProduct}
           onClose={closeInventoryItemDetail}
           onEditEntry={(id) => openEditInventoryEntry(id, "inventoryItem")}

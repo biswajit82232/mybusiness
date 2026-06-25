@@ -1,7 +1,7 @@
 {
   "name": "mybusiness-react",
   "private": true,
-  "version": "7.3.21",
+  "version": "8.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
