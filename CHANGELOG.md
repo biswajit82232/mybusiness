@@ -2,6 +2,15 @@
 
 All notable changes are tracked here. The Settings screen shows **Version** from `package.json`.
 
+## [8.0.4] — 2026-06-26
+
+### Fixes
+- **Banking — activity delete on mobile** — Small trash icon (24px) sits tight beside each row again; visible tint, amounts keep full width.
+
+App version **8.0.4**; service worker cache **v103**.
+
+---
+
 ## [8.0.3] — 2026-06-26
 
 ### Fixes

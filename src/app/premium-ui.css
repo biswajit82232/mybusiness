@@ -1025,8 +1025,7 @@ kbd {
 .icon-btn,
 .icon-btn-sm,
 .del-btn,
-.inv-row-del,
-.bank-tx-del {
+.inv-row-del {
   min-width: var(--tap-min);
   min-height: var(--tap-min);
 }
@@ -2775,6 +2774,9 @@ kbd {
 .app-md3 .banking-acct-row,
 .app-md3 .bank-tx-list--interactive > li {
   padding: 12px 18px;
+}
+.app-md3 .bank-tx-list--interactive > li.bank-tx-li--actions {
+  padding: 0;
 }
 
 .app-md3 .banking-acct-row {

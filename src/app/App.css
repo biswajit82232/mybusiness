@@ -3431,7 +3431,7 @@ button.sale-row.sale-row--clickable { cursor: pointer; font: inherit; color: inh
   background: var(--line);
 }
 .form-card.bank-acct-activity-card .bank-tx-list--interactive > li:nth-child(even) .bank-tx-del {
-  background: var(--line2);
+  background: transparent;
 }
 
 /* Fixed Assets — table register (sticky header, aligned columns) */
@@ -3992,6 +3992,28 @@ button.sale-row.sale-row--clickable { cursor: pointer; font: inherit; color: inh
   width: auto;
   flex: 1;
   min-width: 0;
+}
+.bank-tx-li--actions .bank-tx-del {
+  flex-shrink: 0;
+  width: 24px;
+  min-width: 24px;
+  max-width: 24px;
+  min-height: 24px;
+  height: 24px;
+  align-self: center;
+  margin: 0 2px 0 0;
+  padding: 0;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: color-mix(in srgb, var(--danger) 70%, var(--muted));
+  opacity: 1;
+  visibility: visible;
+}
+.bank-tx-li--actions .bank-tx-del svg {
+  width: 12px;
+  height: 12px;
+  stroke-width: 2.2;
 }
 .bank-tx-del {
   flex-shrink: 0;
