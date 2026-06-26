@@ -1815,7 +1815,7 @@ export function sumPurchaseCreditOutstanding(purchases) {
   return roundMoney2(s);
 }
 
-export function normPurchasesList(raw) {
+export function normPurchasesList(raw, bankAccountsForDefault = null) {
   if (!Array.isArray(raw)) return [];
   return raw
     .filter((x) => x && typeof x === "object")
@@ -1823,15 +1823,37 @@ export function normPurchasesList(raw) {
       const lines = normPurchaseLines(x.lines);
       const lineTotal = lines.reduce((a, l) => a + l.qty * l.costPerUnit, 0);
       const totalAmount = roundMoney2(lineTotal);
-      const paymentEntries = normalizePurchasePaymentEntries(x);
+      const dated = String(x.date || todayStr()).slice(0, 10);
+      let paymentEntries = normalizePurchasePaymentEntries({ ...x, date: dated });
+      if (paymentEntries.length === 0) {
+        const legacyReceived = roundMoney2(num(x.received));
+        if (legacyReceived > 0) {
+          const bid =
+            String(x.receivedBankAccountId || x.bankAccountId || "").trim() ||
+            getDefaultBankAccountId(bankAccountsForDefault || []);
+          if (bid) {
+            paymentEntries = normalizePurchasePaymentEntries({
+              date: dated,
+              paymentEntries: [
+                {
+                  id: makeId(),
+                  date: dated,
+                  amount: legacyReceived,
+                  bankAccountId: bid,
+                },
+              ],
+            });
+          }
+        }
+      }
       const paidFromBank = roundMoney2(paymentEntries.reduce((a, p) => a + num(p.amount), 0));
-      const received = paidFromBank;
-      const outstanding = roundMoney2(Math.max(0, totalAmount - received));
+      const received = roundMoney2(Math.min(totalAmount, paidFromBank));
+      const outstanding = roundMoney2(Math.max(0, totalAmount - paidFromBank));
       return {
         ...x,
         id: String(x.id || makeId()),
-        date: String(x.date || todayStr()).slice(0, 10),
-        dueDate: String(x.dueDate || addDaysStr(String(x.date || todayStr()).slice(0, 10), 30)).slice(0, 10),
+        date: dated,
+        dueDate: String(x.dueDate || addDaysStr(dated, 30)).slice(0, 10),
         branchId: String(x.branchId || "").trim(),
         supplierName: String(x.supplierName || "").trim(),
         invoiceRef: String(x.invoiceRef || "").trim(),
@@ -2717,6 +2739,54 @@ export function applyComputedBankBalances(state) {
   };
 }
 
+/** Recency for picking the latest sale price per product (invoice date, then id time). */
+function saleRecencyMs(sale) {
+  if (!sale || typeof sale !== "object") return 0;
+  const date = String(sale.date || "").slice(0, 10);
+  const dateMs = date.length >= 10 ? Date.parse(`${date}T12:00:00`) || 0 : 0;
+  const idMs = entityTimeMsFromId(sale.id);
+  return Math.max(dateMs, idMs);
+}
+
+/**
+ * Map normalized item key → last sale price from invoice history (most recent line wins).
+ * @param {object[]} sales
+ * @param {string} [excludeSaleId] — skip when editing an existing invoice
+ */
+export function buildLastSalePriceByItemKey(sales, excludeSaleId = "") {
+  const skipId = String(excludeSaleId || "").trim();
+  const meta = {};
+  const prices = {};
+  for (const sale of sales || []) {
+    if (!sale || typeof sale !== "object") continue;
+    if (skipId && String(sale.id || "") === skipId) continue;
+    const sortMs = saleRecencyMs(sale);
+    const lines = normSaleLineItems(sale.lineItems, sale);
+    for (const line of lines) {
+      const item = String(line.item || "").trim();
+      const price = roundMoney2(num(line.salePrice));
+      if (!item || price <= 0) continue;
+      const key = normalizeItemKey(item);
+      if (!key) continue;
+      const prev = meta[key];
+      if (!prev || sortMs > prev.sortMs) {
+        meta[key] = { sortMs };
+        prices[key] = price;
+      }
+    }
+  }
+  return prices;
+}
+
+/** Default unit sale price when picking a product: last invoice price, else inventory list price. */
+export function defaultSalePriceForProductPick(lastSalePriceByKey, invRow) {
+  if (!invRow || typeof invRow !== "object") return 0;
+  const key = normalizeItemKey(invRow.item);
+  const last = key && lastSalePriceByKey && typeof lastSalePriceByKey === "object" ? num(lastSalePriceByKey[key]) : 0;
+  if (last > 0) return roundMoney2(last);
+  return roundMoney2(num(invRow.salesPrice));
+}
+
 /**
  * Normalize line items on a sale. Each line: { id, item, qty, salePrice, costPrice }.
  *
@@ -3056,25 +3126,28 @@ export function normInventoryList(raw) {
   if (!Array.isArray(raw)) return [];
   return raw
     .filter((x) => x && typeof x === "object")
-    .map((x) => ({
-      ...x,
-      id: String(x.id || makeId()),
-      date: String(x.date || todayStr()).slice(0, 10),
-      item: String(x.item || "").trim(),
-      type: x.type === "out" ? "out" : x.type === "opening" ? "opening" : "in",
-      qty: num(x.qty),
-      qtyIn: num(x.qtyIn),
-      costPerUnit: num(x.costPerUnit),
-      salesPrice: num(x.salesPrice),
-      note: String(x.note || ""),
-      category: String(x.category || "").trim(),
-      hsn: String(x.hsn || "").trim(),
-      gstRate: num(x.gstRate),
-      bankAccountId: String(x.bankAccountId || "").trim(),
-      branchId: String(x.branchId || "").trim(),
-      purchaseId: String(x.purchaseId || "").trim(),
-      saleId: String(x.saleId || "").trim(),
-    }))
+    .map((x) => {
+      const purchaseId = String(x.purchaseId || "").trim();
+      return {
+        ...x,
+        id: String(x.id || makeId()),
+        date: String(x.date || todayStr()).slice(0, 10),
+        item: String(x.item || "").trim(),
+        type: x.type === "out" ? "out" : x.type === "opening" ? "opening" : "in",
+        qty: num(x.qty),
+        qtyIn: num(x.qtyIn),
+        costPerUnit: num(x.costPerUnit),
+        salesPrice: num(x.salesPrice),
+        note: String(x.note || ""),
+        category: String(x.category || "").trim(),
+        hsn: String(x.hsn || "").trim(),
+        gstRate: num(x.gstRate),
+        bankAccountId: purchaseId ? "" : String(x.bankAccountId || "").trim(),
+        branchId: String(x.branchId || "").trim(),
+        purchaseId,
+        saleId: String(x.saleId || "").trim(),
+      };
+    })
     .filter((x) => x.item);
 }
 
@@ -4167,7 +4240,7 @@ export function applySyncConflictPreview(state, conflict) {
     otherIncomes: () => normOtherIncomesList(arr),
     recurringExpenses: () => normRecurringList(arr),
     inventoryEntries: () => normInventoryList(arr),
-    purchases: () => normPurchasesList(arr),
+    purchases: () => normPurchasesList(arr, bankAccounts),
     emiEntries: () => normEmiList(arr),
     loansGiven: () => normLoansGivenList(arr),
     customerDirectory: () => normCustomerDirectory(arr),
@@ -4175,7 +4248,7 @@ export function applySyncConflictPreview(state, conflict) {
   };
   const normFn = normalized[listKey];
   const next = { ...state, [listKey]: normFn ? normFn() : arr };
-  return listKey === "sales" ? applyComputedBankBalances(next) : next;
+  return listKey === "sales" || listKey === "purchases" ? applyComputedBankBalances(next) : next;
 }
 
 export function normSyncConflictQueue(raw) {
@@ -4469,7 +4542,7 @@ export function mergePersistedPayload(p) {
       otherIncomes: normOtherIncomesList(p.otherIncomes),
       recurringExpenses: normRecurringList(p.recurringExpenses),
       inventoryEntries: normInventoryList(p.inventoryEntries),
-      purchases: normPurchasesList(p.purchases),
+      purchases: normPurchasesList(p.purchases, balanceMerged.bankAccounts),
       emiEntries: normEmiList(p.emiEntries),
       loansGiven: normLoansGivenList(p.loansGiven),
       servicingCompletions: normServicingCompletions(p.servicingCompletions),

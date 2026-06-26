@@ -51,6 +51,8 @@ export function NewPurchaseScreen({
     () => (entry.lines || []).reduce((s, l) => s + num(l.qty) * num(l.costPerUnit), 0),
     [entry.lines],
   );
+  const paidNow = num(entry.paidAmount);
+  const creditAfter = Math.max(0, totalAmount - paidNow);
   const purchaseLineCount = (entry.lines || []).length;
   const showTotalPreview = totalAmount > 0 || purchaseLineCount > 1;
 
@@ -217,9 +219,16 @@ export function NewPurchaseScreen({
               {!isEdit && (
                 <div className="field-row">
                   <Field label="Paid now (₹)">
-                    <input type="number" min="0" step="0.01" value={entry.paidAmount} onChange={(e) => upd("paidAmount", e.target.value)} />
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      placeholder="0 for full credit"
+                      value={entry.paidAmount}
+                      onChange={(e) => upd("paidAmount", e.target.value)}
+                    />
                   </Field>
-                  {banks.length > 0 && (
+                  {banks.length > 0 && paidNow > 0.01 && (
                     <Field label="Paid from">
                       <MenuSelect
                         value={bankSelectValue}
@@ -232,6 +241,13 @@ export function NewPurchaseScreen({
                     </Field>
                   )}
                 </div>
+              )}
+              {!isEdit && totalAmount > 0 && (
+                <p className="form-hint" style={{ fontSize: "0.8rem", color: "var(--muted)", margin: 0 }}>
+                  {paidNow > 0.01
+                    ? `Supplier credit after save: ${money(creditAfter)} · Bank drops only by paid amount (${money(paidNow)}).`
+                    : "Full credit — bank balance unchanged until you record supplier payment."}
+                </p>
               )}
               <Field label="Notes">
                 <textarea className="textarea-compact" rows={2} value={entry.notes} onChange={(e) => upd("notes", e.target.value)} />

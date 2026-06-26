@@ -33,6 +33,8 @@ import {
   effectiveEntryBranchId,
   entityTimeMsFromId,
   buildExistingCustomerPickerRows,
+  buildLastSalePriceByItemKey,
+  defaultSalePriceForProductPick,
   filterCustomerSuggestRows,
   filterSalesExpensesInvByPeriod,
   findBundleById,
@@ -253,6 +255,39 @@ ok("normSaleLineItems: synthesizes one line from legacy single fields", () => {
   assert.equal(out[0].costPrice, 12);
 });
 
+ok("buildLastSalePriceByItemKey: most recent invoice price per product", () => {
+  const sales = [
+    {
+      id: "old",
+      date: "2026-03-01",
+      lineItems: [{ item: "Battery", qty: 1, salePrice: 8000, costPrice: 5000 }],
+    },
+    {
+      id: "new",
+      date: "2026-04-10",
+      lineItems: [{ item: "Battery", qty: 1, salePrice: 9500, costPrice: 5000 }],
+    },
+    {
+      id: "other",
+      date: "2026-04-15",
+      lineItems: [{ item: "Scooty", qty: 1, salePrice: 45000, costPrice: 40000 }],
+    },
+  ];
+  const map = buildLastSalePriceByItemKey(sales);
+  assert.equal(map[normalizeItemKey("Battery")], 9500);
+  assert.equal(map[normalizeItemKey("Scooty")], 45000);
+  const editMap = buildLastSalePriceByItemKey(sales, "new");
+  assert.equal(editMap[normalizeItemKey("Battery")], 8000);
+});
+
+ok("defaultSalePriceForProductPick: last sale beats inventory list price", () => {
+  const last = buildLastSalePriceByItemKey([
+    { id: "s", date: "2026-04-01", lineItems: [{ item: "X", qty: 1, salePrice: 120, costPrice: 80 }] },
+  ]);
+  assert.equal(defaultSalePriceForProductPick(last, { item: "X", salesPrice: 100 }), 120);
+  assert.equal(defaultSalePriceForProductPick(last, { item: "Y", salesPrice: 50 }), 50);
+});
+
 ok("normSalesList: legacy single-item sale gets a synthesized lineItems row", () => {
   const [s] = normSalesList([
     {
@@ -409,6 +444,37 @@ ok("normPurchasesList: totalAmount always from line items", () => {
     },
   ]);
   assert.equal(p.totalAmount, 50);
+});
+
+ok("normPurchasesList: legacy received migrates to paymentEntries for bank", () => {
+  const [p] = normPurchasesList(
+    [
+      {
+        id: "leg",
+        date: "2026-04-01",
+        supplierName: "S",
+        received: 80,
+        bankAccountId: "bk",
+        lines: [{ item: "A", qty: 1, costPerUnit: 100 }],
+        paymentEntries: [],
+      },
+    ],
+    [{ id: "bk", name: "Bank" }],
+  );
+  assert.equal(p.paymentEntries.length, 1);
+  assert.equal(p.paymentEntries[0].amount, 80);
+  assert.equal(p.paymentEntries[0].bankAccountId, "bk");
+  assert.equal(p.outstanding, 20);
+  const net = computeAccountActivityNet("bk", [], [], [], [], [], [p]);
+  assert.equal(net, -80);
+});
+
+ok("normInventoryList: purchase-linked rows drop bankAccountId", () => {
+  const [row] = normInventoryList([
+    { id: "i", item: "X", type: "in", qty: 1, costPerUnit: 50, bankAccountId: "bk", purchaseId: "p1" },
+  ]);
+  assert.equal(row.bankAccountId, "");
+  assert.equal(row.purchaseId, "p1");
 });
 
 ok("normSalesList: discount reduces totalSale", () => {

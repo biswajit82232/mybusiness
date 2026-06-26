@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   buildExistingCustomerPickerRows,
+  buildLastSalePriceByItemKey,
   defSalePaymentLine,
+  defaultSalePriceForProductPick,
   filterCustomerSuggestRows,
   genInvoiceNo,
   getDefaultBankAccountId,
@@ -102,6 +104,10 @@ export function NewSaleScreen({
   onClose,
 }) {
   const lineItems = useMemo(() => hydrateLineItems(entry), [entry]);
+  const lastSalePriceByKey = useMemo(
+    () => buildLastSalePriceByItemKey(sales, isEdit ? editingSaleId : ""),
+    [sales, isEdit, editingSaleId],
+  );
   const invoiceManualRef = useRef(false);
   const gstOn = gstEnabled !== false;
 
@@ -497,6 +503,7 @@ export function NewSaleScreen({
                   showStockItemPick={showStockItemPick}
                   stockPickRows={stockPickRows}
                   invRows={invRows}
+                  lastSalePriceByKey={lastSalePriceByKey}
                   showGstFields={gstOn && currentDocType === "invoice"}
                   defaultHsn={defaultProductHsn}
                   defaultGstRate={defaultProductGstRate}
@@ -756,6 +763,7 @@ function LineItemRow({
   showStockItemPick,
   stockPickRows,
   invRows,
+  lastSalePriceByKey = {},
   showGstFields = true,
   defaultHsn = "8711",
   defaultGstRate = 5,
@@ -793,11 +801,12 @@ function LineItemRow({
               required
               onItemChange={(v) => onUpdate({ item: v })}
               onPickRow={(row) => {
+                const pickPrice = defaultSalePriceForProductPick(lastSalePriceByKey, row);
                 onUpdate({
                   itemProductPick: normalizeItemKey(row.item),
                   item: row.item,
                   costPrice: row.avgCost != null ? moneyInputStr(row.avgCost) : "",
-                  ...(num(row.salesPrice) > 0 ? { salePrice: moneyInputStr(row.salesPrice) } : {}),
+                  ...(pickPrice > 0 ? { salePrice: moneyInputStr(pickPrice) } : {}),
                   ...(showGstFields
                     ? {
                         ...(row.hsn ? { hsn: String(row.hsn) } : { hsn: defaultHsn }),

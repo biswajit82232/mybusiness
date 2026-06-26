@@ -4,7 +4,6 @@ import {
   getDefaultBranchId,
   makeId,
   normBranchesList,
-  normalizePurchasePaymentEntries,
   normPurchasesList,
   roundMoney2,
   num,
@@ -71,8 +70,6 @@ export function usePurchaseActions({
           return;
         }
         const purchase = normalizedPurchases[0];
-        const pes = normalizePurchasePaymentEntries(purchase);
-        const bankForInv = pes.length ? String(pes[0].bankAccountId || "").trim() : "";
         const invLines = lines.map((line) => ({
           id: makeId(),
           date: purchaseEntry.date,
@@ -84,7 +81,7 @@ export function usePurchaseActions({
           salesPrice: 0,
           note: "",
           category: "",
-          bankAccountId: bankForInv,
+          bankAccountId: "",
           branchId,
           purchaseId: editingPurchaseId,
         }));
@@ -162,7 +159,6 @@ export function usePurchaseActions({
         return;
       }
       const purchase = normalizedPurchases[0];
-      const bankForInv = payApply > 0.01 && bid ? bid : "";
       const invLines = lines.map((line) => ({
         id: makeId(),
         date: purchaseEntry.date,
@@ -174,7 +170,7 @@ export function usePurchaseActions({
         salesPrice: 0,
         note: "",
         category: "",
-        bankAccountId: bankForInv,
+        bankAccountId: "",
         branchId,
         purchaseId,
       }));

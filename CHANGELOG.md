@@ -2,6 +2,19 @@
 
 All notable changes are tracked here. The Settings screen shows **Version** from `package.json`.
 
+## [8.0.5] — 2026-06-26
+
+### Improvements
+- **New sale** — Picking a product fills sale price from the last invoice for that item; falls back to inventory list price if never sold.
+
+### Fixes
+- **Purchases & banking** — Credit purchases no longer double-hit bank via stock-in rows; supplier cash only moves on `paymentEntries`. Legacy `received` without payment lines migrates on load. Purchase-linked inventory strips stray `bankAccountId`.
+- **Purchases UI** — Clear “paid now = 0 for credit” hint; bank account picker only when paying; remove supplier payments from purchase detail.
+
+App version **8.0.5**; service worker cache **v104**.
+
+---
+
 ## [8.0.4] — 2026-06-26
 
 ### Fixes

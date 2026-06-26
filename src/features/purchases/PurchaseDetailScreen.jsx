@@ -29,6 +29,7 @@ export function PurchaseDetailScreen({
   onEdit,
   onDelete,
   onRecordPayment,
+  onRemovePayment,
 }) {
   const payRows = useMemo(() => (purchase ? normalizePurchasePaymentEntries(purchase) : []), [purchase]);
 
@@ -277,6 +278,16 @@ export function PurchaseDetailScreen({
                   <span className="sale-pay-date">{dateHuman(pe.date)}</span>
                   <span className="sale-pay-acct">{acctName(pe.bankAccountId)}</span>
                   <strong className="sale-pay-amt">{moneyFull(pe.amount)}</strong>
+                  {typeof onRemovePayment === "function" ? (
+                    <button
+                      type="button"
+                      className="text-btn sale-pay-remove hdr-print-hide"
+                      onClick={() => onRemovePayment(pe.id)}
+                      aria-label="Remove supplier payment"
+                    >
+                      Remove
+                    </button>
+                  ) : null}
                 </li>
               ))}
             </ul>

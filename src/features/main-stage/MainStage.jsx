@@ -673,6 +673,13 @@ export function MainStage(props) {
           onClose={closePurchaseDetail}
           onEdit={() => openEditPurchase(selPurchase)}
           onRecordPayment={() => openPayPurchaseModal(selPurchase.id)}
+          onRemovePayment={(paymentEntryId) =>
+            setDelConfirm({
+              type: "purchasePayment",
+              purchaseId: selPurchase.id,
+              paymentEntryId,
+            })
+          }
           onDelete={() => setDelConfirm({ type: "purchase", id: selPurchase.id })}
         />
       )}
