@@ -367,15 +367,41 @@
       "nums nums";
     align-items: start;
     gap: 8px 10px;
-    padding: 11px var(--page-pad);
+    padding: 12px var(--page-pad);
     font-size: 0.76rem;
     min-height: 0;
     flex-wrap: unset;
   }
+  .bank-tx-li--actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
   .bank-tx-li--actions .bank-tx-row-btn {
-    width: auto;
-    flex: 1;
+    width: 100%;
+    flex: none;
     min-width: 0;
+    border-bottom: none;
+  }
+  .bank-tx-li--actions .bank-tx-del {
+    width: 100%;
+    min-width: 0;
+    min-height: 40px;
+    height: auto;
+    border-left: none;
+    border-top: 1px solid var(--line2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px var(--page-pad);
+    background: var(--line2);
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--muted);
+  }
+  .bank-tx-li--actions .bank-tx-del svg {
+    width: 15px;
+    height: 15px;
   }
   .bank-tx-row-btn .bank-tx-date {
     grid-area: date;
@@ -395,13 +421,22 @@
     align-items: flex-start;
     width: 100%;
     min-width: 0;
-    gap: 12px;
-    padding-top: 6px;
+    gap: 10px 16px;
+    padding-top: 8px;
     border-top: 1px solid var(--line2);
   }
   .bank-tx-num-cell {
     align-items: flex-start;
     min-width: 0;
+    flex: 1 1 0;
+  }
+  .bank-tx-num-cell--balance {
+    align-items: flex-end;
+    text-align: right;
+  }
+  .bank-tx-amt,
+  .bank-tx-after {
+    font-size: clamp(0.78rem, 3.4vw, 0.88rem);
   }
   .banking-acct-row {
     padding-left: var(--page-pad);

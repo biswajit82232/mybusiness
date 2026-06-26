@@ -2,6 +2,15 @@
 
 All notable changes are tracked here. The Settings screen shows **Version** from `package.json`.
 
+## [8.0.3] — 2026-06-26
+
+### Fixes
+- **Banking — account activity on mobile** — Delete action moves below each row so amounts are not clipped; wider side padding and full-width amount columns.
+
+App version **8.0.3**; service worker cache **v102**.
+
+---
+
 ## [8.0.2] — 2026-06-26
 
 ### Improvements

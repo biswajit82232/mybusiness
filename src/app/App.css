@@ -4082,6 +4082,13 @@ button.sale-row.sale-row--clickable { cursor: pointer; font: inherit; color: inh
 .bank-tx-num-cell--balance .bank-tx-num-lbl {
   color: var(--muted);
 }
+.bank-tx-amt,
+.bank-tx-after {
+  overflow-wrap: anywhere;
+  max-width: 100%;
+  white-space: normal;
+  line-height: 1.2;
+}
 .bank-tx-row-btn:hover {
   background: var(--primary-bg);
 }
@@ -4544,7 +4551,15 @@ button.bank-tx-row-btn.bank-tx-row {
 
 /* Bank account overlay — dense layout on all viewports */
 .overlay-screen--bank-acct .overlay-scroll.overlay-scroll--form-body {
-  padding: 8px 10px 12px;
+  padding: 10px var(--page-pad) max(16px, env(safe-area-inset-bottom));
+}
+.overlay-screen--bank-acct .form-sections.bank-acct-form {
+  gap: 10px;
+}
+.overlay-screen--bank-acct .form-card.bank-acct-details,
+.overlay-screen--bank-acct .form-card.bank-account-danger-card {
+  margin-left: 0;
+  margin-right: 0;
 }
 .overlay-screen--bank-acct .bank-acct-hdr-bal {
   font-size: 0.78rem;
@@ -4685,10 +4700,22 @@ button.bank-tx-row-btn.bank-tx-row {
   overflow: hidden;
 }
 .form-card.bank-acct-activity-card {
-  padding: 10px 8px 6px;
+  padding: 0;
+  overflow: hidden;
+}
+.form-card.bank-acct-activity-card .bank-acct-activity-top {
+  padding: 12px var(--page-pad) 8px;
+}
+.form-card.bank-acct-activity-card .bank-acct-activity-empty,
+.form-card.bank-acct-activity-card .bank-acct-activity-more {
+  padding-left: var(--page-pad);
+  padding-right: var(--page-pad);
 }
 .form-card.bank-acct-activity-card .bank-tx-list--interactive {
-  margin-top: 4px;
+  margin-top: 0;
+  border-radius: 0;
+  border: none;
+  box-shadow: none;
 }
 .form-card.bank-account-danger-card {
   padding: 8px 10px;
