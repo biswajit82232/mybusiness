@@ -8,6 +8,7 @@ import {
   hydrateSalePaymentLines,
   makeId,
   money,
+  moneyInputStr,
   normalizeItemKey,
   num,
   roundMoney2,
@@ -47,8 +48,8 @@ function hydrateLineItems(entry) {
       id: String(li?.id || makeId()),
       item: String(li?.item ?? ""),
       qty: li?.qty != null ? String(li.qty) : "",
-      salePrice: li?.salePrice != null ? String(li.salePrice) : "",
-      costPrice: li?.costPrice != null ? String(li.costPrice) : "",
+      salePrice: li?.salePrice != null ? moneyInputStr(li.salePrice) : "",
+      costPrice: li?.costPrice != null ? moneyInputStr(li.costPrice) : "",
       hsn: li?.hsn != null ? String(li.hsn) : "",
       gstRate: li?.gstRate != null && li.gstRate !== "" ? String(li.gstRate) : "",
       chassisNo: String(li?.chassisNo || ""),
@@ -62,8 +63,8 @@ function hydrateLineItems(entry) {
       id: makeId(),
       item: String(entry.item || ""),
       qty: entry.qty != null ? String(entry.qty) : "1",
-      salePrice: entry.salePrice != null ? String(entry.salePrice) : "",
-      costPrice: entry.costPrice != null ? String(entry.costPrice) : "",
+      salePrice: entry.salePrice != null ? moneyInputStr(entry.salePrice) : "",
+      costPrice: entry.costPrice != null ? moneyInputStr(entry.costPrice) : "",
       hsn: entry.hsn != null ? String(entry.hsn) : "",
       gstRate: entry.gstRate != null && entry.gstRate !== "" ? String(entry.gstRate) : "",
       chassisNo: String(entry.chassisNo || ""),
@@ -144,16 +145,16 @@ export function NewSaleScreen({
 
   // Totals — sum across all line items, then apply discount.
   const subtotal = useMemo(
-    () => lineItems.reduce((s, li) => s + num(li.qty) * num(li.salePrice), 0),
+    () => roundMoney2(lineItems.reduce((s, li) => s + num(li.qty) * num(li.salePrice), 0)),
     [lineItems]
   );
   const discountNum = num(entry.discount);
-  const totalSale = Math.max(0, subtotal - discountNum);
+  const totalSale = roundMoney2(Math.max(0, subtotal - discountNum));
   const totalCost = useMemo(
-    () => lineItems.reduce((s, li) => s + num(li.qty) * num(li.costPrice), 0),
+    () => roundMoney2(lineItems.reduce((s, li) => s + num(li.qty) * num(li.costPrice), 0)),
     [lineItems]
   );
-  const profit = totalSale - totalCost;
+  const profit = roundMoney2(totalSale - totalCost);
   const banks = bankAccounts.filter((b) => b && b.id);
   const paymentLines = useMemo(() => hydrateSalePaymentLines(entry, banks), [entry, banks]);
   const setPaymentLines = useCallback(
@@ -795,8 +796,8 @@ function LineItemRow({
                 onUpdate({
                   itemProductPick: normalizeItemKey(row.item),
                   item: row.item,
-                  costPrice: row.avgCost != null ? String(row.avgCost) : "",
-                  ...(num(row.salesPrice) > 0 ? { salePrice: String(row.salesPrice) } : {}),
+                  costPrice: row.avgCost != null ? moneyInputStr(row.avgCost) : "",
+                  ...(num(row.salesPrice) > 0 ? { salePrice: moneyInputStr(row.salesPrice) } : {}),
                   ...(showGstFields
                     ? {
                         ...(row.hsn ? { hsn: String(row.hsn) } : { hsn: defaultHsn }),

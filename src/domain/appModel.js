@@ -2572,6 +2572,13 @@ export function roundMoney2(n) {
   return Math.round((num(n) + Number.EPSILON) * 100) / 100;
 }
 
+/** Clean string for money `<input type="number">` fields — avoids float noise like 10.666666666666666. */
+export function moneyInputStr(v) {
+  if (v === "" || v == null) return "";
+  const n = roundMoney2(v);
+  return Number.isFinite(n) ? String(n) : "";
+}
+
 /** Net effect on one account from linked expenses (out), invoice payments (in), supplier payments (out), transfers, stock-in (cash out), and other income (in). */
 export function computeAccountActivityNet(accountId, expenses, sales, transfers, inventoryEntries, otherIncomes, purchases = [], loansGiven = []) {
   const id = String(accountId || "");
@@ -3004,9 +3011,10 @@ export function computeInvRowsForBranch(entries, branchId, branches) {
   }
   return Object.values(map)
     .map((r) => {
-      const avgCost = r.qtyIn ? r.totalCost / r.qtyIn : 0;
+      const avgCost = r.qtyIn ? roundMoney2(r.totalCost / r.qtyIn) : 0;
       const currentQty = r.qtyIn - r.qtyOut;
-      return { ...r, avgCost, currentQty, stockValue: Math.max(0, currentQty) * avgCost };
+      const stockValue = roundMoney2(Math.max(0, currentQty) * avgCost);
+      return { ...r, salesPrice: roundMoney2(r.salesPrice), avgCost, currentQty, stockValue };
     })
     .sort((a, b) => a.item.localeCompare(b.item));
 }
@@ -3036,9 +3044,10 @@ export function computeInvRowsAggregated(entries) {
   }
   return Object.values(map)
     .map((r) => {
-      const avgCost = r.qtyIn ? r.totalCost / r.qtyIn : 0;
+      const avgCost = r.qtyIn ? roundMoney2(r.totalCost / r.qtyIn) : 0;
       const currentQty = r.qtyIn - r.qtyOut;
-      return { ...r, avgCost, currentQty, stockValue: Math.max(0, currentQty) * avgCost };
+      const stockValue = roundMoney2(Math.max(0, currentQty) * avgCost);
+      return { ...r, salesPrice: roundMoney2(r.salesPrice), avgCost, currentQty, stockValue };
     })
     .sort((a, b) => a.item.localeCompare(b.item));
 }

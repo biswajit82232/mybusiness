@@ -14,6 +14,7 @@ import {
   getExpenseCategoriesList,
   inventoryEntryToStockForm,
   makeId,
+  moneyInputStr,
   normBranchesList,
   otherIncomeToEntry,
   purchaseToEntry,
@@ -187,8 +188,8 @@ export function useAppNavigation({
           productPick: pick,
           item: row.item,
           category: row.category ? String(row.category) : "",
-          costPerUnit: row.avgCost ? String(row.avgCost) : "",
-          salesPrice: row.salesPrice ? String(row.salesPrice) : "",
+          costPerUnit: row.avgCost ? moneyInputStr(row.avgCost) : "",
+          salesPrice: row.salesPrice ? moneyInputStr(row.salesPrice) : "",
         };
       });
     },
@@ -292,8 +293,8 @@ export function useAppNavigation({
           productPick: key,
           item: row ? row.item : prefillItem.trim(),
           category: row?.category ? String(row.category) : "",
-          costPerUnit: row && inOrOpening && row.avgCost ? String(row.avgCost) : "",
-          salesPrice: row && inOrOpening && row.salesPrice ? String(row.salesPrice) : "",
+          costPerUnit: row && inOrOpening && row.avgCost ? moneyInputStr(row.avgCost) : "",
+          salesPrice: row && inOrOpening && row.salesPrice ? moneyInputStr(row.salesPrice) : "",
           bankAccountId: type === "opening" ? "" : defaultBank,
           branchId: defaultBranch,
         });

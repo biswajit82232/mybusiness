@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   BANK_ACCOUNT_KINDS,
   bankAccountLabel,
@@ -6,14 +6,17 @@ import {
   bankTxRowsWithRunningAfter,
   bankingActivityForAccountInMonth,
   computeBankAccountBookBalance,
+  formatMonthLabel,
   num,
   money,
   dateSlash,
   currentMonthStr,
+  roundMoney2,
 } from "@/domain/index.js";
 import { IcTrash, IcX } from "@/shared/ui/icons/AppIcons.jsx";
 import { Field, PageHeader, OverlayScreen } from "@/shared/ui/layout/AppChrome.jsx";
 import { MenuSelect } from "@/shared/ui/inputs/MenuSelect.jsx";
+import { MonthFilterCompact } from "@/shared/ui/shell/MonthFilterCompact.jsx";
 import { bankKindLabel } from "./bankKindLabel.js";
 
 export function BankAccountDetailScreen({
@@ -43,6 +46,20 @@ export function BankAccountDetailScreen({
 }) {
   const [transferPeek, setTransferPeek] = useState(null);
   const [activityLimit, setActivityLimit] = useState(200);
+  const [viewMonthKey, setViewMonthKey] = useState(() =>
+    activityMonthKey && String(activityMonthKey).length >= 7
+      ? String(activityMonthKey).slice(0, 7)
+      : currentMonthStr(),
+  );
+  const [activityShowAll, setActivityShowAll] = useState(false);
+
+  useEffect(() => {
+    if (activityMonthKey && String(activityMonthKey).length >= 7) {
+      setViewMonthKey(String(activityMonthKey).slice(0, 7));
+      setActivityShowAll(false);
+    }
+  }, [activityMonthKey]);
+
   const txs = useMemo(
     () =>
       buildBankAccountTransactions(
@@ -71,17 +88,22 @@ export function BankAccountDetailScreen({
       loansGiven,
     );
   }, [account, expenses, sales, bankTransfers, inventoryEntries, otherIncomes, purchases, loansGiven]);
-  const txRows = useMemo(() => bankTxRowsWithRunningAfter(txs, book), [txs, book]);
-  /* Cap rendered rows to keep DOM cost bounded on accounts with thousands of movements. */
+
+  const filteredTxs = useMemo(() => {
+    if (activityShowAll) return txs;
+    const mk = String(viewMonthKey || "").slice(0, 7);
+    if (mk.length < 7) return txs;
+    return txs.filter((t) => String(t.date || "").slice(0, 7) === mk);
+  }, [txs, activityShowAll, viewMonthKey]);
+
+  const txRows = useMemo(() => bankTxRowsWithRunningAfter(filteredTxs, book), [filteredTxs, book]);
   const visibleTxRows = useMemo(
     () => (txRows.length > activityLimit ? txRows.slice(0, activityLimit) : txRows),
     [txRows, activityLimit],
   );
+
   const kindVal = BANK_ACCOUNT_KINDS.has(account?.kind) ? account.kind : "bank";
-  const monthKey =
-    activityMonthKey && String(activityMonthKey).length >= 7
-      ? String(activityMonthKey).slice(0, 7)
-      : currentMonthStr();
+  const monthLabel = formatMonthLabel(viewMonthKey);
   const mtd = useMemo(
     () =>
       bankingActivityForAccountInMonth(
@@ -91,12 +113,13 @@ export function BankAccountDetailScreen({
         inventoryEntries,
         otherIncomes,
         account?.id,
-        monthKey,
+        viewMonthKey,
         purchases,
         loansGiven,
       ),
-    [expenses, sales, bankTransfers, inventoryEntries, otherIncomes, account?.id, monthKey, purchases, loansGiven],
+    [expenses, sales, bankTransfers, inventoryEntries, otherIncomes, account?.id, viewMonthKey, purchases, loansGiven],
   );
+  const monthNet = roundMoney2(num(mtd.inn) - num(mtd.out));
 
   const onTxActivate = (t) => {
     if (t.linkKind === "expense" && t.expenseId && onOpenExpense) {
@@ -138,24 +161,49 @@ export function BankAccountDetailScreen({
           right={<span className="page-hdr-meta bank-acct-hdr-bal">{money(book)}</span>}
         />
         <div className="overlay-scroll overlay-scroll--form-body bank-acct-body">
-          <section className="banking-summary banking-summary--overlay" aria-label="Account summary">
-            <div className="banking-sum-cell">
-              <span className="banking-sum-lbl">Balance</span>
-              <span className="banking-sum-val">{money(book)}</span>
-              <span className="banking-sum-meta">
-                <span className="bank-kind-pill">{bankKindLabel(kindVal)}</span>
-                <span className="banking-sum-meta-txt">Auto from activity</span>
-              </span>
+          <div className="banking-top banking-top--overlay">
+            <section className="banking-hero banking-hero--compact" aria-label="Account balance">
+              <div className="banking-hero-top">
+                <span className="banking-hero-eyebrow">Balance</span>
+                <span className="banking-hero-total">{money(book)}</span>
+                <span className="banking-hero-accounts">
+                  <span className="bank-kind-pill">{bankKindLabel(kindVal)}</span>
+                  <span className="banking-sum-meta-txt">Auto from activity</span>
+                </span>
+              </div>
+            </section>
+
+            <div className="banking-period-bar" role="group" aria-label="Month for account movement">
+              <span className="banking-period-lbl">Movement</span>
+              <MonthFilterCompact
+                value={viewMonthKey}
+                onChange={(v) => {
+                  setViewMonthKey(v && String(v).length >= 7 ? String(v).slice(0, 7) : currentMonthStr());
+                  setActivityShowAll(false);
+                  setActivityLimit(200);
+                }}
+                instanceId="bank-acct"
+                allowClear={false}
+              />
             </div>
-            <div className="banking-sum-cell banking-sum-cell--in">
-              <span className="banking-sum-lbl">In · month</span>
-              <span className="banking-sum-val">{money(mtd.inn)}</span>
+
+            <div className="banking-kpi-grid banking-kpi-grid--overlay" aria-label={`${monthLabel} movement`}>
+              <div className="banking-kpi banking-kpi--in">
+                <span className="banking-kpi-lbl">In · {monthLabel}</span>
+                <span className="banking-kpi-val">{money(mtd.inn)}</span>
+              </div>
+              <div className="banking-kpi banking-kpi--out">
+                <span className="banking-kpi-lbl">Out · {monthLabel}</span>
+                <span className="banking-kpi-val">{money(mtd.out)}</span>
+              </div>
+              <div
+                className={`banking-kpi banking-kpi--net${monthNet >= 0 ? " banking-kpi--pos" : " banking-kpi--neg"}`}
+              >
+                <span className="banking-kpi-lbl">Net · {monthLabel}</span>
+                <span className="banking-kpi-val">{money(monthNet)}</span>
+              </div>
             </div>
-            <div className="banking-sum-cell banking-sum-cell--out">
-              <span className="banking-sum-lbl">Out · month</span>
-              <span className="banking-sum-val">{money(mtd.out)}</span>
-            </div>
-          </section>
+          </div>
 
           <form
             id="form-bank-account"
@@ -253,15 +301,34 @@ export function BankAccountDetailScreen({
                   <h2 id="bank-acct-activity-title" className="bank-acct-activity-title">
                     Activity
                   </h2>
-                  <p className="bank-acct-activity-sub">Newest first · tap a row to open the record</p>
+                  <p className="bank-acct-activity-sub">
+                    {activityShowAll
+                      ? "All time · newest first · tap a row to open"
+                      : `${monthLabel} · tap a row to open`}
+                  </p>
                 </div>
-                <span className="bank-acct-activity-badge" title="Movements that use this account">
-                  {txRows.length} {txRows.length === 1 ? "entry" : "entries"}
-                </span>
+                <div className="bank-acct-activity-actions">
+                  <button
+                    type="button"
+                    className={`bank-acct-filter-chip${activityShowAll ? " bank-acct-filter-chip--on" : ""}`}
+                    onClick={() => {
+                      setActivityShowAll((v) => !v);
+                      setActivityLimit(200);
+                    }}
+                    aria-pressed={activityShowAll}
+                  >
+                    {activityShowAll ? "This month" : "All time"}
+                  </button>
+                  <span className="bank-acct-activity-badge" title="Movements in current view">
+                    {txRows.length} {txRows.length === 1 ? "entry" : "entries"}
+                  </span>
+                </div>
               </div>
               {txRows.length === 0 ? (
                 <p className="bank-acct-activity-empty">
-                  Link expenses, other income, invoice payments, supplier payments (Purchases), stock-in, and loans given / repayments to this account to see movements here.
+                  {activityShowAll
+                    ? "Link expenses, other income, invoice payments, supplier payments (Purchases), stock-in, and loans given / repayments to this account to see movements here."
+                    : `No movements in ${monthLabel}. Try All time or pick another month.`}
                 </p>
               ) : (
                 <ul className="bank-tx-list bank-tx-list--running bank-tx-list--interactive" role="list">

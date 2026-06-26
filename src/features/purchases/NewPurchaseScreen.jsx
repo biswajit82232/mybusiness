@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { buildVendorPickerRows, filterVendorSuggestRows, getDefaultBankAccountId, money, num } from "@/domain/index.js";
+import { buildVendorPickerRows, filterVendorSuggestRows, getDefaultBankAccountId, money, moneyInputStr, num } from "@/domain/index.js";
 import { InventoryItemPickField } from "@/features/inventory/index.js";
 import { MenuSelect } from "@/shared/ui/inputs/MenuSelect.jsx";
 import { Field, OverlayScreen, PageHeader } from "@/shared/ui/layout/AppChrome.jsx";
@@ -182,7 +182,7 @@ export function NewPurchaseScreen({
                           const cur = (entry.lines || [])[i]?.costPerUnit;
                           setLine(i, "item", row.item);
                           if (!String(cur || "").trim() || num(cur) === 0) {
-                            if (row.avgCost != null) setLine(i, "costPerUnit", String(row.avgCost));
+                            if (row.avgCost != null) setLine(i, "costPerUnit", moneyInputStr(row.avgCost));
                           }
                         }}
                       />

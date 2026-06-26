@@ -23,11 +23,19 @@
 .product-sub,
 .ledger-title,
 .ledger-sub,
-.inv-row-left .inv-item-name,
-.inv-row-left .inv-item-sub {
+.inv-row-left .inv-item-name {
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.3;
+}
+.inv-row-left .inv-item-sub {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.35;
 }
 
 /* ── sale-row ─────────────────────────────────────────────── */
@@ -315,6 +323,9 @@
   .tab-page-scroll > .daily-section-hd {
     max-width: 100%;
   }
+  .tab-page--banking > .banking-top,
+  .tab-page--banking > .banking-top,
+  .tab-page--inventory > .inv-top,
   .tab-page--banking > .banking-summary,
   .tab-page--banking > .banking-period-bar,
   .tab-page--fixed-assets > .banking-summary {
@@ -328,12 +339,23 @@
 /* ══════════════════════════════════════════════════════════════
    BANKING — accounts, activity, fixed assets, overlay
 ══════════════════════════════════════════════════════════════ */
-.bank-tx-row-btn .bank-tx-title,
-.bank-tx-row-btn .bank-tx-sub,
-.banking-acct-row-name {
+.bank-tx-row-btn .bank-tx-title {
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.3;
+}
+.bank-tx-row-btn .bank-tx-sub {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.35;
+}
+.banking-acct-row-name {
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 @media (max-width: 480px) {
@@ -388,23 +410,29 @@
 }
 
 @media (max-width: 380px) {
+  .inv-kpi-grid {
+    grid-template-columns: 1fr;
+  }
+  .inv-filter-bar {
+    flex-wrap: wrap;
+  }
+  .inv-move-card-hd {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .inv-move-card-actions {
+    align-items: flex-start;
+    width: 100%;
+  }
+  .banking-kpi-grid {
+    grid-template-columns: 1fr;
+  }
+  .banking-kpi--net {
+    grid-column: 1;
+  }
   .banking-acct-row {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    grid-template-areas: "left bal";
-    align-items: start;
-    column-gap: 10px;
-    row-gap: 6px;
-  }
-  .banking-acct-row-left {
-    grid-area: left;
-    flex: none;
-    min-width: 0;
-  }
-  .banking-acct-row-right {
-    grid-area: bal;
-    flex: none;
-    align-self: start;
+    padding-left: var(--page-pad);
+    padding-right: var(--page-pad);
   }
   .banking-acct-row-meta {
     flex-direction: column;
@@ -419,6 +447,10 @@
     align-items: flex-start;
     gap: 2px;
   }
+  .banking-period-bar {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
 }
 
 @media (min-width: 900px) {
@@ -430,7 +462,16 @@
     margin-left: auto;
     margin-right: auto;
   }
-  .overlay-screen--bank-acct .banking-summary--overlay {
-    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  .tab-page--inventory > .inv-top {
+    max-width: 720px;
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .tab-page-scroll > .inv-screen {
+    max-width: 720px;
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
   }
 }

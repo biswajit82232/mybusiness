@@ -1,22 +1,38 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   computeInvRowsAggregated,
   computeInvRowsForBranch,
+  currentMonthStr,
   dateHuman,
   effectiveEntryBranchId,
+  formatMonthLabel,
   money,
   moneyFull,
   num,
   normBranchesList,
   stockInCashAmount,
 } from "@/domain/index.js";
-import { IcEdit, IcPlus } from "@/shared/ui/icons/AppIcons.jsx";
+import { IcEdit, IcMinus, IcPlus } from "@/shared/ui/icons/AppIcons.jsx";
 import { OverlayScreen, PageHeader } from "@/shared/ui/layout/AppChrome.jsx";
+import { MonthFilterCompact } from "@/shared/ui/shell/MonthFilterCompact.jsx";
 
 function typeLabel(t) {
   if (t === "out") return "Stock out";
   if (t === "opening") return "Opening";
   return "Stock in";
+}
+
+function formatQty(q) {
+  const n = Number(q);
+  if (!Number.isFinite(n)) return "0";
+  return n % 1 === 0 ? String(n) : n.toFixed(2);
+}
+
+function stockStatusLabel(qty) {
+  if (qty < 0) return "Negative stock";
+  if (qty === 0) return "Out of stock";
+  if (qty <= 2) return "Low stock";
+  return "In stock";
 }
 
 export function InventoryItemDetailScreen({
@@ -47,18 +63,33 @@ export function InventoryItemDetailScreen({
   }
 
   const k = String(itemKey || "").toLowerCase();
-  const movements = (inventoryEntries || [])
-    .filter((e) => {
-      if (!e || (e.item || "").toLowerCase() !== k) return false;
-      if (!branchId) return true;
-      return effectiveEntryBranchId(e, branches) === branchId;
-    })
-    .sort((a, b) => {
-      const dc = String(b.date || "").localeCompare(String(a.date || ""));
-      if (dc !== 0) return dc;
-      return String(b.id || "").localeCompare(String(a.id || ""));
-    });
+  const allMovements = useMemo(
+    () =>
+      (inventoryEntries || [])
+        .filter((e) => {
+          if (!e || (e.item || "").toLowerCase() !== k) return false;
+          if (!branchId) return true;
+          return effectiveEntryBranchId(e, branches) === branchId;
+        })
+        .sort((a, b) => {
+          const dc = String(b.date || "").localeCompare(String(a.date || ""));
+          if (dc !== 0) return dc;
+          return String(b.id || "").localeCompare(String(a.id || ""));
+        }),
+    [inventoryEntries, k, branchId, branches],
+  );
 
+  const [viewMonthKey, setViewMonthKey] = useState(() => currentMonthStr());
+  const [movementsShowAll, setMovementsShowAll] = useState(true);
+
+  const movements = useMemo(() => {
+    if (movementsShowAll) return allMovements;
+    const mk = String(viewMonthKey || "").slice(0, 7);
+    if (mk.length < 7) return allMovements;
+    return allMovements.filter((e) => String(e.date || "").slice(0, 7) === mk);
+  }, [allMovements, movementsShowAll, viewMonthKey]);
+
+  const monthLabel = formatMonthLabel(viewMonthKey);
   const branchOpt = branchId || null;
 
   const fromAgg = (summaryRow?.category || "").trim();
@@ -80,9 +111,7 @@ export function InventoryItemDetailScreen({
   const [nameDraft, setNameDraft] = useState(displayName || "");
   const [editingName, setEditingName] = useState(false);
   const [hsnDraft, setHsnDraft] = useState(summaryRow?.hsn || "8711");
-  const [gstDraft, setGstDraft] = useState(
-    summaryRow?.gstRate > 0 ? String(summaryRow.gstRate) : "5",
-  );
+  const [gstDraft, setGstDraft] = useState(summaryRow?.gstRate > 0 ? String(summaryRow.gstRate) : "5");
 
   useEffect(() => {
     setHsnDraft(summaryRow?.hsn || "8711");
@@ -107,7 +136,8 @@ export function InventoryItemDetailScreen({
     onSaveProductCategory(itemKey, next);
   };
 
-  const openAdd = () => openAddStock("in", displayName, branchOpt);
+  const openAddIn = () => openAddStock("in", displayName, branchOpt);
+  const openAddOut = () => openAddStock("out", displayName, branchOpt);
 
   const saveName = async () => {
     const next = nameDraft.trim().replace(/\s+/g, " ");
@@ -118,8 +148,11 @@ export function InventoryItemDetailScreen({
     if (!ok) setNameDraft(displayName || "");
   };
 
+  const qty = summaryRow?.currentQty ?? 0;
+  const statusLabel = stockStatusLabel(qty);
+
   return (
-    <OverlayScreen>
+    <OverlayScreen className="overlay-screen--inv-detail">
       <PageHeader
         title={displayName || "Product"}
         onBack={onClose}
@@ -135,13 +168,58 @@ export function InventoryItemDetailScreen({
                 <IcEdit />
               </button>
             )}
-            <button type="button" className="icon-btn icon-btn-sm" onClick={openAdd} aria-label="Add stock">
+            <button type="button" className="icon-btn icon-btn-sm" onClick={openAddIn} aria-label="Add stock">
               <IcPlus />
             </button>
           </div>
         }
       />
-      <div className="overlay-scroll">
+      <div className="overlay-scroll overlay-scroll--form-body">
+        <div className="inv-top inv-top--overlay">
+          <section className="inv-hero inv-hero--compact" aria-label="Product stock">
+            <div className="inv-hero-top">
+              <span className="inv-hero-eyebrow">{statusLabel}</span>
+              <span className="inv-hero-total">
+                {summaryRow ? `${formatQty(summaryRow.currentQty)} Nos` : "—"}
+              </span>
+              <span className="inv-hero-meta">
+                {summaryRow ? (
+                  <>
+                    Value {moneyFull(summaryRow.stockValue)}
+                    {branchName ? ` · ${branchName}` : ""}
+                  </>
+                ) : (
+                  branchName || "No quantity on hand"
+                )}
+              </span>
+            </div>
+          </section>
+
+          {summaryRow ? (
+            <div className="inv-kpi-grid inv-kpi-grid--overlay" aria-label="Product metrics">
+              <div className="inv-kpi">
+                <span className="inv-kpi-lbl">Avg cost</span>
+                <span className="inv-kpi-val">{moneyFull(summaryRow.avgCost)}</span>
+              </div>
+              <div className="inv-kpi">
+                <span className="inv-kpi-lbl">Stock value</span>
+                <span className="inv-kpi-val">{moneyFull(summaryRow.stockValue)}</span>
+              </div>
+              {summaryRow.salesPrice > 0 ? (
+                <div className="inv-kpi inv-kpi--good">
+                  <span className="inv-kpi-lbl">Sale price</span>
+                  <span className="inv-kpi-val">{moneyFull(summaryRow.salesPrice)}</span>
+                </div>
+              ) : (
+                <div className="inv-kpi">
+                  <span className="inv-kpi-lbl">Movements</span>
+                  <span className="inv-kpi-val">{allMovements.length}</span>
+                </div>
+              )}
+            </div>
+          ) : null}
+        </div>
+
         <div className="form-sections">
           <div className="form-card inv-item-detail-summary">
             {typeof onRenameProduct === "function" && (
@@ -184,78 +262,52 @@ export function InventoryItemDetailScreen({
                 )}
               </div>
             )}
-            {branchName && (
-              <p className="inv-item-detail-branch">
-                <span className="inv-item-detail-branch-lbl">Branch</span> {branchName}
-              </p>
-            )}
-            {summaryRow ? (
-              <div className="detail-kpi-grid inv-item-detail-kpis">
-                <div className="detail-kpi">
-                  <span className="detail-kpi-lbl">On hand</span>
-                  <strong className="detail-kpi-val">
-                    {summaryRow.currentQty % 1 === 0 ? summaryRow.currentQty : summaryRow.currentQty.toFixed(2)} Nos
-                  </strong>
-                </div>
-                <div className="detail-kpi">
-                  <span className="detail-kpi-lbl">Avg cost</span>
-                  <strong className="detail-kpi-val fin-amount">{moneyFull(summaryRow.avgCost)}</strong>
-                </div>
-                <div className="detail-kpi">
-                  <span className="detail-kpi-lbl">Stock value</span>
-                  <strong className="detail-kpi-val fin-amount">{moneyFull(summaryRow.stockValue)}</strong>
-                </div>
-                {typeof onSaveProductCategory === "function" ? (
-                  <div className="detail-kpi inv-item-detail-cat-kpi">
-                    <span className="detail-kpi-lbl">Category</span>
-                    {editingCat ? (
-                      <div className="inv-item-cat-edit">
-                        <input
-                          type="text"
-                          className="inv-item-cat-input"
-                          value={catDraft}
-                          onChange={(e) => setCatDraft(e.target.value)}
-                          onBlur={saveCategory}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                              e.preventDefault();
-                              saveCategory();
-                            }
-                            if (e.key === "Escape") {
-                              setCatDraft(resolvedCategory);
-                              setEditingCat(false);
-                            }
-                          }}
-                          placeholder="e.g. Lithium battery"
-                          autoComplete="off"
-                          autoFocus
-                          aria-label="Product category"
-                        />
-                      </div>
-                    ) : (
-                      <div className="inv-item-cat-display">
-                        <strong className="detail-kpi-val">{resolvedCategory || "—"}</strong>
-                        <button
-                          type="button"
-                          className="icon-btn icon-btn-sm inv-item-cat-edit-btn"
-                          onClick={() => setEditingCat(true)}
-                          aria-label="Edit category"
-                        >
-                          <IcEdit />
-                        </button>
-                      </div>
-                    )}
+
+            {typeof onSaveProductCategory === "function" ? (
+              <div className="inv-item-cat-row">
+                <span className="inv-item-cat-lbl">Category</span>
+                {editingCat ? (
+                  <input
+                    type="text"
+                    className="inv-item-cat-input"
+                    value={catDraft}
+                    onChange={(e) => setCatDraft(e.target.value)}
+                    onBlur={saveCategory}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        saveCategory();
+                      }
+                      if (e.key === "Escape") {
+                        setCatDraft(resolvedCategory);
+                        setEditingCat(false);
+                      }
+                    }}
+                    placeholder="e.g. Lithium battery"
+                    autoComplete="off"
+                    autoFocus
+                    aria-label="Product category"
+                  />
+                ) : (
+                  <div className="inv-item-cat-display">
+                    <strong>{resolvedCategory || "—"}</strong>
+                    <button
+                      type="button"
+                      className="icon-btn icon-btn-sm inv-item-cat-edit-btn"
+                      onClick={() => setEditingCat(true)}
+                      aria-label="Edit category"
+                    >
+                      <IcEdit />
+                    </button>
                   </div>
-                ) : resolvedCategory ? (
-                  <div className="detail-kpi">
-                    <span className="detail-kpi-lbl">Category</span>
-                    <strong className="detail-kpi-val">{resolvedCategory}</strong>
-                  </div>
-                ) : null}
+                )}
               </div>
-            ) : (
-              <p className="inv-item-detail-empty-sum">No quantity on hand for this filter.</p>
-            )}
+            ) : resolvedCategory ? (
+              <p className="inv-item-detail-branch">
+                <span className="inv-item-detail-branch-lbl">Category</span> {resolvedCategory}
+              </p>
+            ) : null}
+
             {editingCat && stockCategorySuggestions.length > 0 && (
               <p className="inv-item-cat-hint">
                 Suggestions: {stockCategorySuggestions.slice(0, 6).join(", ")}
@@ -267,15 +319,10 @@ export function InventoryItemDetailScreen({
           {typeof onSaveProductTaxMeta === "function" && gstEnabled !== false ? (
             <div className="form-card">
               <span className="form-card-title">Invoice tax (product)</span>
-              <div className="form-stack" style={{ padding: "0 14px 14px" }}>
+              <div className="form-stack inv-tax-stack">
                 <label className="field">
                   <span className="field-lbl">HSN / SAC</span>
-                  <input
-                    type="text"
-                    value={hsnDraft}
-                    onChange={(e) => setHsnDraft(e.target.value)}
-                    placeholder="8711"
-                  />
+                  <input type="text" value={hsnDraft} onChange={(e) => setHsnDraft(e.target.value)} placeholder="8711" />
                 </label>
                 <label className="field">
                   <span className="field-lbl">GST %</span>
@@ -290,9 +337,7 @@ export function InventoryItemDetailScreen({
                 <button
                   type="button"
                   className="ghost-btn ghost-btn--full"
-                  onClick={() =>
-                    onSaveProductTaxMeta(itemKey, { hsn: hsnDraft, gstRate: gstDraft })
-                  }
+                  onClick={() => onSaveProductTaxMeta(itemKey, { hsn: hsnDraft, gstRate: gstDraft })}
                 >
                   Save tax defaults
                 </button>
@@ -301,20 +346,56 @@ export function InventoryItemDetailScreen({
           ) : null}
 
           <div className="inv-item-detail-actions">
-            <button type="button" className="inv-detail-act inv-detail-act-in inv-detail-act--solo" onClick={openAdd}>
+            <button type="button" className="inv-detail-act inv-detail-act-in" onClick={openAddIn}>
               <IcPlus />
-              Add stock
+              Stock in
+            </button>
+            <button type="button" className="inv-detail-act inv-detail-act-out" onClick={openAddOut}>
+              <IcMinus />
+              Stock out
             </button>
           </div>
 
-          <div className="form-card">
-            <span className="form-card-title">Movements</span>
+          <div className="form-card inv-move-card">
+            <div className="inv-move-card-hd">
+              <div>
+                <span className="form-card-title">Movements</span>
+                <p className="inv-move-card-sub">
+                  {movementsShowAll
+                    ? "All time · newest first"
+                    : `${monthLabel} · ${movements.length} entr${movements.length === 1 ? "y" : "ies"}`}
+                </p>
+              </div>
+              <div className="inv-move-card-actions">
+                <button
+                  type="button"
+                  className={`inv-filter-chip inv-filter-chip--sm${movementsShowAll ? " inv-filter-chip--on" : ""}`}
+                  onClick={() => setMovementsShowAll((v) => !v)}
+                  aria-pressed={movementsShowAll}
+                >
+                  {movementsShowAll ? "This month" : "All time"}
+                </button>
+                {!movementsShowAll ? (
+                  <MonthFilterCompact
+                    value={viewMonthKey}
+                    onChange={(v) =>
+                      setViewMonthKey(v && String(v).length >= 7 ? String(v).slice(0, 7) : currentMonthStr())
+                    }
+                    instanceId="inv-move"
+                    allowClear={false}
+                  />
+                ) : null}
+              </div>
+            </div>
+
             {movements.length === 0 ? (
-              <p className="muted" style={{ margin: "10px 0 0", fontSize: "0.88rem" }}>
-                No entries yet. Use Add stock above, then choose Stock In, Opening, or Stock Out.
+              <p className="inv-move-empty">
+                {movementsShowAll
+                  ? "No entries yet. Use Stock in or Stock out above."
+                  : `No movements in ${monthLabel}. Try All time or another month.`}
               </p>
             ) : (
-              <ul className="inv-move-list">
+              <ul className="inv-move-list inv-move-list--card">
                 {movements.map((inv) => {
                   const cash = stockInCashAmount(inv);
                   const unitCost = inv.type !== "out" ? num(inv.costPerUnit) : 0;
@@ -324,7 +405,9 @@ export function InventoryItemDetailScreen({
                       <button type="button" className="inv-move-row" onClick={() => onEditEntry(inv.id)}>
                         <div className="inv-move-left">
                           <span className="inv-move-date">{dateHuman(inv.date)}</span>
-                          <span className={`inv-move-type inv-move-type--${inv.type === "out" ? "out" : inv.type === "opening" ? "op" : "in"}`}>
+                          <span
+                            className={`inv-move-type inv-move-type--${inv.type === "out" ? "out" : inv.type === "opening" ? "op" : "in"}`}
+                          >
                             {typeLabel(inv.type)}
                           </span>
                           {unitCost > 0 && (
@@ -335,7 +418,7 @@ export function InventoryItemDetailScreen({
                         <div className="inv-move-right">
                           <span className="inv-move-qty">
                             {inv.type === "out" ? "−" : "+"}
-                            {Number(inv.qty) % 1 === 0 ? inv.qty : Number(inv.qty).toFixed(2)}
+                            {formatQty(inv.qty)}
                           </span>
                           {cash > 0 && <span className="inv-move-cash">{money(cash)} paid</span>}
                           <span className="inv-move-edit-ic" aria-hidden>

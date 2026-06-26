@@ -123,6 +123,7 @@ import {
   recognizedCogsForSales,
   resolveExpenseCategory,
   resolveOtherIncomeCategory,
+  moneyInputStr,
   roundMoney2,
   runWithStableStringifyMemo,
   runWithStableStringifyMemoAsync,
@@ -494,6 +495,23 @@ ok("sumPurchasePaymentsOnDay", () => {
 
 ok("roundMoney2 handles float noise", () => {
   assert.equal(roundMoney2(0.1 + 0.2), 0.3);
+});
+
+ok("moneyInputStr: clean form values", () => {
+  assert.equal(moneyInputStr(""), "");
+  assert.equal(moneyInputStr(null), "");
+  assert.equal(moneyInputStr(10.666666666666666), "10.67");
+  assert.equal(moneyInputStr(0), "0");
+});
+
+ok("computeInvRowsAggregated: weighted avg cost rounds to 2 dp", () => {
+  const rows = computeInvRowsAggregated([
+    { item: "Mix", type: "in", qty: 1, costPerUnit: 10 },
+    { item: "Mix", type: "in", qty: 2, costPerUnit: 11 },
+  ]);
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].avgCost, 10.67);
+  assert.equal(rows[0].stockValue, roundMoney2(rows[0].currentQty * rows[0].avgCost));
 });
 
 ok("num: non-finite becomes 0", () => {

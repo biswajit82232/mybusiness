@@ -7,17 +7,28 @@ import {
   BANK_EXTERNAL_SOURCE_ID,
   BANK_EXTERNAL_SINK_ID,
   bankAccountCountsInLiquidTotal,
-  shiftMonthKey,
   formatMonthLabel,
   currentMonthStr,
   todayStr,
   money,
   num,
+  roundMoney2,
 } from "@/domain/index.js";
-import { IcCalDay, IcChevL, IcChevR, IcX } from "@/shared/ui/icons/AppIcons.jsx";
+import { IcX } from "@/shared/ui/icons/AppIcons.jsx";
 import { Field, TabPageChrome } from "@/shared/ui/layout/AppChrome.jsx";
 import { MenuSelect } from "@/shared/ui/inputs/MenuSelect.jsx";
+import { MonthFilterCompact } from "@/shared/ui/shell/MonthFilterCompact.jsx";
 import { bankKindLabel } from "./bankKindLabel.js";
+
+const KIND_DOT_CLASS = {
+  cash: "banking-kind-dot--cash",
+  card: "banking-kind-dot--card",
+  bank: "banking-kind-dot--bank",
+};
+
+function accountKindDotClass(kind) {
+  return KIND_DOT_CLASS[kind] || KIND_DOT_CLASS.bank;
+}
 
 export function BankingTab({
   state,
@@ -70,9 +81,11 @@ export function BankingTab({
 
   const totalLiquid = useMemo(
     () =>
-      accountsWithBook
-        .filter(({ acc }) => bankAccountCountsInLiquidTotal(acc))
-        .reduce((s, row) => s + num(row.book), 0),
+      roundMoney2(
+        accountsWithBook
+          .filter(({ acc }) => bankAccountCountsInLiquidTotal(acc))
+          .reduce((s, row) => s + num(row.book), 0),
+      ),
     [accountsWithBook],
   );
 
@@ -86,20 +99,9 @@ export function BankingTab({
     transfers,
     loansGiven,
   );
-  const monthOptions = (() => {
-    const opts = [];
-    for (let i = -24; i <= 3; i += 1) {
-      const k = shiftMonthKey(bankingMonthKey, i);
-      opts.push({ value: k, label: formatMonthLabel(k) });
-    }
-    const seen = new Set();
-    return opts.filter((o) => {
-      const key = String(o.value);
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
-  })();
+  const monthNet = roundMoney2(num(act.cashIn) - num(act.cashOut));
+  const monthLabel = formatMonthLabel(bankingMonthKey);
+
   const [xferOpen, setXferOpen] = useState(false);
   const [xferFrom, setXferFrom] = useState("");
   const [xferTo, setXferTo] = useState("");
@@ -171,68 +173,65 @@ export function BankingTab({
     return m;
   }, [accountsWithBook]);
 
+  const liquidAccountCount = bankAccounts.filter((a) => bankAccountCountsInLiquidTotal(a)).length;
+
   return (
     <TabPageChrome
       title="Banking"
       onOpenSidebar={onOpenSidebar}
       className="tab-page--split-scroll tab-page--banking"
     >
-      <div className="banking-summary" aria-label="Overview">
-        <div className="banking-sum-cell">
-          <span className="banking-sum-lbl">Total liquid</span>
-          <span className="banking-sum-val">{money(totalLiquid)}</span>
-          <span className="banking-sum-meta">
-            {bankAccounts.length} account{bankAccounts.length === 1 ? "" : "s"} · live balance
-          </span>
-        </div>
-        <div className="banking-sum-cell banking-sum-cell--in">
-          <span className="banking-sum-lbl">In</span>
-          <span className="banking-sum-val">{money(act.cashIn)}</span>
-        </div>
-        <div className="banking-sum-cell banking-sum-cell--out">
-          <span className="banking-sum-lbl">Out</span>
-          <span className="banking-sum-val">{money(act.cashOut)}</span>
-        </div>
-      </div>
-
-      <div className="banking-period-bar" role="group" aria-label="Month for In / Out above">
-        <div className="month-filter-compact banking-month-filter">
-          <button
-            type="button"
-            className="month-nav-btn"
-            onClick={() => setBankingMonthKey(shiftMonthKey(bankingMonthKey, -1))}
-            aria-label="Previous month"
-          >
-            <IcChevL />
-          </button>
-          <div className="month-filter-chip month-filter-chip-btn month-filter-chip--custom" aria-label={`Choose month, ${formatMonthLabel(bankingMonthKey)}`}>
-            <span className="month-filter-chip-ic" aria-hidden="true">
-              <IcCalDay />
+      <div className="banking-top">
+        <section className="banking-hero" aria-label="Liquid balances">
+          <div className="banking-hero-top">
+            <span className="banking-hero-eyebrow">Total liquid</span>
+            <span className="banking-hero-total">{money(totalLiquid)}</span>
+            <span className="banking-hero-accounts">
+              {liquidAccountCount} of {bankAccounts.length} account
+              {bankAccounts.length === 1 ? "" : "s"} in total · live balance
             </span>
-            <MenuSelect
-              className="month-filter-menu"
-              value={bankingMonthKey}
-              onChange={(v) => setBankingMonthKey(v && String(v).length >= 7 ? String(v).slice(0, 7) : currentMonthStr())}
-              options={monthOptions}
-            />
           </div>
-          <button
-            type="button"
-            className="month-nav-btn"
-            onClick={() => setBankingMonthKey(shiftMonthKey(bankingMonthKey, 1))}
-            aria-label="Next month"
+        </section>
+
+        <div className="banking-period-bar" role="group" aria-label="Month for cash movement">
+          <span className="banking-period-lbl">Cash movement</span>
+          <MonthFilterCompact
+            value={bankingMonthKey}
+            onChange={(v) =>
+              setBankingMonthKey(v && String(v).length >= 7 ? String(v).slice(0, 7) : currentMonthStr())
+            }
+            instanceId="banking"
+            allowClear={false}
+          />
+        </div>
+
+        <div className="banking-kpi-grid" aria-label={`${monthLabel} cash movement`}>
+          <div className="banking-kpi banking-kpi--in">
+            <span className="banking-kpi-lbl">In · {monthLabel}</span>
+            <span className="banking-kpi-val">{money(act.cashIn)}</span>
+          </div>
+          <div className="banking-kpi banking-kpi--out">
+            <span className="banking-kpi-lbl">Out · {monthLabel}</span>
+            <span className="banking-kpi-val">{money(act.cashOut)}</span>
+          </div>
+          <div
+            className={`banking-kpi banking-kpi--net${monthNet >= 0 ? " banking-kpi--pos" : " banking-kpi--neg"}`}
           >
-            <IcChevR />
-          </button>
+            <span className="banking-kpi-lbl">Net · {monthLabel}</span>
+            <span className="banking-kpi-val">{money(monthNet)}</span>
+          </div>
         </div>
       </div>
 
       <div className="tab-page-scroll">
         <div className="banking-screen">
           <section className="fin-section banking-accounts-section" aria-labelledby="banking-accounts-hd">
-            <h2 id="banking-accounts-hd" className="home-section-hd">
-              Accounts
-            </h2>
+            <div className="banking-section-hd">
+              <h2 id="banking-accounts-hd" className="home-section-hd">Accounts</h2>
+              {bankAccounts.length > 0 ? (
+                <span className="banking-section-count">{bankAccounts.length}</span>
+              ) : null}
+            </div>
             <div
               className={`quick-actions banking-quick-actions${bankAccounts.length < 2 ? " banking-quick-actions--single" : ""}`}
             >
@@ -272,31 +271,44 @@ export function BankingTab({
                     purchases,
                     loansGiven,
                   );
+                  const inLiquid = bankAccountCountsInLiquidTotal(acc);
+                  const flags = [];
+                  if (acc.excludeFromLiquid) flags.push("Not in liquid");
+                  if (acc.excludeFromBalanceSheet) flags.push("Not on B/S");
+
                   return (
                     <li key={acc.id}>
                       <button type="button" className="banking-acct-row" onClick={() => onOpenAccount(acc.id)}>
+                        <span
+                          className={`banking-kind-dot ${accountKindDotClass(acc.kind)}`}
+                          aria-hidden="true"
+                        />
                         <div className="banking-acct-row-left">
                           <span className="banking-acct-row-name">{(acc.name || "").trim() || "Account"}</span>
                           <span className="banking-acct-row-meta">
                             <span className="bank-kind-pill">{bankKindLabel(acc.kind)}</span>
-                            <span
-                              className="banking-acct-row-flow"
-                              title={`${formatMonthLabel(bankingMonthKey)} · In / Out for selected month`}
-                            >
-                              <span className="banking-acct-flow-in">
-                                In <em>{money(mtd.inn)}</em>
-                              </span>
-                              <span className="banking-acct-flow-sep" aria-hidden="true">
-                                ·
-                              </span>
-                              <span className="banking-acct-flow-out">
-                                Out <em>{money(mtd.out)}</em>
-                              </span>
+                            {flags.map((f) => (
+                              <span key={f} className="banking-acct-flag">{f}</span>
+                            ))}
+                          </span>
+                          <span
+                            className="banking-acct-row-flow"
+                            title={`${monthLabel} · In / Out for selected month`}
+                          >
+                            <span className="banking-acct-flow-in">
+                              In <em>{money(mtd.inn)}</em>
+                            </span>
+                            <span className="banking-acct-flow-sep" aria-hidden="true">·</span>
+                            <span className="banking-acct-flow-out">
+                              Out <em>{money(mtd.out)}</em>
                             </span>
                           </span>
                         </div>
                         <div className="banking-acct-row-right">
                           <span className="banking-acct-row-bal">{money(book)}</span>
+                          {!inLiquid ? (
+                            <span className="banking-acct-row-bal-note">excl. liquid</span>
+                          ) : null}
                         </div>
                       </button>
                     </li>

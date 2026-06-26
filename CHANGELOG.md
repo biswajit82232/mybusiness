@@ -2,6 +2,24 @@
 
 All notable changes are tracked here. The Settings screen shows **Version** from `package.json`.
 
+## [8.0.2] — 2026-06-26
+
+### Improvements
+- **Inventory — redesign & polish** — Hero stock-value card, KPI grid (products / in stock / low), branch chips, stock-level filters, quick Stock in / Opening / Out actions, status pills on rows, and product detail month filter with All-time movements toggle. Fixes text cutoffs on small screens.
+
+App version **8.0.2**; service worker cache **v101**.
+
+---
+
+## [8.0.1] — 2026-06-26
+
+### Improvements
+- **Banking — redesign & polish** — Hero card for total liquid, month-scoped In / Out / Net KPIs, aligned account rows with kind dots and exclude badges, shared month picker, and account detail month filter with All-time activity toggle. Fixes text cutoffs on small screens.
+
+App version **8.0.1**; service worker cache **v100**.
+
+---
+
 ## [8.0.0] — 2026-06-26
 
 ### Features
