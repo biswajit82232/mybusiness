@@ -12,11 +12,11 @@ import {
   sumExpenseCashOutInFy,
   sumOtherIncomeCashInInMonth,
   sumOtherIncomeCashInInFy,
-  buildDailySparkline,
   buildDailyRevenueMap,
   buildDailyNetProfitMap,
-  buildDailyReceivablesMap,
-  todayStr,
+  buildDailyCashRevenueMap,
+  buildDailyCashNetProfitMap,
+  buildPeriodDailySparkline,
 } from "@/domain/index.js";
 
 /**
@@ -225,17 +225,30 @@ export function useAuthenticatedDerivedMetrics({
   ]);
 
   const kpiSparklines = useMemo(() => {
-    const end = todayStr();
+    const accrual = accountingBasisSetting === "accrual";
+    const revenueMap = accrual
+      ? buildDailyRevenueMap(dashSales)
+      : buildDailyCashRevenueMap(safeSales);
+    const netMap = accrual
+      ? buildDailyNetProfitMap(dashSales, dashExp, dashOtherIncome)
+      : buildDailyCashNetProfitMap(safeSales, safeExpenses, safeOtherIncomes);
+    const periodOpts = { businessMonth, fsm, fyYear };
     return {
-      revenue: buildDailySparkline(buildDailyRevenueMap(safeSales), end, 60),
-      netProfit: buildDailySparkline(
-        buildDailyNetProfitMap(safeSales, safeExpenses, safeOtherIncomes),
-        end,
-        60,
-      ),
-      receivables: buildDailySparkline(buildDailyReceivablesMap(safeSales), end, 60),
+      revenue: buildPeriodDailySparkline(revenueMap, periodOpts),
+      netProfit: buildPeriodDailySparkline(netMap, periodOpts),
     };
-  }, [safeSales, safeExpenses, safeOtherIncomes]);
+  }, [
+    accountingBasisSetting,
+    businessMonth,
+    fsm,
+    fyYear,
+    dashSales,
+    dashExp,
+    dashOtherIncome,
+    safeSales,
+    safeExpenses,
+    safeOtherIncomes,
+  ]);
 
   return {
     safeSales,

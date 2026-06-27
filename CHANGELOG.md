@@ -2,6 +2,15 @@
 
 All notable changes are tracked here. The Settings screen shows **Version** from `package.json`.
 
+## [8.1.2] — 2026-06-27
+
+### Improvements
+- **Dashboard sparklines** — Removed Receivables chart. Revenue and Net profit sparklines now follow the selected month (or full FY when month filter is cleared) and respect cash vs accrual basis.
+
+App version **8.1.2**; service worker cache **v113**.
+
+---
+
 ## [8.1.1] — 2026-06-27
 
 ### Features

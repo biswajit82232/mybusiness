@@ -15,7 +15,7 @@ import {
   sumFixedAssetsNetBook,
 } from "@/domain/balanceSheet.js";
 import { splitInclusiveGst, buildInvoiceGstModel } from "@/domain/invoiceGst.js";
-import { buildDailySparkline, buildDailyRevenueMap } from "@/domain/sparkline.js";
+import { buildDailySparkline, buildDailyRevenueMap, buildPeriodDailySparkline } from "@/domain/sparkline.js";
 import {
   classifyEmiReminderDiff,
   buildEmiAlertsForEntry,
@@ -168,6 +168,17 @@ describe("sparkline", () => {
     const pts = buildDailySparkline(map, "2026-06-27", 60);
     expect(pts.length).toBe(60);
     expect(pts[pts.length - 1]).toBe(1000);
+  });
+
+  it("builds month-scoped series", () => {
+    const map = buildDailyRevenueMap([
+      { date: "2026-05-01", totalSale: 100 },
+      { date: "2026-05-31", totalSale: 500 },
+    ]);
+    const pts = buildPeriodDailySparkline(map, { businessMonth: "2026-05", fsm: 4, fyYear: 2025 });
+    expect(pts.length).toBe(31);
+    expect(pts[0]).toBe(100);
+    expect(pts[30]).toBe(500);
   });
 });
 

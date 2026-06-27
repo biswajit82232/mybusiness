@@ -25,7 +25,7 @@ import { NotifPanel } from "./NotifPanel.jsx";
 const PROFIT_MASK_KEYS = new Set(["profit", "gross", "revenue", "cogs"]);
 const RECENT_LIMIT = 5;
 const AV_COLORS = ["av-blue", "av-green", "av-purple", "av-orange", "av-teal", "av-indigo", "av-amber", "av-red"];
-const SPARKLINE_TILE_KEYS = new Set(["revenue", "profit", "recv"]);
+const SPARKLINE_TILE_KEYS = new Set(["revenue", "profit"]);
 
 function KpiSparkline({ values, className = "home-md3-kpi-spark" }) {
   const points = useMemo(() => sparklineSvgPoints(values, 120, 22), [values]);
@@ -86,7 +86,7 @@ function Md3Section({ title, children, emptyHint }) {
 export function HomeTab({
   state,
   kpis,
-  kpiSparklines = { revenue: [], netProfit: [], receivables: [] },
+  kpiSparklines = { revenue: [], netProfit: [] },
   accountingBasis,
   onToggleAccountingBasis,
   fyStr,
@@ -167,7 +167,6 @@ export function HomeTab({
         value: money(kpis.outstanding),
         tone: "tone-accent",
         wideMobile: true,
-        spark: "receivables",
       },
       {
         key: "liquid",

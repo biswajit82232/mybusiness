@@ -1,7 +1,14 @@
 /**
  * Daily metric series for dashboard KPI sparklines.
  */
-import { addDaysStr, num, todayStr } from "./appModel.js";
+import {
+  addDaysStr,
+  fyMonthSequence,
+  normalizePaymentEntries,
+  num,
+  roundMoney2,
+  todayStr,
+} from "./appModel.js";
 
 /**
  * Build a fixed-length daily series ending on endDate (default today).
@@ -25,12 +32,117 @@ function addToMap(map, dateStr, amount) {
   map.set(d, (map.get(d) || 0) + num(amount));
 }
 
+function lastDayOfMonth(monthKey) {
+  const mk = String(monthKey || "").slice(0, 7);
+  const [y, m] = mk.split("-").map(Number);
+  if (!y || !m || m < 1 || m > 12) return "";
+  const last = new Date(y, m, 0).getDate();
+  return `${y}-${String(m).padStart(2, "0")}-${String(last).padStart(2, "0")}`;
+}
+
+/** One point per calendar day from start through end (inclusive). */
+export function buildDailySparklineRange(valuesByDate, startDate, endDate) {
+  const start = String(startDate || "").slice(0, 10);
+  let end = String(endDate || "").slice(0, 10);
+  if (start.length < 10 || end.length < 10 || end < start) return [];
+  const today = todayStr();
+  if (end > today) end = today;
+  const points = [];
+  let d = start;
+  while (d <= end) {
+    points.push(num(valuesByDate.get(d)));
+    d = addDaysStr(d, 1);
+  }
+  return points;
+}
+
+/** Daily series for a calendar month (respects month filter). */
+export function buildDailySparklineForMonth(valuesByDate, monthKey) {
+  const mk = String(monthKey || "").slice(0, 7);
+  if (mk.length < 7) return [];
+  return buildDailySparklineRange(valuesByDate, `${mk}-01`, lastDayOfMonth(mk));
+}
+
+/** Daily series for the active financial year (when month filter is cleared). */
+export function buildDailySparklineForFy(valuesByDate, fsm, fyYear) {
+  const months = fyMonthSequence(fsm, fyYear);
+  if (!months.length) return [];
+  return buildDailySparklineRange(valuesByDate, `${months[0]}-01`, lastDayOfMonth(months[months.length - 1]));
+}
+
+/** Period-scoped sparkline: selected month or full FY. */
+export function buildPeriodDailySparkline(valuesByDate, { businessMonth, fsm, fyYear }) {
+  return businessMonth
+    ? buildDailySparklineForMonth(valuesByDate, businessMonth)
+    : buildDailySparklineForFy(valuesByDate, fsm, fyYear);
+}
+
 /** Daily invoiced revenue (accrual). */
 export function buildDailyRevenueMap(sales) {
   const map = new Map();
   for (const s of Array.isArray(sales) ? sales : []) {
     if (!s) continue;
     addToMap(map, s.date, s.totalSale);
+  }
+  return map;
+}
+
+/** Daily cash collected from sales (payment dates). */
+export function buildDailyCashRevenueMap(sales) {
+  const map = new Map();
+  for (const s of Array.isArray(sales) ? sales : []) {
+    if (!s || typeof s !== "object") continue;
+    const pes = normalizePaymentEntries(s);
+    if (pes.length > 0) {
+      for (const pe of pes) {
+        if (num(pe.amount) <= 0) continue;
+        addToMap(map, pe.date, pe.amount);
+      }
+    } else if (num(s.received) > 0) {
+      addToMap(map, s.date, s.received);
+    }
+  }
+  return map;
+}
+
+/** Daily COGS aligned to payment dates (cash basis). */
+export function buildDailyCashCogsMap(sales) {
+  const map = new Map();
+  const zeroInvoiceCogsDone = new Set();
+  for (const s of Array.isArray(sales) ? sales : []) {
+    if (!s || typeof s !== "object") continue;
+    const tc = num(s.totalCost);
+    const ts = num(s.totalSale);
+    const pes = normalizePaymentEntries(s);
+    if (pes.length > 0) {
+      for (const pe of pes) {
+        const amt = num(pe.amount);
+        if (amt <= 0) continue;
+        let cogs = 0;
+        if (ts <= 0) {
+          if (!zeroInvoiceCogsDone.has(s.id)) {
+            cogs = tc;
+            zeroInvoiceCogsDone.add(s.id);
+          }
+        } else {
+          cogs = roundMoney2(tc * (amt / ts));
+        }
+        if (cogs > 0) addToMap(map, pe.date, cogs);
+      }
+    } else {
+      const leg = num(s.received);
+      if (leg <= 0) continue;
+      let cogs = 0;
+      if (ts <= 0) {
+        if (!zeroInvoiceCogsDone.has(s.id)) {
+          cogs = tc;
+          zeroInvoiceCogsDone.add(s.id);
+        }
+      } else {
+        cogs = roundMoney2(tc * (leg / ts));
+      }
+      if (cogs > 0) addToMap(map, s.date, cogs);
+    }
   }
   return map;
 }
@@ -53,13 +165,18 @@ export function buildDailyNetProfitMap(sales, expenses, otherIncomes) {
   return map;
 }
 
-/** Daily new receivables: outstanding on invoices dated that day. */
-export function buildDailyReceivablesMap(sales) {
+/** Daily net profit on cash basis (payment / bank-linked dates). */
+export function buildDailyCashNetProfitMap(sales, expenses, otherIncomes) {
   const map = new Map();
-  for (const s of Array.isArray(sales) ? sales : []) {
-    if (!s) continue;
-    const out = num(s.outstanding);
-    if (out > 0.005) addToMap(map, s.date, out);
+  for (const [d, v] of buildDailyCashRevenueMap(sales)) addToMap(map, d, v);
+  for (const [d, v] of buildDailyCashCogsMap(sales)) addToMap(map, d, -v);
+  for (const e of Array.isArray(expenses) ? expenses : []) {
+    if (!e || !String(e.bankAccountId || "").trim()) continue;
+    addToMap(map, e.date, -num(e.amount));
+  }
+  for (const oi of Array.isArray(otherIncomes) ? otherIncomes : []) {
+    if (!oi || !String(oi.bankAccountId || "").trim()) continue;
+    addToMap(map, oi.date, num(oi.amount));
   }
   return map;
 }
