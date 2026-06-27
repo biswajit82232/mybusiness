@@ -147,29 +147,6 @@ export function AccountsOverviewTab({ state, saveOtherBalance, onOpenSidebar }) 
         </div>
       </div>
 
-      <div
-        className={`bs-equation-strip${balSum.equationBalanced ? " bs-equation-strip--ok" : " bs-equation-strip--warn"}`}
-        role="status"
-        aria-label={
-          balSum.equationBalanced
-            ? "Balance sheet equation verified"
-            : `Balance sheet equation off by ${moneyFull(Math.abs(balSum.equationDelta))}`
-        }
-      >
-        <span className="bs-equation-lbl">Assets = Liabilities + Equity</span>
-        <span className="bs-equation-val">
-          {balSum.equationBalanced
-            ? "Balanced"
-            : `Off by ${moneyFull(Math.abs(balSum.equationDelta))}`}
-        </span>
-        {balSum.currentRatio != null && balSum.totalLiab > 0.005 ? (
-          <span className="bs-equation-meta">
-            Current ratio {balSum.currentRatio.toFixed(2)}
-            {balSum.currentRatio < 1 ? " — watch liquidity" : ""}
-          </span>
-        ) : null}
-      </div>
-
       <div className="tab-page-scroll">
         <div className="fin-overview">
           <section className="bs-section" aria-labelledby="bs-assets-hd">

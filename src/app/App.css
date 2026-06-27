@@ -2883,38 +2883,6 @@ button.sale-row.sale-row--clickable { cursor: pointer; font: inherit; color: inh
 .tab-page--balance-sheet > .bs-summary-strip {
   border-bottom: 1px solid var(--line);
 }
-.bs-equation-strip {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px 12px;
-  margin: 0 var(--page-pad);
-  padding: 10px 12px;
-  border-radius: var(--radius-md, 10px);
-  font-size: 0.78rem;
-  line-height: 1.35;
-  border: 1px solid var(--line);
-  background: var(--surface2, var(--surface));
-}
-.bs-equation-strip--ok {
-  border-color: color-mix(in srgb, var(--good, #2e7d32) 35%, var(--line));
-}
-.bs-equation-strip--warn {
-  border-color: color-mix(in srgb, var(--warn, #ed6c02) 45%, var(--line));
-}
-.bs-equation-lbl {
-  font-weight: 600;
-  color: var(--text);
-}
-.bs-equation-val {
-  font-weight: 700;
-}
-.bs-equation-strip--ok .bs-equation-val {
-  color: var(--good, #2e7d32);
-}
-.bs-equation-strip--warn .bs-equation-val {
-  color: var(--warn, #ed6c02);
-}
 .bs-historical-note {
   font-size: clamp(0.6rem, 2.6vw, 0.68rem);
   color: var(--muted);

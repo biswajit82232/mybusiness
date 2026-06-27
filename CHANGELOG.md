@@ -2,6 +2,15 @@
 
 All notable changes are tracked here. The Settings screen shows **Version** from `package.json`.
 
+## [8.0.10] — 2026-06-27
+
+### Improvements
+- **Balance sheet** — Removed the Assets = Liabilities + Equity verification strip and current ratio line from the overview.
+
+App version **8.0.10**; service worker cache **v109**.
+
+---
+
 ## [8.0.9] — 2026-06-27
 
 ### Features
