@@ -11,7 +11,20 @@ import {
   loadUserLocalState,
   writeAppCache,
 } from "@/data/local/indexedDbStore.js";
-import { defaultState, makeId, mergePersistedPayload } from "@/domain/index.js";
+import { defaultState, makeId, mergePersistedPayload, stableStringify } from "@/domain/index.js";
+
+/** Skip React hydration after pull when the user edited during the sync pass. */
+export function shouldSkipSyncStateHydration({
+  pendingWrites = 0,
+  persistLocked = false,
+  debouncePending = false,
+  liveState,
+  persistedState,
+}) {
+  if (pendingWrites > 0 || persistLocked || debouncePending) return true;
+  if (!liveState || !persistedState) return false;
+  return stableStringify(liveState) !== stableStringify(persistedState);
+}
 
 function appendConflictRowsLocal(draft, conflictRows) {
   const rows = Array.isArray(conflictRows) ? conflictRows : [];
@@ -48,6 +61,8 @@ export function useCloudSyncExecutor({
   lastPersistedStateRef,
   pendingWritesRef,
   flushPendingLocalPersistRef,
+  persistTimerRef,
+  latestStateRef,
 }) {
   const [cloudSyncMeta, setCloudSyncMeta] = useState(() => ({
     at: null,
@@ -117,6 +132,31 @@ export function useCloudSyncExecutor({
           }
           return r;
         }
+        const skipStateHydration = shouldSkipSyncStateHydration({
+          pendingWrites: pendingWritesRef?.current ?? 0,
+          persistLocked: isPersistLocked(),
+          debouncePending: !!persistTimerRef?.current,
+          liveState: latestStateRef?.current,
+          persistedState: lastPersistedStateRef?.current,
+        });
+
+        const hydrateReactFromMerged = async (merged) => {
+          if (skipStateHydration) {
+            if ((r.conflictRows?.length ?? 0) > 0) {
+              setState((prev) => appendConflictRowsLocal(prev, r.conflictRows));
+            }
+            return false;
+          }
+          suppressPersistRef.current = true;
+          setState(merged);
+          lastPersistedStateRef.current = merged;
+          await writeAppCache(merged).catch(() => {});
+          Promise.resolve().then(() => {
+            suppressPersistRef.current = false;
+          });
+          return true;
+        };
+
         if (r.fullRestore && r.pullPayload) {
           let merged = mergePersistedPayload(r.pullPayload) || defaultState;
           merged = appendConflictRowsLocal(merged, r.conflictRows);
@@ -124,24 +164,12 @@ export function useCloudSyncExecutor({
             advancePullCursorTo:
               typeof r.pullCursorMaxIso === "string" ? r.pullCursorMaxIso : undefined,
           });
-          await writeAppCache(merged).catch(() => {});
-          suppressPersistRef.current = true;
-          setState(merged);
-          lastPersistedStateRef.current = merged;
-          Promise.resolve().then(() => {
-            suppressPersistRef.current = false;
-          });
+          await hydrateReactFromMerged(merged);
         } else if ((r.remoteRowsApplied ?? 0) > 0) {
           const freshPayload = await loadUserLocalState(uid);
           let merged = mergePersistedPayload(freshPayload) || defaultState;
           merged = appendConflictRowsLocal(merged, r.conflictRows);
-          suppressPersistRef.current = true;
-          setState(merged);
-          lastPersistedStateRef.current = merged;
-          await writeAppCache(merged).catch(() => {});
-          Promise.resolve().then(() => {
-            suppressPersistRef.current = false;
-          });
+          await hydrateReactFromMerged(merged);
         } else if ((r.conflictRows?.length ?? 0) > 0) {
           setState((prev) => appendConflictRowsLocal(prev, r.conflictRows));
         }
@@ -191,6 +219,8 @@ export function useCloudSyncExecutor({
       suppressPersistRef,
       pendingWritesRef,
       flushPendingLocalPersistRef,
+      persistTimerRef,
+      latestStateRef,
     ],
   );
 

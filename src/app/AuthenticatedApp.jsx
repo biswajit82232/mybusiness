@@ -318,6 +318,8 @@ export default function AuthenticatedApp() {
     lastPersistedStateRef,
     pendingWritesRef,
     flushPendingLocalPersistRef,
+    persistTimerRef,
+    latestStateRef,
   });
   useEffect(() => {
     if (authState !== "ready") return;

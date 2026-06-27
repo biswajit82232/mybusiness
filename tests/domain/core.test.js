@@ -34,6 +34,7 @@ import {
   normSaleDraft,
   buildSaleDraftEnvelope,
 } from "@/domain/saleDraft.js";
+import { shouldSkipSyncStateHydration } from "@/app/useCloudSyncExecutor.js";
 import {
   BANK_TRANSFER_KIND,
   sumOwnerDrawingsInMonth,
@@ -290,5 +291,44 @@ describe("cashflow owner drawings", () => {
     });
     expect(b.ownerDrawings).toBe(2500);
     expect(b.financingOut).toBe(2500);
+  });
+});
+
+describe("shouldSkipSyncStateHydration", () => {
+  const base = { sales: [{ id: "1", totalSale: 100 }] };
+
+  it("skips when debounced persist or in-flight writes are active", () => {
+    expect(
+      shouldSkipSyncStateHydration({
+        pendingWrites: 1,
+        liveState: base,
+        persistedState: base,
+      }),
+    ).toBe(true);
+    expect(
+      shouldSkipSyncStateHydration({
+        debouncePending: true,
+        liveState: base,
+        persistedState: base,
+      }),
+    ).toBe(true);
+  });
+
+  it("skips when live React state differs from last persisted snapshot", () => {
+    expect(
+      shouldSkipSyncStateHydration({
+        liveState: { sales: [{ id: "1", totalSale: 200 }] },
+        persistedState: base,
+      }),
+    ).toBe(true);
+  });
+
+  it("hydrates when memory matches persisted state and no save is in flight", () => {
+    expect(
+      shouldSkipSyncStateHydration({
+        liveState: base,
+        persistedState: base,
+      }),
+    ).toBe(false);
   });
 });

@@ -2,6 +2,15 @@
 
 All notable changes are tracked here. The Settings screen shows **Version** from `package.json`.
 
+## [8.1.6] — 2026-06-27
+
+### Fixes
+- **Cloud sync during edits** — Background pull no longer overwrites in-memory changes made while sync is in flight (restores pending-write / debounce guard removed in v8.1.5).
+
+App version **8.1.6**; service worker cache **v117**.
+
+---
+
 ## [8.1.5] — 2026-06-27
 
 ### Fixes
