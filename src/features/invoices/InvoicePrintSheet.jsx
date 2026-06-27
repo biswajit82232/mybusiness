@@ -14,28 +14,62 @@ import {
 } from "@/domain/index.js";
 
 const AMT = new Intl.NumberFormat("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const RATE = new Intl.NumberFormat("en-IN", { maximumFractionDigits: 0 });
 const QTY = new Intl.NumberFormat("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const RATE = new Intl.NumberFormat("en-IN", { maximumFractionDigits: 0 });
 
-function printAmt(v) {
+function fmtAmt(v) {
   return AMT.format(num(v));
 }
-
-function printRate(v) {
+function fmtRate(v) {
   const n = num(v);
   return Number.isInteger(n) || Math.abs(n - Math.round(n)) < 0.001 ? RATE.format(n) : AMT.format(n);
 }
-
-function printBalance(v) {
+function fmtBalance(v) {
   return `₹${AMT.format(num(v))}`;
 }
-
-function printGstPct(v) {
+function fmtGstPct(v) {
   const n = num(v);
   return n > 0 ? n.toFixed(2) : "—";
 }
 
-/** Product cell — matches reference PDF serial layout. */
+/** Premium letterhead header — shared by all three invoice types. */
+function InvoiceHeader({ coName, coGstin, logo, addrLines, coPhone, coWa, settings, docTitle, copyLabel }) {
+  const pan = String(settings.businessPan || "").trim();
+  return (
+    <div className="ips-hdr">
+      <div className="ips-hdr-left">
+        {logo ? <img className="ips-logo" src={logo} alt="" /> : null}
+        <div className="ips-hdr-brand">
+          <div className="ips-co-name-new">{coName}</div>
+          {addrLines.map((l) => (
+            <div key={l} className="ips-co-line-new">
+              {l}
+            </div>
+          ))}
+          {(coPhone || coWa) && (
+            <div className="ips-co-line-new">
+              {[coPhone ? `Tel: ${coPhone}` : null, coWa ? `WhatsApp: ${coWa}` : null]
+                .filter(Boolean)
+                .join("  |  ")}
+            </div>
+          )}
+          {coGstin && (
+            <div className="ips-co-gstin">
+              GSTIN: <strong>{coGstin}</strong>
+            </div>
+          )}
+          {pan && <div className="ips-co-line-new">PAN: {pan}</div>}
+        </div>
+      </div>
+      <div className="ips-hdr-right">
+        <div className="ips-doc-type">{docTitle}</div>
+        {copyLabel && <div className="ips-copy-label">{copyLabel}</div>}
+      </div>
+    </div>
+  );
+}
+
+/** Product description cell with serial numbers. */
 function ProductCell({ line, saleNotes, showNotes }) {
   const batteryLines = String(line.batterySerialNo || "")
     .trim()
@@ -47,35 +81,88 @@ function ProductCell({ line, saleNotes, showNotes }) {
     <div className="ips-prod-cell">
       <div className="ips-prod-name">{line.item || "—"}</div>
       {line.chassisNo ? (
-        <div className="ips-serial-block">
-          <span className="ips-serial-lbl">Chassis No -</span>
-          <span className="ips-serial-val">{line.chassisNo}</span>
+        <div className="ips-serial">
+          Chassis No:&nbsp;<span>{line.chassisNo}</span>
         </div>
       ) : null}
-      {line.motorNo ? <div className="ips-serial-inline">Motor No - {line.motorNo}</div> : null}
+      {line.motorNo ? (
+        <div className="ips-serial">
+          Motor No:&nbsp;<span>{line.motorNo}</span>
+        </div>
+      ) : null}
       {batteryLines.length > 0 ? (
-        <div className="ips-serial-block">
-          <span className="ips-serial-lbl">Battery Serial No -</span>
-          {batteryLines.map((b) => (
-            <span key={b} className="ips-serial-val">
+        <div className="ips-serial">
+          Battery S/No:&nbsp;
+          {batteryLines.map((b, i) => (
+            <span key={i}>
               {b}
+              {i < batteryLines.length - 1 ? ", " : ""}
             </span>
           ))}
         </div>
       ) : null}
-      {showNotes && saleNotes ? <div className="ips-serial-val">{saleNotes}</div> : null}
+      {showNotes && saleNotes ? <div className="ips-serial">{saleNotes}</div> : null}
     </div>
   );
 }
 
+/** GST tax summary panel (right column). */
+function TaxPanel({ gstModel, grandTotal, received, outstanding, isInterState }) {
+  const balance = num(outstanding);
+  return (
+    <table className="ips-txpanel">
+      <tbody>
+        <tr>
+          <td className="ips-tp-lbl">Taxable Amount</td>
+          <td className="ips-tp-amt">{fmtAmt(gstModel.taxableTotal)}</td>
+        </tr>
+        {isInterState ? (
+          <tr>
+            <td className="ips-tp-lbl">Add: IGST</td>
+            <td className="ips-tp-amt">{fmtAmt(gstModel.igst)}</td>
+          </tr>
+        ) : (
+          <>
+            <tr>
+              <td className="ips-tp-lbl">Add: CGST</td>
+              <td className="ips-tp-amt">{fmtAmt(gstModel.cgst)}</td>
+            </tr>
+            <tr>
+              <td className="ips-tp-lbl">Add: SGST / UTGST</td>
+              <td className="ips-tp-amt">{fmtAmt(gstModel.sgst)}</td>
+            </tr>
+          </>
+        )}
+        <tr>
+          <td className="ips-tp-lbl">Total Tax</td>
+          <td className="ips-tp-amt">{fmtAmt(gstModel.totalTax)}</td>
+        </tr>
+        <tr className="ips-tp-grand">
+          <td className="ips-tp-lbl">Grand Total</td>
+          <td className="ips-tp-amt">{fmtAmt(grandTotal)}</td>
+        </tr>
+        <tr>
+          <td className="ips-tp-lbl">Payment Received</td>
+          <td className="ips-tp-amt">{fmtAmt(received)}</td>
+        </tr>
+        <tr className={balance > 0 ? "ips-tp-due" : ""}>
+          <td className="ips-tp-lbl">Balance Due</td>
+          <td className="ips-tp-amt">{fmtBalance(balance)}</td>
+        </tr>
+      </tbody>
+    </table>
+  );
+}
+
+/** Terms & Conditions block. */
 function TermsBlock({ terms }) {
   const text = String(terms || "").trim();
   if (!text) return null;
   const lines = text.split(/\n+/).filter(Boolean);
   return (
-    <div className="ips-notes-block">
-      <div className="ips-notes-title">Terms &amp; Condition</div>
-      <ol className="ips-terms-ol">
+    <div className="ips-notebox ips-notebox--nobordertop">
+      <div className="ips-notebox-hd">Terms &amp; Conditions</div>
+      <ol className="ips-terms-list">
         {lines.map((t, i) => (
           <li key={i}>{t.replace(/^\d+\.\s*/, "")}</li>
         ))}
@@ -84,53 +171,23 @@ function TermsBlock({ terms }) {
   );
 }
 
-function TaxSidePanel({ gstModel, grandTotal, received, outstanding, isInterState }) {
+/** Signature + E&OE footer row. */
+function SigFooter({ signatory }) {
   return (
-    <table className="ips-tax-panel">
-      <tbody>
-        <tr>
-          <td>Taxable Amount</td>
-          <td>{printAmt(gstModel.taxableTotal)}</td>
-        </tr>
-        {isInterState ? (
-          <tr>
-            <td>Add : IGST</td>
-            <td>{printAmt(gstModel.igst)}</td>
-          </tr>
-        ) : (
-          <>
-            <tr>
-              <td>Add : CGST</td>
-              <td>{printAmt(gstModel.cgst)}</td>
-            </tr>
-            <tr>
-              <td>Add : SGST</td>
-              <td>{printAmt(gstModel.sgst)}</td>
-            </tr>
-          </>
-        )}
-        <tr>
-          <td>Total Tax</td>
-          <td>{printAmt(gstModel.totalTax)}</td>
-        </tr>
-        <tr className="ips-tax-panel-grand">
-          <td>Total Amount After Tax</td>
-          <td>{printAmt(grandTotal)}</td>
-        </tr>
-        <tr>
-          <td>Payment Received</td>
-          <td>{printAmt(received)}</td>
-        </tr>
-        <tr>
-          <td>Balance</td>
-          <td>{printBalance(outstanding)}</td>
-        </tr>
-      </tbody>
-    </table>
+    <div className="ips-sig-row">
+      <div className="ips-sig-eoe">
+        (E &amp; O.E.) — Certified that the particulars given above are true and correct.
+      </div>
+      <div className="ips-sig-block">
+        {signatory ? <div className="ips-sig-name">{signatory}</div> : null}
+        <div className="ips-sig-space" />
+        <div className="ips-sig-line" />
+        <div className="ips-sig-label">Authorised Signatory</div>
+      </div>
+    </div>
   );
 }
 
-/** GST tax invoice — layout matched to uploaded BPH reference PDF. */
 export function InvoicePrintSheet({ sale, settings = {} }) {
   const isBos = sale?.docType === "billOfSupply";
   const coName = String(settings.businessName || "").trim() || "Invoice";
@@ -174,6 +231,7 @@ export function InvoicePrintSheet({ sale, settings = {} }) {
     saleHasGstData(sale, settings) &&
     !!coGstin &&
     gstModel.hasGst;
+
   const customerGstin = String(sale?.customerGstin || "").trim();
   const pos =
     placeOfSupplyLabel(sale?.customerState, gstStateCode(sale?.customerState)) ||
@@ -184,53 +242,49 @@ export function InvoicePrintSheet({ sale, settings = {} }) {
   const grandTotal = showGst ? gstModel.grandTotal : num(sale?.totalSale);
   const totalQty = gstModel.lines.reduce((s, l) => s + l.qty, 0);
 
-  /* —— Bill of Supply (minimal) —— */
+  const headerProps = { coName, coGstin, logo, addrLines, coPhone, coWa, settings, copyLabel };
+
+  /* ─────────────────────────── Bill of Supply ─────────────────────────── */
   if (isBos) {
     return (
       <div className="invoice-print-sheet invoice-print-sheet--bos">
-        <header className="ips-head ips-head--bos">
-          <div className="ips-brand">
-            {logo ? <img className="ips-logo" src={logo} alt="" /> : null}
-            <h1 className="ips-co-name">{coName}</h1>
-            {addrLines.map((l) => (
-              <p key={l} className="ips-co-line">
-                {l}
-              </p>
-            ))}
-            {(coPhone || coWa) && (
-              <p className="ips-co-line">
-                {[coPhone ? `Tel: ${coPhone}` : null, coWa ? `WhatsApp: ${coWa}` : null]
-                  .filter(Boolean)
-                  .join(" · ")}
-              </p>
-            )}
+        <InvoiceHeader {...headerProps} docTitle="BILL OF SUPPLY" />
+        <div className="ips-divider" />
+
+        <div className="ips-meta-2col">
+          <div className="ips-billto">
+            <div className="ips-section-lbl">Bill To</div>
+            <div className="ips-cust-name">{sale?.customerName || "—"}</div>
+            {hasSaleAddress(sale) ? (
+              <div className="ips-cust-addr">{saleAddressLines(sale).join(", ")}</div>
+            ) : null}
           </div>
-          <div className="ips-doc-title">
-            <h2>BILL OF SUPPLY</h2>
+          <div className="ips-invmeta">
+            <table className="ips-det-tbl">
+              <tbody>
+                <tr>
+                  <th>Document No.</th>
+                  <td>
+                    <strong>{sale?.invoiceNo || "—"}</strong>
+                  </td>
+                </tr>
+                <tr>
+                  <th>Date</th>
+                  <td>{dateSlash(sale?.date)}</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
-        </header>
-        <table className="ips-bos-meta">
-          <tbody>
-            <tr>
-              <th>Customer</th>
-              <td>{sale?.customerName || "—"}</td>
-              <th>Document no.</th>
-              <td>{sale?.invoiceNo || "—"}</td>
-            </tr>
-            <tr>
-              <th>Date</th>
-              <td colSpan={3}>{dateSlash(sale?.date)}</td>
-            </tr>
-          </tbody>
-        </table>
-        <table className="ips-table ips-table--simple">
+        </div>
+
+        <table className="ips-itm">
           <thead>
             <tr>
-              <th>Sr.</th>
-              <th>Description</th>
-              <th>Qty</th>
-              <th>Rate (₹)</th>
-              <th>Amount (₹)</th>
+              <th className="ips-c-sno">Sr.</th>
+              <th className="ips-c-desc">Description of Goods / Services</th>
+              <th className="ips-c-qty">Qty</th>
+              <th className="ips-c-rate">Rate (₹)</th>
+              <th className="ips-c-amt">Amount (₹)</th>
             </tr>
           </thead>
           <tbody>
@@ -240,120 +294,156 @@ export function InvoicePrintSheet({ sale, settings = {} }) {
                 <td>
                   <ProductCell line={li} saleNotes="" showNotes={false} />
                 </td>
-                <td className="tr">{num(li.qty)}</td>
-                <td className="tr">{printAmt(li.salePrice)}</td>
-                <td className="tr">{printAmt(num(li.qty) * num(li.salePrice))}</td>
+                <td className="tr">{QTY.format(num(li.qty))}</td>
+                <td className="tr">{fmtAmt(li.salePrice)}</td>
+                <td className="tr">{fmtAmt(num(li.qty) * num(li.salePrice))}</td>
               </tr>
             ))}
           </tbody>
         </table>
-        <table className="ips-tax-panel ips-tax-panel--bos">
-          <tbody>
-            <tr className="ips-tax-panel-grand">
-              <td>Total</td>
-              <td>{printAmt(sale?.totalSale)}</td>
-            </tr>
-            <tr>
-              <td>Payment received</td>
-              <td>{printAmt(received)}</td>
-            </tr>
-            <tr>
-              <td>Balance</td>
-              <td>{printBalance(outstanding)}</td>
-            </tr>
-          </tbody>
-        </table>
-        <p className="ips-bos-thanks">Thank you for your business.</p>
+
+        <div className="ips-floor">
+          <div className="ips-floor-l">
+            <div className="ips-words">
+              <span className="ips-words-lbl">Amount in Words:</span>
+              <span className="ips-words-val">&nbsp;{amountInWordsInr(num(sale?.totalSale))}</span>
+            </div>
+            {(notes || saleNotes) ? (
+              <div className="ips-notebox ips-notebox--nobordertop">
+                <div className="ips-notebox-hd">Notes</div>
+                <div className="ips-notebox-body">{notes || saleNotes}</div>
+              </div>
+            ) : null}
+            <TermsBlock terms={terms} />
+          </div>
+          <div className="ips-floor-r">
+            <table className="ips-simpletot">
+              <tbody>
+                <tr className="ips-st-grand">
+                  <td>Total</td>
+                  <td className="tr">{fmtAmt(sale?.totalSale)}</td>
+                </tr>
+                <tr>
+                  <td>Payment Received</td>
+                  <td className="tr">{fmtAmt(received)}</td>
+                </tr>
+                <tr className={num(outstanding) > 0 ? "ips-st-due" : ""}>
+                  <td>Balance Due</td>
+                  <td className="tr">{fmtBalance(outstanding)}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <SigFooter signatory={signatory} />
       </div>
     );
   }
 
-  /* —— GST Tax Invoice (reference layout) —— */
+  /* ──────────────────────────── GST Tax Invoice ───────────────────────── */
   if (showGst) {
     return (
-      <div className="invoice-print-sheet invoice-print-sheet--gst-ref">
-        <table className="ips-ref-top">
-          <tbody>
-            <tr>
-              <td className="ips-ref-top-gstin">GSTIN : {coGstin}</td>
-              <td className="ips-ref-top-title">TAX INVOICE</td>
-              <td className="ips-ref-top-copy">{copyLabel}</td>
-            </tr>
-          </tbody>
-        </table>
+      <div className="invoice-print-sheet invoice-print-sheet--gst">
+        <InvoiceHeader {...headerProps} docTitle="TAX INVOICE" />
+        <div className="ips-divider" />
 
-        <table className="ips-ref-customer">
+        {/* Customer block + Invoice meta (two-column) */}
+        <div className="ips-meta-2col">
+          <div className="ips-billto">
+            <div className="ips-section-lbl">Bill To</div>
+            <div className="ips-cust-name">{sale?.customerName || "—"}</div>
+            {hasSaleAddress(sale) ? (
+              <div className="ips-cust-addr">{saleAddressLines(sale).join(", ")}</div>
+            ) : null}
+            {customerGstin ? (
+              <div className="ips-cust-gstin">
+                GSTIN:&nbsp;<strong>{customerGstin}</strong>
+              </div>
+            ) : null}
+            {pos ? <div className="ips-cust-pos">Place of Supply:&nbsp;{pos}</div> : null}
+          </div>
+          <div className="ips-invmeta">
+            <table className="ips-det-tbl">
+              <tbody>
+                <tr>
+                  <th>Invoice No.</th>
+                  <td>
+                    <strong>{sale?.invoiceNo || "—"}</strong>
+                  </td>
+                </tr>
+                <tr>
+                  <th>Invoice Date</th>
+                  <td>{dateSlash(sale?.date)}</td>
+                </tr>
+                {sale?.dueDate ? (
+                  <tr>
+                    <th>Due Date</th>
+                    <td>{dateSlash(sale.dueDate)}</td>
+                  </tr>
+                ) : null}
+                <tr>
+                  <th>Reverse Charge</th>
+                  <td>{reverseCharge ? "Yes" : "No"}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Line items table */}
+        <table className="ips-itm ips-itm--gst">
           <thead>
             <tr>
-              <th colSpan={4} className="ips-ref-section-hd">
-                Customer Detail
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td className="ips-ref-lbl">Name</td>
-              <td colSpan={3}>{sale?.customerName || "—"}</td>
-            </tr>
-            <tr>
-              <td className="ips-ref-lbl">Address</td>
-              <td colSpan={3}>
-                {hasSaleAddress(sale) ? saleAddressLines(sale).join(", ") : "—"}
-              </td>
-            </tr>
-            <tr>
-              <td className="ips-ref-lbl">GSTIN</td>
-              <td colSpan={3}>{customerGstin || "-"}</td>
-            </tr>
-            <tr>
-              <td className="ips-ref-lbl">Place of Supply</td>
-              <td colSpan={3}>{pos || "—"}</td>
-            </tr>
-            <tr>
-              <td className="ips-ref-lbl">Invoice No.</td>
-              <td>{sale?.invoiceNo || "—"}</td>
-              <td className="ips-ref-lbl">Invoice Date</td>
-              <td>{dateSlash(sale?.date)}</td>
-            </tr>
-            <tr>
-              <td className="ips-ref-lbl">Reverse Charge</td>
-              <td colSpan={3}>{reverseCharge ? "Yes" : "No"}</td>
-            </tr>
-          </tbody>
-        </table>
-
-        <table className="ips-ref-lines">
-          <thead>
-            <tr>
-              <th rowSpan={2} className="ips-ref-sno">
+              <th rowSpan={2} className="ips-c-sno">
                 Sr.
+              </th>
+              <th rowSpan={2} className="ips-c-desc">
+                Description of Goods / Services
+              </th>
+              <th rowSpan={2} className="ips-c-hsn">
+                HSN /
                 <br />
-                No.
+                SAC
               </th>
-              <th rowSpan={2} className="ips-ref-desc">
-                Name of Product / Service
+              <th rowSpan={2} className="ips-c-qty">
+                Qty
               </th>
-              <th rowSpan={2}>HSN / SAC</th>
-              <th rowSpan={2}>Qty</th>
-              <th rowSpan={2}>Rate</th>
-              <th rowSpan={2}>Taxable Value</th>
+              <th rowSpan={2} className="ips-c-rate">
+                Rate
+                <br />
+                (₹)
+              </th>
+              <th rowSpan={2} className="ips-c-tx">
+                Taxable
+                <br />
+                Value
+              </th>
               {gstModel.isInterState ? (
-                <th colSpan={2}>IGST</th>
+                <th colSpan={2} className="ips-c-taxgrp">
+                  IGST
+                </th>
               ) : (
                 <>
-                  <th colSpan={2}>CGST</th>
-                  <th colSpan={2}>SGST</th>
+                  <th colSpan={2} className="ips-c-taxgrp">
+                    CGST
+                  </th>
+                  <th colSpan={2} className="ips-c-taxgrp">
+                    SGST / UTGST
+                  </th>
                 </>
               )}
-              <th rowSpan={2}>Total</th>
+              <th rowSpan={2} className="ips-c-tot">
+                Total (₹)
+              </th>
             </tr>
             <tr>
-              <th>%</th>
-              <th>Amount</th>
+              <th className="ips-c-taxpct">%</th>
+              <th className="ips-c-taxamt">₹</th>
               {gstModel.isInterState ? null : (
                 <>
-                  <th>%</th>
-                  <th>Amount</th>
+                  <th className="ips-c-taxpct">%</th>
+                  <th className="ips-c-taxamt">₹</th>
                 </>
               )}
             </tr>
@@ -362,146 +452,171 @@ export function InvoicePrintSheet({ sale, settings = {} }) {
             {gstModel.lines.map((li) => (
               <tr key={li.id || li.index}>
                 <td className="tc">{li.index}</td>
-                <td className="ips-ref-desc">
+                <td>
                   <ProductCell line={li} saleNotes={saleNotes} showNotes={li.index === 1} />
                 </td>
                 <td className="tc">{li.hsn || "—"}</td>
-                <td className="tr">{QTY.format(li.qty)} NOS</td>
-                <td className="tr">{printRate(li.qty > 0 ? li.taxable / li.qty : 0)}</td>
-                <td className="tr">{printAmt(li.taxable)}</td>
+                <td className="tr">{QTY.format(li.qty)}</td>
+                <td className="tr">{fmtRate(li.qty > 0 ? li.taxable / li.qty : 0)}</td>
+                <td className="tr">{fmtAmt(li.taxable)}</td>
                 {gstModel.isInterState ? (
                   <>
-                    <td className="tr">{printGstPct(li.igstRate)}</td>
-                    <td className="tr">{li.igst > 0 ? printAmt(li.igst) : "—"}</td>
+                    <td className="tc">{fmtGstPct(li.igstRate)}</td>
+                    <td className="tr">{li.igst > 0 ? fmtAmt(li.igst) : "—"}</td>
                   </>
                 ) : (
                   <>
-                    <td className="tr">{printGstPct(li.cgstRate)}</td>
-                    <td className="tr">{li.cgst > 0 ? printAmt(li.cgst) : "—"}</td>
-                    <td className="tr">{printGstPct(li.sgstRate)}</td>
-                    <td className="tr">{li.sgst > 0 ? printAmt(li.sgst) : "—"}</td>
+                    <td className="tc">{fmtGstPct(li.cgstRate)}</td>
+                    <td className="tr">{li.cgst > 0 ? fmtAmt(li.cgst) : "—"}</td>
+                    <td className="tc">{fmtGstPct(li.sgstRate)}</td>
+                    <td className="tr">{li.sgst > 0 ? fmtAmt(li.sgst) : "—"}</td>
                   </>
                 )}
-                <td className="tr">{printAmt(li.lineTotal)}</td>
+                <td className="tr">
+                  <strong>{fmtAmt(li.lineTotal)}</strong>
+                </td>
               </tr>
             ))}
-            <tr className="ips-ref-total-row">
+            <tr className="ips-itm-tot">
               <td colSpan={3} className="tl">
                 <strong>Total</strong>
               </td>
-              <td className="tr">{QTY.format(totalQty)} NOS</td>
+              <td className="tr">
+                <strong>{QTY.format(totalQty)}</strong>
+              </td>
               <td />
-              <td className="tr">{printAmt(gstModel.taxableTotal)}</td>
+              <td className="tr">
+                <strong>{fmtAmt(gstModel.taxableTotal)}</strong>
+              </td>
               {gstModel.isInterState ? (
                 <>
                   <td />
-                  <td className="tr">{printAmt(gstModel.igst)}</td>
+                  <td className="tr">
+                    <strong>{fmtAmt(gstModel.igst)}</strong>
+                  </td>
                 </>
               ) : (
                 <>
                   <td />
-                  <td className="tr">{printAmt(gstModel.cgst)}</td>
+                  <td className="tr">
+                    <strong>{fmtAmt(gstModel.cgst)}</strong>
+                  </td>
                   <td />
-                  <td className="tr">{printAmt(gstModel.sgst)}</td>
+                  <td className="tr">
+                    <strong>{fmtAmt(gstModel.sgst)}</strong>
+                  </td>
                 </>
               )}
-              <td className="tr">{printAmt(grandTotal)}</td>
+              <td className="tr">
+                <strong>{fmtAmt(grandTotal)}</strong>
+              </td>
             </tr>
           </tbody>
         </table>
 
-        <div className="ips-ref-bottom">
-          <div className="ips-ref-bottom-left">
-            <table className="ips-ref-hsn">
+        {/* Bottom section: HSN + words + notes (left) | Tax panel (right) */}
+        <div className="ips-floor">
+          <div className="ips-floor-l">
+            <table className="ips-hsn">
               <thead>
                 <tr>
-                  <th>HSN / SAC</th>
-                  <th>Taxable Value</th>
-                  {gstModel.isInterState ? (
-                    <th colSpan={2}>IGST</th>
-                  ) : (
-                    <>
-                      <th colSpan={2}>CGST</th>
-                      <th colSpan={2}>SGST</th>
-                    </>
-                  )}
-                  <th>Total</th>
+                  <th
+                    colSpan={gstModel.isInterState ? 5 : 7}
+                    className="tl ips-hsn-title"
+                  >
+                    HSN / SAC Summary
+                  </th>
                 </tr>
                 <tr>
-                  <th />
-                  <th />
-                  <th>%</th>
-                  <th>Amount</th>
-                  {gstModel.isInterState ? null : (
+                  <th>HSN / SAC</th>
+                  <th className="tr">Taxable Value</th>
+                  {gstModel.isInterState ? (
                     <>
-                      <th>%</th>
-                      <th>Amount</th>
+                      <th className="tc">IGST %</th>
+                      <th className="tr">IGST ₹</th>
+                    </>
+                  ) : (
+                    <>
+                      <th className="tc">CGST %</th>
+                      <th className="tr">CGST ₹</th>
+                      <th className="tc">SGST %</th>
+                      <th className="tr">SGST ₹</th>
                     </>
                   )}
-                  <th />
+                  <th className="tr">Total Tax</th>
                 </tr>
               </thead>
               <tbody>
                 {gstModel.hsnSummary.map((row) => (
                   <tr key={`${row.hsn}-${row.gstRate}`}>
                     <td>{row.hsn}</td>
-                    <td className="tr">{printAmt(row.taxable)}</td>
+                    <td className="tr">{fmtAmt(row.taxable)}</td>
                     {gstModel.isInterState ? (
                       <>
-                        <td className="tr">{printGstPct(row.igstRate || row.gstRate)}</td>
-                        <td className="tr">{printAmt(row.igst)}</td>
+                        <td className="tc">{fmtGstPct(row.igstRate || row.gstRate)}</td>
+                        <td className="tr">{fmtAmt(row.igst)}</td>
                       </>
                     ) : (
                       <>
-                        <td className="tr">{printGstPct(row.cgstRate)}</td>
-                        <td className="tr">{printAmt(row.cgst)}</td>
-                        <td className="tr">{printGstPct(row.sgstRate)}</td>
-                        <td className="tr">{printAmt(row.sgst)}</td>
+                        <td className="tc">{fmtGstPct(row.cgstRate)}</td>
+                        <td className="tr">{fmtAmt(row.cgst)}</td>
+                        <td className="tc">{fmtGstPct(row.sgstRate)}</td>
+                        <td className="tr">{fmtAmt(row.sgst)}</td>
                       </>
                     )}
-                    <td className="tr">{printAmt(row.cgst + row.sgst + row.igst)}</td>
+                    <td className="tr">{fmtAmt(row.cgst + row.sgst + row.igst)}</td>
                   </tr>
                 ))}
-                <tr className="ips-ref-total-row">
-                  <td className="tl">
+                <tr className="ips-hsn-tot">
+                  <td>
                     <strong>Total</strong>
                   </td>
-                  <td className="tr">{printAmt(gstModel.taxableTotal)}</td>
+                  <td className="tr">
+                    <strong>{fmtAmt(gstModel.taxableTotal)}</strong>
+                  </td>
                   {gstModel.isInterState ? (
                     <>
                       <td />
-                      <td className="tr">{printAmt(gstModel.igst)}</td>
+                      <td className="tr">
+                        <strong>{fmtAmt(gstModel.igst)}</strong>
+                      </td>
                     </>
                   ) : (
                     <>
                       <td />
-                      <td className="tr">{printAmt(gstModel.cgst)}</td>
+                      <td className="tr">
+                        <strong>{fmtAmt(gstModel.cgst)}</strong>
+                      </td>
                       <td />
-                      <td className="tr">{printAmt(gstModel.sgst)}</td>
+                      <td className="tr">
+                        <strong>{fmtAmt(gstModel.sgst)}</strong>
+                      </td>
                     </>
                   )}
-                  <td className="tr">{printAmt(gstModel.totalTax)}</td>
+                  <td className="tr">
+                    <strong>{fmtAmt(gstModel.totalTax)}</strong>
+                  </td>
                 </tr>
               </tbody>
             </table>
 
-            <div className="ips-ref-words">
-              <div className="ips-ref-words-lbl">Total in words</div>
-              <div className="ips-ref-words-val">{amountInWordsInr(grandTotal)}</div>
+            <div className="ips-words">
+              <span className="ips-words-lbl">Amount in Words:</span>
+              <span className="ips-words-val">&nbsp;{amountInWordsInr(grandTotal)}</span>
             </div>
 
-            {(notes || saleNotes) && (
-              <div className="ips-notes-block">
-                <div className="ips-notes-title">Notes</div>
-                <div className="ips-notes-body">{notes || saleNotes}</div>
+            {(notes || saleNotes) ? (
+              <div className="ips-notebox ips-notebox--nobordertop">
+                <div className="ips-notebox-hd">Notes</div>
+                <div className="ips-notebox-body">{notes || saleNotes}</div>
               </div>
-            )}
+            ) : null}
 
             <TermsBlock terms={terms} />
           </div>
 
-          <div className="ips-ref-bottom-right">
-            <TaxSidePanel
+          <div className="ips-floor-r">
+            <TaxPanel
               gstModel={gstModel}
               grandTotal={grandTotal}
               received={received}
@@ -511,67 +626,51 @@ export function InvoicePrintSheet({ sale, settings = {} }) {
           </div>
         </div>
 
-        <div className="ips-ref-footer">
-          <span className="ips-ref-eoe">(E &amp; O.E.)</span>
-          <span className="ips-ref-cert">
-            Certified that the particulars given above are true and correct.
-          </span>
-          <div className="ips-ref-sign">
-            {signatory ? <div className="ips-ref-sign-for">{signatory}</div> : null}
-            <div>Authorised Signatory</div>
-          </div>
-        </div>
+        <SigFooter signatory={signatory} />
       </div>
     );
   }
 
-  /* —— Fallback simple invoice (no GST data) —— */
+  /* ───────────────────── Simple Invoice (no GST data) ────────────────── */
   return (
-    <div className="invoice-print-sheet">
-      <table className="ips-ref-top">
-        <tbody>
-          <tr>
-            <td className="ips-ref-top-gstin">{coGstin ? `GSTIN : ${coGstin}` : coName}</td>
-            <td className="ips-ref-top-title">INVOICE</td>
-            <td className="ips-ref-top-copy">{copyLabel}</td>
-          </tr>
-        </tbody>
-      </table>
-      <table className="ips-ref-customer">
-        <thead>
-          <tr>
-            <th colSpan={4} className="ips-ref-section-hd">
-              Customer Detail
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td className="ips-ref-lbl">Name</td>
-            <td colSpan={3}>{sale?.customerName || "—"}</td>
-          </tr>
+    <div className="invoice-print-sheet invoice-print-sheet--simple">
+      <InvoiceHeader {...headerProps} docTitle="INVOICE" />
+      <div className="ips-divider" />
+
+      <div className="ips-meta-2col">
+        <div className="ips-billto">
+          <div className="ips-section-lbl">Bill To</div>
+          <div className="ips-cust-name">{sale?.customerName || "—"}</div>
           {hasSaleAddress(sale) ? (
-            <tr>
-              <td className="ips-ref-lbl">Address</td>
-              <td colSpan={3}>{saleAddressLines(sale).join(", ")}</td>
-            </tr>
+            <div className="ips-cust-addr">{saleAddressLines(sale).join(", ")}</div>
           ) : null}
-          <tr>
-            <td className="ips-ref-lbl">Invoice No.</td>
-            <td>{sale?.invoiceNo || "—"}</td>
-            <td className="ips-ref-lbl">Invoice Date</td>
-            <td>{dateSlash(sale?.date)}</td>
-          </tr>
-        </tbody>
-      </table>
-      <table className="ips-ref-lines">
+        </div>
+        <div className="ips-invmeta">
+          <table className="ips-det-tbl">
+            <tbody>
+              <tr>
+                <th>Invoice No.</th>
+                <td>
+                  <strong>{sale?.invoiceNo || "—"}</strong>
+                </td>
+              </tr>
+              <tr>
+                <th>Invoice Date</th>
+                <td>{dateSlash(sale?.date)}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <table className="ips-itm">
         <thead>
           <tr>
-            <th>Sr. No.</th>
-            <th>Description</th>
-            <th>Qty</th>
-            <th>Rate</th>
-            <th>Amount</th>
+            <th className="ips-c-sno">Sr.</th>
+            <th className="ips-c-desc">Description of Goods / Services</th>
+            <th className="ips-c-qty">Qty</th>
+            <th className="ips-c-rate">Rate (₹)</th>
+            <th className="ips-c-amt">Amount (₹)</th>
           </tr>
         </thead>
         <tbody>
@@ -582,30 +681,48 @@ export function InvoicePrintSheet({ sale, settings = {} }) {
                 <ProductCell line={li} saleNotes={saleNotes} showNotes={idx === 0} />
               </td>
               <td className="tr">{QTY.format(num(li.qty))}</td>
-              <td className="tr">{printAmt(li.salePrice)}</td>
-              <td className="tr">{printAmt(num(li.qty) * num(li.salePrice))}</td>
+              <td className="tr">{fmtAmt(li.salePrice)}</td>
+              <td className="tr">{fmtAmt(num(li.qty) * num(li.salePrice))}</td>
             </tr>
           ))}
         </tbody>
       </table>
-      <div className="ips-ref-bottom-right ips-ref-bottom-right--solo">
-        <table className="ips-tax-panel">
-          <tbody>
-            <tr className="ips-tax-panel-grand">
-              <td>Total</td>
-              <td>{printAmt(sale?.totalSale)}</td>
-            </tr>
-            <tr>
-              <td>Payment Received</td>
-              <td>{printAmt(received)}</td>
-            </tr>
-            <tr>
-              <td>Balance</td>
-              <td>{printBalance(outstanding)}</td>
-            </tr>
-          </tbody>
-        </table>
+
+      <div className="ips-floor">
+        <div className="ips-floor-l">
+          <div className="ips-words">
+            <span className="ips-words-lbl">Amount in Words:</span>
+            <span className="ips-words-val">&nbsp;{amountInWordsInr(num(sale?.totalSale))}</span>
+          </div>
+          {(notes || saleNotes) ? (
+            <div className="ips-notebox ips-notebox--nobordertop">
+              <div className="ips-notebox-hd">Notes</div>
+              <div className="ips-notebox-body">{notes || saleNotes}</div>
+            </div>
+          ) : null}
+          <TermsBlock terms={terms} />
+        </div>
+        <div className="ips-floor-r">
+          <table className="ips-simpletot">
+            <tbody>
+              <tr className="ips-st-grand">
+                <td>Total Amount</td>
+                <td className="tr">{fmtAmt(sale?.totalSale)}</td>
+              </tr>
+              <tr>
+                <td>Payment Received</td>
+                <td className="tr">{fmtAmt(received)}</td>
+              </tr>
+              <tr className={num(outstanding) > 0 ? "ips-st-due" : ""}>
+                <td>Balance Due</td>
+                <td className="tr">{fmtBalance(outstanding)}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
+
+      <SigFooter signatory={signatory} />
     </div>
   );
 }

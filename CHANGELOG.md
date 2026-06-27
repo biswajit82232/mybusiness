@@ -2,6 +2,24 @@
 
 All notable changes are tracked here. The Settings screen shows **Version** from `package.json`.
 
+## [8.1.0] — 2026-06-27
+
+### Features
+- **Premium Invoice PDFs** — Complete redesign of all three invoice layouts (GST Tax Invoice, Bill of Supply, Simple Invoice) to a professional Tally/Zoho Books–style black-and-white letterhead format:
+  - **Logo on every layout** — business logo now appears in the letterhead header of all invoice types, not just Bill of Supply.
+  - **Premium letterhead header** — company name (large bold), address, phone, WhatsApp, GSTIN, and PAN displayed cleanly on the left; "TAX INVOICE" / "BILL OF SUPPLY" / "INVOICE" in a bold bordered badge on the right with the copy label (Original/Duplicate/Triplicate) below.
+  - **Two-column Bill To block** — "Bill To" (customer name, address, GSTIN, Place of Supply) on the left, Invoice No. / Date / Due Date / Reverse Charge on the right in a structured table.
+  - **GST line-items table** — dark black header row (white text), alternating light-gray body rows, dark totals row; columns: Sr., Description, HSN/SAC, Qty, Rate, Taxable Value, CGST %, CGST ₹, SGST/UTGST %, SGST ₹ (or IGST for inter-state), Total.
+  - **HSN/SAC Summary table** — aggregated by HSN/rate with per-column tax breakdown and a bold totals row.
+  - **Amount in Words** — Indian numbering (crore/lakh) in uppercase, in a bordered band below HSN summary.
+  - **Tax summary panel** — right-column table: Taxable Amount → CGST/SGST (or IGST) → Total Tax → **Grand Total** (dark inverted row) → Payment Received → Balance Due.
+  - **Signature footer** — E&OE disclaimer (italic) left, "For COMPANY NAME" + signature line + "Authorised Signatory" right.
+  - Full Indian GST law compliance: GSTIN of supplier, place of supply, reverse-charge field, HSN/SAC per line, CGST/SGST/IGST split, invoice copy label.
+
+App version **8.1.0**; service worker cache **v111**.
+
+---
+
 ## [8.0.11] — 2026-06-27
 
 ### Improvements
