@@ -17,7 +17,6 @@ export function useSessionHistoryNav({
   selBankAccountId,
   selPurchaseId,
   selOtherIncomeId,
-  selLoanGivenId,
   setPage,
   setScreen,
   setDelConfirm,
@@ -50,7 +49,6 @@ export function useSessionHistoryNav({
       selBankAccountId,
       selPurchaseId,
       selOtherIncomeId,
-      selLoanGivenId,
     });
     if (handlingPopRef.current) {
       handlingPopRef.current = false;
@@ -61,7 +59,7 @@ export function useSessionHistoryNav({
     if (prev.page === page && prev.screen === screen) return;
     window.history.pushState({ mb: true, page, screen }, "");
     navSnapshotRef.current = { page, screen };
-  }, [page, screen, selSaleId, selExpenseId, selExpenseCategory, selCustomerName, selVendorName, selEmiId, selBankAccountId, selPurchaseId, selOtherIncomeId, selLoanGivenId]);
+  }, [page, screen, selSaleId, selExpenseId, selExpenseCategory, selCustomerName, selVendorName, selEmiId, selBankAccountId, selPurchaseId, selOtherIncomeId]);
 
   useEffect(() => {
     const onPop = (e) => {

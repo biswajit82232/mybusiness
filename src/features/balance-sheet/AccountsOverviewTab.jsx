@@ -1,5 +1,17 @@
-import { dateSlash, moneyFull, num, todayStr, bankAccountCountsInBalanceSheet } from "@/domain/index.js";
-import { IcChevD } from "@/shared/ui/icons/AppIcons.jsx";
+import { useMemo, useState } from "react";
+import {
+  addDaysStr,
+  bankAccountCountsInBalanceSheet,
+  computeBalanceSheetSummary,
+  computeFixedAssetDepreciation,
+  dateHuman,
+  dateSlash,
+  isGstEnabled,
+  moneyFull,
+  num,
+  todayStr,
+} from "@/domain/index.js";
+import { IcCalDay, IcChevD, IcChevL, IcChevR } from "@/shared/ui/icons/AppIcons.jsx";
 import { Field, BsRow, TabPageChrome } from "@/shared/ui/layout/AppChrome.jsx";
 
 function hasAmount(value) {
@@ -30,12 +42,27 @@ function BsLineGroup({ title, hint, total, children, defaultOpen = false }) {
   );
 }
 
-export function AccountsOverviewTab({ state, balSum, saveOtherBalance, onOpenSidebar }) {
+export function AccountsOverviewTab({ state, saveOtherBalance, onOpenSidebar }) {
+  const [asOfDate, setAsOfDate] = useState(() => todayStr());
   const balance = state.balance || {};
   const bankAccounts = balance.bankAccounts || [];
   const bankAccountsOnSheet = bankAccounts.filter(bankAccountCountsInBalanceSheet);
   const fixedAssetAccounts = balance.fixedAssetAccounts || [];
   const loanSchedule = balance.loanSchedule || [];
+
+  const balSum = useMemo(
+    () =>
+      computeBalanceSheetSummary({
+        sales: state.sales,
+        purchases: state.purchases,
+        inventoryEntries: state.inventoryEntries,
+        balance: state.balance,
+        settings: state.settings,
+        asOfDate,
+      }),
+    [state.sales, state.purchases, state.inventoryEntries, state.balance, state.settings, asOfDate],
+  );
+
   const retainedOps = num(balSum.netCapital) - num(balance.ownerCapitalInvested);
   const hasLoanSchedule = loanSchedule.length > 0;
   const branchStock = (balSum.inventoryByBranch || []).filter((b) => hasAmount(b.stockValue));
@@ -43,18 +70,63 @@ export function AccountsOverviewTab({ state, balSum, saveOtherBalance, onOpenSid
   const loansLiabManual = hasLoanSchedule
     ? loanSchedule.reduce((s, ln) => s + num(ln?.balance), 0)
     : num(balance.loans);
+  const today = todayStr();
+  const canGoNext = asOfDate < today;
+  const asOfLabel = balSum.isLive ? "Today" : dateHuman(asOfDate);
 
   return (
     <TabPageChrome title="Balance sheet" onOpenSidebar={onOpenSidebar} className="tab-page--split-scroll tab-page--balance-sheet">
       <div className="nw-live-strip bs-live-strip">
-        <span className="nw-live-dot" aria-hidden="true" />
-        <span className="nw-live-text">Snapshot from your books</span>
-        <span className="nw-live-date">{dateSlash(todayStr())}</span>
+        <div className="bs-live-status">
+          <span className={`nw-live-dot${balSum.isLive ? "" : " nw-live-dot--hist"}`} aria-hidden="true" />
+          <span className="bs-live-label">{balSum.isLive ? "Live snapshot" : "Historical"}</span>
+        </div>
+        <div className="bs-as-of-row">
+          <span className="bs-as-of-lbl">As of</span>
+          <div className="month-filter-compact bs-as-of-filter" role="group" aria-label="Balance sheet as-of date">
+            <button
+              type="button"
+              className="month-nav-btn"
+              onClick={() => setAsOfDate(addDaysStr(asOfDate, -1))}
+              aria-label="Previous day"
+            >
+              <IcChevL />
+            </button>
+            <div className="month-filter-chip">
+              <span className="month-filter-chip-ic" aria-hidden="true">
+                <IcCalDay />
+              </span>
+              <span className="month-filter-chip-txt">{asOfLabel}</span>
+              <input
+                type="date"
+                className="month-input-overlay"
+                value={asOfDate}
+                max={today}
+                onChange={(e) => setAsOfDate(String(e.target.value || today).slice(0, 10))}
+                aria-label="Choose as-of date"
+              />
+            </div>
+            <button
+              type="button"
+              className="month-nav-btn"
+              onClick={() => canGoNext && setAsOfDate(addDaysStr(asOfDate, 1))}
+              disabled={!canGoNext}
+              aria-label="Next day"
+            >
+              <IcChevR />
+            </button>
+          </div>
+        </div>
       </div>
 
       <div className="bs-hdr-card bs-hdr-card--sheet-top">
         <p className="bs-co">{state.settings.businessName || "Business"}</p>
-        <p className="bs-doc">Balance sheet · {dateSlash(todayStr())}</p>
+        <p className="bs-doc">Balance sheet · {dateSlash(asOfDate)}</p>
+        {!balSum.isLive ? (
+          <p className="bs-historical-note">
+            Banks: current book · receivables, stock, GST &amp; assets: this date
+          </p>
+        ) : null}
       </div>
 
       <div className="banking-summary bs-summary-strip" aria-label="Balance sheet totals">
@@ -73,6 +145,29 @@ export function AccountsOverviewTab({ state, balSum, saveOtherBalance, onOpenSid
           <span className="banking-sum-val">{moneyFull(balSum.netCapital)}</span>
           <span className="banking-sum-meta">Net worth / equity</span>
         </div>
+      </div>
+
+      <div
+        className={`bs-equation-strip${balSum.equationBalanced ? " bs-equation-strip--ok" : " bs-equation-strip--warn"}`}
+        role="status"
+        aria-label={
+          balSum.equationBalanced
+            ? "Balance sheet equation verified"
+            : `Balance sheet equation off by ${moneyFull(Math.abs(balSum.equationDelta))}`
+        }
+      >
+        <span className="bs-equation-lbl">Assets = Liabilities + Equity</span>
+        <span className="bs-equation-val">
+          {balSum.equationBalanced
+            ? "Balanced"
+            : `Off by ${moneyFull(Math.abs(balSum.equationDelta))}`}
+        </span>
+        {balSum.currentRatio != null && balSum.totalLiab > 0.005 ? (
+          <span className="bs-equation-meta">
+            Current ratio {balSum.currentRatio.toFixed(2)}
+            {balSum.currentRatio < 1 ? " — watch liquidity" : ""}
+          </span>
+        ) : null}
       </div>
 
       <div className="tab-page-scroll">
@@ -114,11 +209,27 @@ export function AccountsOverviewTab({ state, balSum, saveOtherBalance, onOpenSid
             {fixedAssetAccounts.length === 0 ? (
               <BsRow label="Equipment &amp; property" value={0} />
             ) : fixedAssetAccounts.length === 1 ? (
-              <BsRow label={fixedAssetAccounts[0].name || "Equipment & property"} value={balSum.fixedAssets} />
+              <BsRow
+                label={fixedAssetAccounts[0].name || "Equipment & property"}
+                value={computeFixedAssetDepreciation(fixedAssetAccounts[0], asOfDate).netBook}
+              />
             ) : (
-              <BsLineGroup title="Equipment &amp; property" total={balSum.fixedAssets}>
+              <BsLineGroup
+                title="Equipment &amp; property"
+                hint={
+                  balSum.fixedAssetsAccumulated > 0
+                    ? `Net book · ${moneyFull(balSum.fixedAssetsGross)} gross`
+                    : "Net book value"
+                }
+                total={balSum.fixedAssets}
+              >
                 {fixedAssetAccounts.map((a) => (
-                  <BsRow key={a.id} indent label={a.name} value={a.amount} />
+                  <BsRow
+                    key={a.id}
+                    indent
+                    label={a.name}
+                    value={computeFixedAssetDepreciation(a, asOfDate).netBook}
+                  />
                 ))}
               </BsLineGroup>
             )}
@@ -151,13 +262,24 @@ export function AccountsOverviewTab({ state, balSum, saveOtherBalance, onOpenSid
               <BsRow label="Bank &amp; other loans" value={balance.loans} />
             ) : null}
 
+            {hasAmount(balSum.gstLiability) && isGstEnabled(state.settings) ? (
+              <BsRow label="GST payable (net)" value={balSum.gstLiability} />
+            ) : null}
+
             {!hasAmount(balance.supplierPayables) &&
             !hasAmount(balSum.purchaseCredit) &&
-            !hasAmount(loansLiabManual) ? (
+            !hasAmount(loansLiabManual) &&
+            !(hasAmount(balSum.gstLiability) && isGstEnabled(state.settings)) ? (
               <BsRow label="No liabilities recorded" value={0} />
             ) : null}
 
             <BsRow label="Total liabilities" value={balSum.totalLiab} bold />
+            <BsRow
+              label="Current assets − liabilities"
+              value={balSum.netCurrentPosition}
+              signed
+              highlight
+            />
           </section>
 
           <section className="bs-section" aria-labelledby="bs-equity-hd">

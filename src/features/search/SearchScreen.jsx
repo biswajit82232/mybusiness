@@ -4,6 +4,7 @@ import {
   customerDirectoryRecordMatchesSearch,
   dateHuman,
   emiEntryMatchesSearch,
+  fuseFilter,
   money,
   otherIncomeMatchesSearch,
   purchaseMatchesSearch,
@@ -66,65 +67,97 @@ export function SearchScreen({
     inputRef.current?.focus();
   }, []);
 
-  const q = query.trim().toLowerCase();
   const qLen = query.trim().length;
 
-  const salResults = useMemo(
-    () => (qLen < 1 ? [] : sales.filter((s) => saleMatchesSearch(s, query)).slice(0, CAP.sales)),
-    [sales, query, qLen],
-  );
+  const mergeFuzzy = useCallback((fused, legacy, getId) => {
+    const seen = new Set(fused.map((x) => String(getId(x))));
+    const extra = legacy.filter((x) => !seen.has(String(getId(x))));
+    return [...fused, ...extra];
+  }, []);
 
-  const purResults = useMemo(
-    () => (qLen < 1 ? [] : purchases.filter((p) => purchaseMatchesSearch(p, query)).slice(0, CAP.purchases)),
-    [purchases, query, qLen],
-  );
+  const salResults = useMemo(() => {
+    if (qLen < 1) return [];
+    const fused = fuseFilter(
+      sales,
+      [
+        { name: "customerName", weight: 2 },
+        { name: "invoiceNo", weight: 1.5 },
+        "item",
+        "description",
+        "note",
+        "customerNo1",
+        "customerNo2",
+        "financeCompany",
+        "doNo",
+      ],
+      query,
+      CAP.sales,
+    );
+    const legacy = sales.filter((s) => saleMatchesSearch(s, query));
+    return mergeFuzzy(fused, legacy, (s) => s.id).slice(0, CAP.sales);
+  }, [sales, query, qLen, mergeFuzzy]);
 
-  const expResults = useMemo(
-    () =>
-      qLen < 1
-        ? []
-        : expenses
-            .filter((e) => {
-              const desc = (e.description || "").toLowerCase();
-              const cat = (e.category || "").toLowerCase();
-              const note = (e.note || "").toLowerCase();
-              return desc.includes(q) || cat.includes(q) || note.includes(q);
-            })
-            .slice(0, CAP.expenses),
-    [expenses, q, qLen],
-  );
+  const purResults = useMemo(() => {
+    if (qLen < 1) return [];
+    const fused = fuseFilter(
+      purchases,
+      [{ name: "supplierName", weight: 2 }, "invoiceRef", "notes", "lines.item"],
+      query,
+      CAP.purchases,
+    );
+    const legacy = purchases.filter((p) => purchaseMatchesSearch(p, query));
+    return mergeFuzzy(fused, legacy, (p) => p.id).slice(0, CAP.purchases);
+  }, [purchases, query, qLen, mergeFuzzy]);
 
-  const oiResults = useMemo(
-    () => (qLen < 1 ? [] : otherIncomes.filter((x) => otherIncomeMatchesSearch(x, query)).slice(0, CAP.otherIncome)),
-    [otherIncomes, query, qLen],
-  );
+  const expResults = useMemo(() => {
+    if (qLen < 1) return [];
+    return fuseFilter(expenses, ["description", "category", "note"], query, CAP.expenses);
+  }, [expenses, query, qLen]);
 
-  const prodResults = useMemo(
-    () => (qLen < 1 ? [] : invRows.filter((r) => (r.item || "").toLowerCase().includes(q)).slice(0, CAP.products)),
-    [invRows, q, qLen],
-  );
+  const oiResults = useMemo(() => {
+    if (qLen < 1) return [];
+    const fused = fuseFilter(otherIncomes, ["description", "category", "note"], query, CAP.otherIncome);
+    const legacy = otherIncomes.filter((x) => otherIncomeMatchesSearch(x, query));
+    return mergeFuzzy(fused, legacy, (x) => x.id).slice(0, CAP.otherIncome);
+  }, [otherIncomes, query, qLen, mergeFuzzy]);
 
-  const custResults = useMemo(
-    () =>
-      qLen < 1 ? [] : customerDirectory.filter((d) => customerDirectoryRecordMatchesSearch(d, query)).slice(0, CAP.customers),
-    [customerDirectory, query, qLen],
-  );
+  const prodResults = useMemo(() => {
+    if (qLen < 1) return [];
+    return fuseFilter(invRows, ["item", "category"], query, CAP.products);
+  }, [invRows, query, qLen]);
 
-  const vendResults = useMemo(
-    () =>
-      qLen < 1 ? [] : vendorDirectory.filter((d) => vendorDirectoryRecordMatchesSearch(d, query)).slice(0, CAP.vendors),
-    [vendorDirectory, query, qLen],
-  );
+  const custResults = useMemo(() => {
+    if (qLen < 1) return [];
+    const fused = fuseFilter(
+      customerDirectory,
+      ["name", "customerNo1", "customerNo2", "email", "customerCity", "customerState"],
+      query,
+      CAP.customers,
+    );
+    const legacy = customerDirectory.filter((d) => customerDirectoryRecordMatchesSearch(d, query));
+    return mergeFuzzy(fused, legacy, (d) => d.id || d.name).slice(0, CAP.customers);
+  }, [customerDirectory, query, qLen, mergeFuzzy]);
 
-  const emiResults = useMemo(
-    () => (qLen < 1 ? [] : emiEntries.filter((e) => emiEntryMatchesSearch(e, query)).slice(0, CAP.emi)),
-    [emiEntries, query, qLen],
-  );
+  const vendResults = useMemo(() => {
+    if (qLen < 1) return [];
+    const fused = fuseFilter(vendorDirectory, ["name", "phone", "email", "city", "note"], query, CAP.vendors);
+    const legacy = vendorDirectory.filter((d) => vendorDirectoryRecordMatchesSearch(d, query));
+    return mergeFuzzy(fused, legacy, (d) => d.id || d.name).slice(0, CAP.vendors);
+  }, [vendorDirectory, query, qLen, mergeFuzzy]);
 
-  const bankResults = useMemo(
-    () => (qLen < 1 ? [] : bankAccounts.filter((a) => bankAccountMatchesSearch(a, query)).slice(0, CAP.banks)),
-    [bankAccounts, query, qLen],
-  );
+  const emiResults = useMemo(() => {
+    if (qLen < 1) return [];
+    const fused = fuseFilter(emiEntries, ["customerName", "invoiceNo", "financeCompany"], query, CAP.emi);
+    const legacy = emiEntries.filter((e) => emiEntryMatchesSearch(e, query));
+    return mergeFuzzy(fused, legacy, (e) => e.id).slice(0, CAP.emi);
+  }, [emiEntries, query, qLen, mergeFuzzy]);
+
+  const bankResults = useMemo(() => {
+    if (qLen < 1) return [];
+    const fused = fuseFilter(bankAccounts, ["name", "kind"], query, CAP.banks);
+    const legacy = bankAccounts.filter((a) => bankAccountMatchesSearch(a, query));
+    return mergeFuzzy(fused, legacy, (a) => a.id).slice(0, CAP.banks);
+  }, [bankAccounts, query, qLen, mergeFuzzy]);
 
   const hasResults =
     salResults.length > 0 ||

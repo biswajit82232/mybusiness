@@ -39,7 +39,6 @@ export function BankAccountDetailScreen({
   onOpenSale,
   onOpenInventoryEntry,
   onOpenPurchase,
-  onOpenLoanGiven,
   onRequestDeleteActivity,
   onDeleteTransfer,
   requestConfirm,
@@ -145,10 +144,6 @@ export function BankAccountDetailScreen({
     }
     if (t.linkKind === "purchasePayment" && t.purchaseId && onOpenPurchase) {
       onOpenPurchase(t.purchaseId);
-      return;
-    }
-    if ((t.linkKind === "loanDisbursement" || t.linkKind === "loanRepayment") && t.loanGivenId && onOpenLoanGiven) {
-      onOpenLoanGiven(t.loanGivenId);
     }
   };
 
@@ -339,8 +334,7 @@ export function BankAccountDetailScreen({
                       t.linkKind === "payment" ||
                       t.linkKind === "transfer" ||
                       t.linkKind === "stockIn" ||
-                      (t.linkKind === "purchasePayment" && onOpenPurchase) ||
-                      ((t.linkKind === "loanDisbursement" || t.linkKind === "loanRepayment") && onOpenLoanGiven);
+                      (t.linkKind === "purchasePayment" && onOpenPurchase);
                     const canDelete =
                       !!onRequestDeleteActivity &&
                       (t.linkKind === "expense" ||

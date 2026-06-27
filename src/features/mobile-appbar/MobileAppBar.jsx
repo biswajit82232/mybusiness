@@ -17,8 +17,6 @@ function resolveMobileTitle({
   editingPurchaseId,
   bankAccountLabel,
   editingOtherIncomeId,
-  editingLoanGivenId,
-  loanGivenDetailBorrowerName,
   inventoryItemDetailName,
   purchaseDetailSupplierName,
   emiDetailInvoiceNo,
@@ -42,12 +40,6 @@ function resolveMobileTitle({
   if (screen === "emiDetail") return emiDetailInvoiceNo?.trim() ? `EMI · ${emiDetailInvoiceNo.trim()}` : "EMI";
   if (screen === "search") return "Search";
   if (screen === "otherIncomeDetail") return "Other income";
-  if (screen === "loanGivenDetail") return (loanGivenDetailBorrowerName || "").trim() || "Loan";
-  if (screen === "newLoanGiven") return editingLoanGivenId ? "Edit loan" : "New loan";
-  if (screen === "loanGivenPartners") return "Partners";
-  if (screen === "loanGivenPartnerDetail") return "Partner";
-  if (screen === "loanGivenPartys") return "Borrowers";
-  if (screen === "loanGivenPartyDetail") return "Party";
   if (!screen && page === "dashboard") return businessName || "My Business";
   if (!screen && page === "invoices") return "Invoices";
   if (!screen && page === "customers") return "Customers";
@@ -122,8 +114,6 @@ export const MobileAppBar = memo(function MobileAppBar({
   editingPurchaseId,
   bankAccountLabel,
   editingOtherIncomeId,
-  editingLoanGivenId,
-  loanGivenDetailBorrowerName = "",
   inventoryItemDetailName,
   purchaseDetailSupplierName,
   emiDetailInvoiceNo,
@@ -154,8 +144,6 @@ export const MobileAppBar = memo(function MobileAppBar({
     editingPurchaseId,
     bankAccountLabel,
     editingOtherIncomeId,
-    editingLoanGivenId,
-    loanGivenDetailBorrowerName,
     inventoryItemDetailName,
     purchaseDetailSupplierName,
     emiDetailInvoiceNo,

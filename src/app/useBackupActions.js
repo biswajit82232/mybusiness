@@ -7,7 +7,8 @@ import {
   defaultState,
   mergePersistedPayload,
   todayStr,
-  unwrapBackupFilePayload,
+  validateBackupImport,
+  backupImportErrorMessage,
   wrapStateForBackup,
 } from "@/domain/index.js";
 
@@ -22,20 +23,26 @@ export function useBackupActions({
   setScreen,
   persistWholeStateImmediate,
 }) {
-  const exportBackup = useCallback(() => {
-    const envelope = wrapStateForBackup(state, APP_VERSION);
-    const blob = new Blob([JSON.stringify(envelope, null, 2)], {
-      type: "application/json;charset=utf-8",
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `mybusiness-backup-${todayStr()}.json`;
-    a.rel = "noopener";
-    a.click();
-    URL.revokeObjectURL(url);
-    showToast("Backup downloaded");
-  }, [state, showToast]);
+  const exportBackup = useCallback(
+    (opts = {}) => {
+      const envelope = wrapStateForBackup(state, APP_VERSION);
+      const blob = new Blob([JSON.stringify(envelope, null, 2)], {
+        type: "application/json;charset=utf-8",
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const suffix = String(opts.filenameSuffix || "").trim();
+      a.download = suffix
+        ? `mybusiness-backup-${suffix}.json`
+        : `mybusiness-backup-${todayStr()}.json`;
+      a.rel = "noopener";
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast(suffix ? "Year-end backup downloaded" : "Backup downloaded");
+    },
+    [state, showToast],
+  );
 
   const importBackupFile = useCallback(
     (file) => {
@@ -44,13 +51,25 @@ export function useBackupActions({
       reader.onload = () => {
         try {
           const parsed = JSON.parse(String(reader.result));
-          const raw = unwrapBackupFilePayload(parsed);
-          const next = mergePersistedPayload(raw);
+          const check = validateBackupImport(parsed, APP_VERSION);
+          if (!check.ok) {
+            showToast(backupImportErrorMessage(check.error, check.schemaVersion));
+            return;
+          }
+          const next = mergePersistedPayload(check.data);
           if (!next) {
             showToast("Invalid backup file");
             return;
           }
-          setActionConfirm({ kind: "importBackup", next });
+          setActionConfirm({
+            kind: "importBackup",
+            next,
+            importMeta: {
+              warning: check.warning || "",
+              legacy: !!check.legacy,
+              appVersion: check.appVersion || "",
+            },
+          });
         } catch {
           showToast("Could not read file");
         }
@@ -62,7 +81,7 @@ export function useBackupActions({
   );
 
   const requestResetAllData = useCallback(() => {
-    setActionConfirm({ kind: "reset", step: 1 });
+    setActionConfirm({ kind: "reset", step: 1, backupDownloaded: false });
   }, [setActionConfirm]);
 
   const completeResetAllData = useCallback(async () => {

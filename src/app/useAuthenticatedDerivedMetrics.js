@@ -12,6 +12,11 @@ import {
   sumExpenseCashOutInFy,
   sumOtherIncomeCashInInMonth,
   sumOtherIncomeCashInInFy,
+  buildDailySparkline,
+  buildDailyRevenueMap,
+  buildDailyNetProfitMap,
+  buildDailyReceivablesMap,
+  todayStr,
 } from "@/domain/index.js";
 
 /**
@@ -219,6 +224,19 @@ export function useAuthenticatedDerivedMetrics({
     fyYear,
   ]);
 
+  const kpiSparklines = useMemo(() => {
+    const end = todayStr();
+    return {
+      revenue: buildDailySparkline(buildDailyRevenueMap(safeSales), end, 60),
+      netProfit: buildDailySparkline(
+        buildDailyNetProfitMap(safeSales, safeExpenses, safeOtherIncomes),
+        end,
+        60,
+      ),
+      receivables: buildDailySparkline(buildDailyReceivablesMap(safeSales), end, 60),
+    };
+  }, [safeSales, safeExpenses, safeOtherIncomes]);
+
   return {
     safeSales,
     safeExpenses,
@@ -235,5 +253,6 @@ export function useAuthenticatedDerivedMetrics({
     dashOtherIncome,
     expensesInSelCategory,
     kpis,
+    kpiSparklines,
   };
 }

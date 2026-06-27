@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import {
   addDaysStr,
+  addMonthsStr,
   compareYmdAsc,
   currentMonthStr,
   formatMonthLabel,
@@ -38,6 +39,77 @@ function pctOf(part, whole) {
 function fmtPct(p) {
   if (p == null || Number.isNaN(p)) return "—";
   return `${p.toFixed(1)}%`;
+}
+
+function fmtDelta(cur, prev) {
+  const d = num(cur) - num(prev);
+  if (Math.abs(d) < 0.01) return "—";
+  const sign = d > 0 ? "+" : "−";
+  return `${sign}${moneyFull(Math.abs(d))}`;
+}
+
+function computePlSnapshot({
+  sales,
+  expenses,
+  otherIncomes,
+  accountingBasis,
+  range,
+  reportMonth,
+  fsm,
+  fyYear,
+  monthKey,
+}) {
+  const accrual = accountingBasis === "accrual";
+  let filtSales;
+  let filtExp;
+  let filtOi;
+  if (range === "all") {
+    filtSales = sales;
+    filtExp = expenses;
+    filtOi = otherIncomes;
+  } else if (range === "month" || monthKey) {
+    const mk = String(monthKey || reportMonth || "").slice(0, 7);
+    if (mk.length < 7) {
+      return { revenue: 0, cogs: 0, expenses: 0, otherIncome: 0, grossProfit: 0, netProfit: 0 };
+    }
+    filtSales = sales.filter((s) => String(s.date || "").startsWith(mk));
+    filtExp = expenses.filter((e) => String(e.date || "").startsWith(mk));
+    filtOi = otherIncomes.filter((x) => x && String(x.date || "").startsWith(mk));
+  } else {
+    filtSales = sales.filter((s) => isDateInFy(s.date, fsm, fyYear));
+    filtExp = expenses.filter((e) => isDateInFy(e.date, fsm, fyYear));
+    filtOi = otherIncomes.filter((x) => x && isDateInFy(x.date, fsm, fyYear));
+  }
+
+  let revenue;
+  let cogs;
+  let expenseTotal;
+  let oiTotal;
+  if (accrual) {
+    revenue = filtSales.reduce((a, s) => a + num(s.totalSale), 0);
+    cogs = recognizedCogsForSales(filtSales, true);
+    expenseTotal = filtExp.reduce((a, e) => a + num(e.amount), 0);
+    oiTotal = filtOi.reduce((a, x) => a + num(x.amount), 0);
+  } else if (range === "month" || monthKey) {
+    const mk = String(monthKey || reportMonth || "").slice(0, 7);
+    revenue = mk.length >= 7 ? sumSalePaymentsInMonth(sales, mk) : 0;
+    cogs = mk.length >= 7 ? recognizedCogsForPaymentsInMonth(sales, mk) : 0;
+    expenseTotal = mk.length >= 7 ? sumExpenseCashOutInMonth(expenses, mk) : 0;
+    oiTotal = mk.length >= 7 ? sumOtherIncomeCashInInMonth(otherIncomes, mk) : 0;
+  } else if (range === "fy") {
+    revenue = sumSalePaymentsInFy(sales, fsm, fyYear);
+    cogs = recognizedCogsForPaymentsInFy(sales, fsm, fyYear);
+    expenseTotal = sumExpenseCashOutInFy(expenses, fsm, fyYear);
+    oiTotal = sumOtherIncomeCashInInFy(otherIncomes, fsm, fyYear);
+  } else {
+    revenue = sumSalePaymentsAll(sales);
+    cogs = recognizedCogsForPaymentsAll(sales);
+    expenseTotal = sumExpenseCashOutAll(expenses);
+    oiTotal = sumOtherIncomeCashInAll(otherIncomes);
+  }
+  const grossProfit = revenue - cogs;
+  const netProfit = revenue - cogs - expenseTotal + oiTotal;
+  return { revenue, cogs, expenses: expenseTotal, otherIncome: oiTotal, grossProfit, netProfit };
 }
 
 export function ReportsScreen({
@@ -89,61 +161,56 @@ export function ReportsScreen({
     return list.filter((p) => p && isDateInFy(p.date, fsm, fyYear));
   }, [purchases, range, fsm, fyYear, reportMonth]);
 
-  const filtOi = useMemo(() => {
-    if (range === "all") return otherIncomes;
-    if (range === "month") {
-      const mk = String(reportMonth || "").slice(0, 7);
-      if (mk.length < 7) return [];
-      return otherIncomes.filter((x) => x && String(x.date || "").startsWith(mk));
-    }
-    return otherIncomes.filter((x) => x && isDateInFy(x.date, fsm, fyYear));
-  }, [otherIncomes, range, fsm, fyYear, reportMonth]);
-
   const pl = useMemo(() => {
-    const accrual = accountingBasis === "accrual";
     const cogsFromSales = filtSales.reduce((a, s) => a + num(s.totalCost), 0);
-    let revenue;
-    let cogs;
-    let expenseTotal;
-    let oiTotal;
-    if (accrual) {
-      revenue = filtSales.reduce((a, s) => a + num(s.totalSale), 0);
-      cogs = recognizedCogsForSales(filtSales, true);
-      expenseTotal = filtExp.reduce((a, e) => a + num(e.amount), 0);
-      oiTotal = filtOi.reduce((a, x) => a + num(x.amount), 0);
-    } else if (range === "month") {
-      const mk = String(reportMonth || "").slice(0, 7);
-      revenue = mk.length >= 7 ? sumSalePaymentsInMonth(sales, mk) : 0;
-      cogs = mk.length >= 7 ? recognizedCogsForPaymentsInMonth(sales, mk) : 0;
-      expenseTotal = mk.length >= 7 ? sumExpenseCashOutInMonth(expenses, mk) : 0;
-      oiTotal = mk.length >= 7 ? sumOtherIncomeCashInInMonth(otherIncomes, mk) : 0;
-    } else if (range === "fy") {
-      revenue = sumSalePaymentsInFy(sales, fsm, fyYear);
-      cogs = recognizedCogsForPaymentsInFy(sales, fsm, fyYear);
-      expenseTotal = sumExpenseCashOutInFy(expenses, fsm, fyYear);
-      oiTotal = sumOtherIncomeCashInInFy(otherIncomes, fsm, fyYear);
-    } else {
-      revenue = sumSalePaymentsAll(sales);
-      cogs = recognizedCogsForPaymentsAll(sales);
-      expenseTotal = sumExpenseCashOutAll(expenses);
-      oiTotal = sumOtherIncomeCashInAll(otherIncomes);
-    }
+    const snap = computePlSnapshot({
+      sales,
+      expenses,
+      otherIncomes,
+      accountingBasis,
+      range,
+      reportMonth,
+      fsm,
+      fyYear,
+    });
     const taxOp = filtExp.filter((e) => isIncomeTaxExpense(e)).reduce((a, e) => a + num(e.amount), 0);
-    const netProfit = revenue - cogs - expenseTotal + oiTotal;
+    const netProfit = snap.netProfit;
     const pbt = taxOp > 0 ? netProfit + taxOp : netProfit;
     return {
-      revenue,
-      cogs,
+      revenue: snap.revenue,
+      cogs: snap.cogs,
       cogsFromSales,
-      expenses: expenseTotal,
+      expenses: snap.expenses,
       taxExpense: taxOp,
-      otherIncome: oiTotal,
-      grossProfit: revenue - cogs,
+      otherIncome: snap.otherIncome,
+      grossProfit: snap.grossProfit,
       netProfit,
       pbt,
       pat: netProfit,
     };
-  }, [filtSales, filtExp, filtOi, accountingBasis, sales, expenses, otherIncomes, range, reportMonth, fsm, fyYear]);
+  }, [filtSales, filtExp, accountingBasis, sales, expenses, otherIncomes, range, reportMonth, fsm, fyYear]);
+
+  const prevMonthKey = useMemo(() => {
+    if (range !== "month") return "";
+    const mk = String(reportMonth || "").slice(0, 7);
+    if (mk.length < 7) return "";
+    return addMonthsStr(`${mk}-01`, -1).slice(0, 7);
+  }, [range, reportMonth]);
+
+  const plPrev = useMemo(() => {
+    if (!prevMonthKey) return null;
+    return computePlSnapshot({
+      sales,
+      expenses,
+      otherIncomes,
+      accountingBasis,
+      range: "month",
+      reportMonth: prevMonthKey,
+      fsm,
+      fyYear,
+      monthKey: prevMonthKey,
+    });
+  }, [prevMonthKey, sales, expenses, otherIncomes, accountingBasis, fsm, fyYear]);
 
   const purchasePeriodTotal = useMemo(
     () => filtPurchases.reduce((a, p) => a + num(p.totalAmount), 0),
@@ -319,6 +386,9 @@ export function ReportsScreen({
         <section className="rep-section rep-section--minimal" aria-labelledby="rep-pl-title">
           <h3 id="rep-pl-title" className="rep-st">
             Profit &amp; loss
+            {plPrev ? (
+              <span className="rep-pl-compare"> vs {formatMonthLabel(prevMonthKey)}</span>
+            ) : null}
           </h3>
           {revenueSpark.vals.length > 1 && (
             <div className="rep-spark rep-spark--minimal" aria-hidden>
@@ -343,7 +413,10 @@ export function ReportsScreen({
           <div className="rep-lines rep-lines--tight">
             <div className="rep-line">
               <span>{accountingBasis === "accrual" ? "Revenue (invoiced)" : "Revenue (cash collected)"}</span>
-              <strong>{moneyFull(pl.revenue)}</strong>
+              <strong>
+                {moneyFull(pl.revenue)}
+                {plPrev ? <span className="rep-delta"> ({fmtDelta(pl.revenue, plPrev.revenue)})</span> : null}
+              </strong>
             </div>
             <div className="rep-line">
               <span>Cost of goods sold</span>
@@ -381,7 +454,10 @@ export function ReportsScreen({
             ) : (
               <div className="rep-line rep-line-total">
                 <span>Net profit</span>
-                <strong className={pl.netProfit >= 0 ? "cg-pos" : "cg-neg"}>{moneyFull(pl.netProfit)}</strong>
+                <strong className={pl.netProfit >= 0 ? "cg-pos" : "cg-neg"}>
+                  {moneyFull(pl.netProfit)}
+                  {plPrev ? <span className="rep-delta"> ({fmtDelta(pl.netProfit, plPrev.netProfit)})</span> : null}
+                </strong>
               </div>
             )}
           </div>

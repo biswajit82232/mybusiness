@@ -82,6 +82,7 @@ export function MainStage(props) {
     setActionConfirm,
     requestConfirm,
     kpis,
+    kpiSparklines = { revenue: [], netProfit: [], receivables: [] },
     fyStr,
     fyYear,
     fsm,
@@ -125,6 +126,9 @@ export function MainStage(props) {
     requestNotifPermission,
     openNewSale,
     openSaleDetail,
+    saleDraftResume,
+    onResumeSaleDraft,
+    onDiscardSaleDraft,
     openNewExpense,
     openNewCustomer,
     openNewVendor,
@@ -274,6 +278,7 @@ export function MainStage(props) {
           <HomeTab
             state={state}
             kpis={kpis}
+            kpiSparklines={kpiSparklines}
             accountingBasis={props.accountingBasis === "accrual" ? "accrual" : "cash"}
             onToggleAccountingBasis={() =>
               saveSettingsPartial?.({
@@ -288,6 +293,9 @@ export function MainStage(props) {
             safeSales={safeSales}
             openNewSale={openNewSale}
             openSaleDetail={openSaleDetail}
+            saleDraftSummary={saleDraftResume}
+            onResumeSaleDraft={onResumeSaleDraft}
+            onDiscardSaleDraft={onDiscardSaleDraft}
             openPurchaseDetail={openPurchaseDetail}
             openNewExpense={openNewExpense}
             openSearch={() => setScreen("search")}
@@ -323,6 +331,9 @@ export function MainStage(props) {
             defaultDueDays={state.settings?.defaultDueDays}
             openNewSale={openNewSale}
             openSaleDetail={openSaleDetail}
+            saleDraftSummary={saleDraftResume}
+            onResumeSaleDraft={onResumeSaleDraft}
+            onDiscardSaleDraft={onDiscardSaleDraft}
             onOpenSidebar={() => setSidebarOpen(true)}
           />
         )}
@@ -418,7 +429,7 @@ export function MainStage(props) {
           />
         )}
         {!screen && page === "accounts" && (
-          <LazyAccountsOverviewTab state={state} balSum={balSum} saveOtherBalance={saveOtherBalance} onOpenSidebar={() => setSidebarOpen(true)} />
+          <LazyAccountsOverviewTab state={state} saveOtherBalance={saveOtherBalance} onOpenSidebar={() => setSidebarOpen(true)} />
         )}
         {!screen && page === "banking" && (
           <LazyBankingTab
@@ -454,6 +465,7 @@ export function MainStage(props) {
             otherIncomes={safeOtherIncomes}
             purchases={state.purchases || []}
             loansGiven={state.loansGiven || []}
+            bankTransfers={state.balance?.bankTransfers || []}
             fsm={fsm}
             fyYear={fyYear}
             fyStr={fyStr}
@@ -545,6 +557,8 @@ export function MainStage(props) {
           <LazySettingsScreen
             settings={state.settings}
             fyStr={fyStr}
+            balSum={balSum}
+            kpis={kpis}
             onSavePartial={saveSettingsPartial}
             onOpenSidebar={() => setSidebarOpen(true)}
             onExportBackup={exportBackup}
@@ -610,6 +624,8 @@ export function MainStage(props) {
           gstEnabled={state.settings?.gstEnabled}
           onSubmit={onSaveSale}
           onClose={closeNewSale}
+          draftSavedAt={!editingSaleId ? state.settings?.saleDraft?.savedAt : null}
+          onDiscardDraft={!editingSaleId ? onDiscardSaleDraft : undefined}
         />
       )}
       {screen === "newCustomer" && (
@@ -913,7 +929,19 @@ export function MainStage(props) {
           actionConfirm={actionConfirm}
           onCancel={() => setActionConfirm(null)}
           onConfirmImportBackup={confirmImportBackup}
-          onContinueResetStep2={() => setActionConfirm({ kind: "reset", step: 2 })}
+          onContinueResetStep2={() =>
+            setActionConfirm((prev) => ({
+              kind: "reset",
+              step: 2,
+              backupDownloaded: !!prev?.backupDownloaded,
+            }))
+          }
+          onDownloadBackupBeforeReset={() => {
+            exportBackup();
+            setActionConfirm((prev) =>
+              prev?.kind === "reset" ? { ...prev, backupDownloaded: true } : prev,
+            );
+          }}
           onCompleteReset={completeResetAllData}
         />
       ) : null}

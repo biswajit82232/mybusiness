@@ -1460,6 +1460,19 @@ kbd {
   color: var(--muted2);
 }
 
+.home-md3-kpi-spark {
+  display: block;
+  width: 100%;
+  margin-top: 4px;
+  color: var(--primary);
+  opacity: 0.9;
+}
+
+.home-md3-kpi--hero .home-md3-kpi-spark {
+  color: var(--on-surface);
+  opacity: 0.65;
+}
+
 .home-md3-kpi-hero-body {
   display: flex;
   flex-direction: column;
@@ -1629,6 +1642,14 @@ kbd {
 .home-md3-action--tonal {
   background: color-mix(in srgb, var(--primary) 12%, var(--card));
   color: var(--primary);
+}
+
+.app-md3 .sale-draft-banner--home {
+  margin: 0 var(--page-pad) 10px;
+  border-radius: 14px;
+  border-color: color-mix(in srgb, var(--primary) 18%, var(--line2));
+  background: color-mix(in srgb, var(--primary) 6%, var(--card));
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
 }
 
 /* List sections — single elevated surface per block */
@@ -2629,10 +2650,17 @@ kbd {
 .app-md3 .nw-live-strip,
 .app-md3 .bs-live-strip {
   margin: 8px var(--page-pad) 0;
-  padding: 8px 12px;
-  border-radius: 14px;
+  padding: 6px 10px;
+  border-radius: 12px;
   background: color-mix(in srgb, var(--primary) 8%, var(--card));
   border: 1px solid color-mix(in srgb, var(--primary) 10%, var(--line2));
+}
+.app-md3 .bs-live-strip {
+  border-bottom: none;
+}
+.app-md3 .bs-as-of-filter .month-filter-chip {
+  background: color-mix(in srgb, var(--card) 88%, var(--primary));
+  border-color: color-mix(in srgb, var(--primary) 12%, var(--line2));
 }
 
 .app-md3 .bs-equation-hint {

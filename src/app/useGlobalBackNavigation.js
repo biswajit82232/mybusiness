@@ -42,11 +42,6 @@ export function useGlobalBackNavigation({
   setSearchTerm,
   otherIncomeOpenedFromRef,
   closeOtherIncomeDetail,
-  closeNewLoanGiven,
-  closeLoanGivenPartners,
-  closeLoanGivenPartnerDetail,
-  closeLoanGivenPartys,
-  closeLoanGivenPartyDetail,
   /** Map of screen id → close handler (ref updated each render in AuthenticatedApp). */
   detailScreenClosersRef,
 }) {
@@ -133,26 +128,6 @@ export function useGlobalBackNavigation({
         }
         return true;
       }
-      if (screen === "newLoanGiven" && typeof closeNewLoanGiven === "function") {
-        closeNewLoanGiven();
-        return true;
-      }
-      if (screen === "loanGivenPartners" && typeof closeLoanGivenPartners === "function") {
-        closeLoanGivenPartners();
-        return true;
-      }
-      if (screen === "loanGivenPartnerDetail" && typeof closeLoanGivenPartnerDetail === "function") {
-        closeLoanGivenPartnerDetail();
-        return true;
-      }
-      if (screen === "loanGivenPartys" && typeof closeLoanGivenPartys === "function") {
-        closeLoanGivenPartys();
-        return true;
-      }
-      if (screen === "loanGivenPartyDetail" && typeof closeLoanGivenPartyDetail === "function") {
-        closeLoanGivenPartyDetail();
-        return true;
-      }
       if (screen === "expenseCategory") {
         setScreen(null);
         setSelExpenseCategory(null);
@@ -230,11 +205,6 @@ export function useGlobalBackNavigation({
       setSearchTerm,
       otherIncomeOpenedFromRef,
       closeOtherIncomeDetail,
-      closeNewLoanGiven,
-      closeLoanGivenPartners,
-      closeLoanGivenPartnerDetail,
-      closeLoanGivenPartys,
-      closeLoanGivenPartyDetail,
       tryCloseDetailScreen,
     ],
   );

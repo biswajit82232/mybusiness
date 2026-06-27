@@ -92,7 +92,7 @@ export function useBankingActions({
   );
 
   const addBankTransfer = useCallback(
-    async ({ fromAccountId, toAccountId, amount, date, note }) => {
+    async ({ fromAccountId, toAccountId, amount, date, note, kind }) => {
       const fromId = String(fromAccountId || "").trim();
       const toId = String(toAccountId || "").trim();
       if (!fromId || !toId || fromId === toId) {
@@ -120,6 +120,7 @@ export function useBankingActions({
         toAccountId: toId,
         amount: amt,
         note: String(note || "").trim(),
+        kind: String(kind || "").trim() || undefined,
       };
       const next = {
         ...state,

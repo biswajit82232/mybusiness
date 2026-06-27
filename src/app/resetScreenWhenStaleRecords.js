@@ -1,5 +1,3 @@
-import { findLoanPartnerInDirectory, findLoanPartyInDirectory, todayStr } from "@/domain/index.js";
-
 /**
  * When auth is ready, clear detail screens whose selected id/name no longer exists in state
  * (e.g. after a record was deleted or sync removed it).
@@ -22,13 +20,8 @@ export function resetScreenWhenStaleRecords({
   selBankAccountId,
   selPurchaseId,
   selOtherIncomeId,
-  selLoanGivenId,
-  selLoanPartnerKey,
-  selLoanPartyKey,
-  editingLoanGivenId,
   purchases,
   otherIncomes,
-  loansGiven,
   setScreen,
   setSelSaleId,
   setSelCustomerName,
@@ -40,11 +33,6 @@ export function resetScreenWhenStaleRecords({
   setSelBankAccountId,
   setSelPurchaseId,
   setSelOtherIncomeId,
-  setSelLoanGivenId,
-  setSelLoanPartnerKey,
-  setSelLoanPartyKey,
-  setEditingLoanGivenId,
-  closeNewLoanGiven,
   /** Clears global-search return marker when bank / customer / vendor detail is forced closed. */
   onClearGlobalSearchReturn,
   /** Resets purchase back-stack when purchase row disappeared (sync). */
@@ -117,26 +105,5 @@ export function resetScreenWhenStaleRecords({
     onResetOtherIncomeDetailFromStale?.();
     setScreen(null);
     setSelOtherIncomeId(null);
-  }
-  if (screen === "loanGivenDetail" && selLoanGivenId && !(loansGiven || []).some((l) => l && l.id === selLoanGivenId)) {
-    setScreen(null);
-    setSelLoanGivenId?.(null);
-  }
-  if (screen === "newLoanGiven" && editingLoanGivenId && !(loansGiven || []).some((l) => l && l.id === editingLoanGivenId)) {
-    closeNewLoanGiven?.();
-    setEditingLoanGivenId?.(null);
-  }
-  const asOf = todayStr();
-  if (screen === "loanGivenPartnerDetail" && selLoanPartnerKey) {
-    if (!findLoanPartnerInDirectory(loansGiven, selLoanPartnerKey, asOf)) {
-      setSelLoanPartnerKey?.(null);
-      setScreen("loanGivenPartners");
-    }
-  }
-  if (screen === "loanGivenPartyDetail" && selLoanPartyKey) {
-    if (!findLoanPartyInDirectory(loansGiven, selLoanPartyKey, asOf)) {
-      setSelLoanPartyKey?.(null);
-      setScreen("loanGivenPartys");
-    }
   }
 }

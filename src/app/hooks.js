@@ -19,6 +19,7 @@ export { useAuthenticatedDerivedMetrics } from "./useAuthenticatedDerivedMetrics
 export { useBackupActions } from "./useBackupActions.js";
 export { useCloudSyncExecutor } from "./useCloudSyncExecutor.js";
 export { useSalesActions } from "./useSalesActions.js";
+export { useSaleDraftAutosave } from "./useSaleDraftAutosave.js";
 export { usePaymentActions } from "./usePaymentActions.js";
 export { useDeleteActions } from "./useDeleteActions.js";
 export { usePurchaseActions } from "./usePurchaseActions.js";

@@ -7,7 +7,6 @@ import { useEffect } from "react";
  * Supported actions:
  *   new_sale        → open New Sale overlay
  *   customers       → navigate to Customers page
- *   loans_given     → navigate to Loans Given page
  *   balance_sheet   → navigate to Accounts (balance sheet) page
  *   products        → navigate to Products (catalogue) page
  *   new_expense     → open New Expense overlay
@@ -32,10 +31,6 @@ export function usePwaLaunchActions(authState, setScreen, setPage, openNewSale) 
         case "customers":
           setScreen(null);
           setPage("customers");
-          break;
-        case "loans_given":
-          setScreen(null);
-          setPage("loansGiven");
           break;
         case "balance_sheet":
           setScreen(null);

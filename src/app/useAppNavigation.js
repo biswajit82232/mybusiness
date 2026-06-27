@@ -1,4 +1,4 @@
-import { useCallback, startTransition } from "react";
+import { useCallback } from "react";
 import {
   defCustomer,
   defExpense,
@@ -6,8 +6,6 @@ import {
   defPurchase,
   defStock,
   defVendor,
-  emptyLoanGivenForm,
-  normalizeLoanPartyKey,
   expenseToEntry,
   findInvRowByItemName,
   getDefaultBankAccountId,
@@ -19,7 +17,6 @@ import {
   otherIncomeToEntry,
   purchaseToEntry,
   getDefaultBranchId,
-  todayStr,
 } from "@/domain/index.js";
 
 /**
@@ -33,20 +30,17 @@ export function useAppNavigation({
   setState,
   setScreen,
   setPage,
-  setSidebarOpen,
   setEditingCustomerId,
   setEditingVendorId,
   setEditingExpenseId,
   setEditingInventoryId,
   setEditingOtherIncomeId,
-  setEditingLoanGivenId,
   setEditingPurchaseId,
   setCustomerEntry,
   setVendorEntry,
   setExpEntry,
   setStockEntry,
   setOiEntry,
-  setLoanGivenEntry,
   setPurchaseEntry,
   setSelSaleId,
   setSelExpenseId,
@@ -57,11 +51,6 @@ export function useAppNavigation({
   setSelVendorName,
   setSelPurchaseId,
   setSelOtherIncomeId,
-  setSelLoanGivenId,
-  setSelLoanPartnerKey,
-  selLoanPartnerKey,
-  setSelLoanPartyKey,
-  selLoanPartyKey,
   setInvItemDetail,
   setDelConfirm,
   editingCustomerId,
@@ -487,206 +476,6 @@ export function useAppNavigation({
     setPage("otherIncome");
   }, [editingOtherIncomeId, otherIncomeOpenedFromRef, setEditingOtherIncomeId, setPage, setScreen]);
 
-  const loanGivenToForm = useCallback((row) => {
-    return {
-      borrowerName: row.borrowerName || "",
-      phone: row.phone || "",
-      principal: row.principal != null ? String(row.principal) : "",
-      principalRepaid: row.principalRepaid != null ? String(row.principalRepaid) : "",
-      interestRateMonthlyPct:
-        row.interestRateMonthlyPct != null && String(row.interestRateMonthlyPct).trim() !== ""
-          ? String(row.interestRateMonthlyPct)
-          : "",
-      interestOutstanding: row.interestOutstanding != null ? String(row.interestOutstanding) : "",
-      description: row.description || "",
-      dateGiven: row.dateGiven || todayStr(),
-      dueDate: row.dueDate || "",
-      closed: !!row.closed,
-      trackOnBalanceSheet: row.trackOnBalanceSheet !== false,
-      repaymentEntries: Array.isArray(row.repaymentEntries)
-        ? row.repaymentEntries.map((r) => ({
-            id: String(r.id || makeId()),
-            date: String(r.date || todayStr()).slice(0, 10),
-            amount: r.amount != null ? String(r.amount) : "",
-            paymentKind: r.paymentKind === "principal" ? "principal" : r.paymentKind === "interest" ? "interest" : "",
-          }))
-        : [],
-      partners: Array.isArray(row.partners)
-        ? row.partners.map((p) => ({
-            id: String(p.id || makeId()),
-            name: String(p.name || "").trim(),
-            amountGiven:
-              p.amountGiven != null
-                ? String(p.amountGiven)
-                : p.amount != null
-                  ? String(p.amount)
-                  : p.shareValue != null
-                    ? String(p.shareValue)
-                    : "",
-            interestSharePct:
-              p.interestSharePct != null && String(p.interestSharePct).trim() !== ""
-                ? String(p.interestSharePct)
-                : "",
-          }))
-        : [],
-    };
-  }, []);
-
-  const updLoanGiven = useCallback((k, v) => setLoanGivenEntry((p) => ({ ...p, [k]: v })), [setLoanGivenEntry]);
-
-  const openNewLoanGiven = useCallback(() => {
-    setEditingLoanGivenId(null);
-    setLoanGivenEntry(emptyLoanGivenForm());
-    setSelLoanGivenId(null);
-    setSelLoanPartnerKey(null);
-    setSelLoanPartyKey(null);
-    setScreen("newLoanGiven");
-  }, [setEditingLoanGivenId, setLoanGivenEntry, setScreen, setSelLoanGivenId, setSelLoanPartnerKey, setSelLoanPartyKey]);
-
-  const openLoanGivenDetail = useCallback(
-    (row) => {
-      if (!row?.id) return;
-      setSelLoanPartnerKey(null);
-      setSelLoanPartyKey(null);
-      setSelLoanGivenId(String(row.id));
-      setScreen("loanGivenDetail");
-    },
-    [setScreen, setSelLoanGivenId, setSelLoanPartnerKey, setSelLoanPartyKey],
-  );
-
-  const openLoanGivenFromLedger = useCallback(
-    (loanGivenId) => {
-      const id = String(loanGivenId || "").trim();
-      if (!id) return;
-      const row = (state.loansGiven || []).find((l) => l && String(l.id) === id);
-      if (!row) return;
-      setSidebarOpen(false);
-      startTransition(() => {
-        setSelExpenseCategory(null);
-        setSelBankAccountId(null);
-        setSelLoanPartnerKey(null);
-        setSelLoanPartyKey(null);
-        setPage("loansGiven");
-        setSelLoanGivenId(id);
-        setScreen("loanGivenDetail");
-      });
-    },
-    [
-      setPage,
-      setScreen,
-      setSelBankAccountId,
-      setSelExpenseCategory,
-      setSelLoanGivenId,
-      setSelLoanPartnerKey,
-      setSelLoanPartyKey,
-      setSidebarOpen,
-      state.loansGiven,
-    ],
-  );
-
-  const closeLoanGivenDetail = useCallback(() => {
-    setSelLoanGivenId(null);
-    if (selLoanPartnerKey) {
-      setScreen("loanGivenPartnerDetail");
-    } else if (selLoanPartyKey) {
-      setScreen("loanGivenPartyDetail");
-    } else {
-      setScreen(null);
-    }
-  }, [selLoanPartnerKey, selLoanPartyKey, setScreen, setSelLoanGivenId]);
-
-  const openLoanGivenPartners = useCallback(() => {
-    setSelLoanPartyKey(null);
-    setSelLoanPartnerKey(null);
-    setScreen("loanGivenPartners");
-  }, [setScreen, setSelLoanPartnerKey, setSelLoanPartyKey]);
-
-  const closeLoanGivenPartners = useCallback(() => {
-    setSelLoanPartnerKey(null);
-    setScreen(null);
-  }, [setScreen, setSelLoanPartnerKey]);
-
-  const openLoanGivenPartnerDetail = useCallback(
-    (partnerKey) => {
-      const key = String(partnerKey || "").trim().toLowerCase();
-      if (!key) return;
-      setSelLoanPartyKey(null);
-      setSelLoanPartnerKey(key);
-      setScreen("loanGivenPartnerDetail");
-    },
-    [setScreen, setSelLoanPartnerKey, setSelLoanPartyKey],
-  );
-
-  const closeLoanGivenPartnerDetail = useCallback(() => {
-    setSelLoanPartnerKey(null);
-    setScreen("loanGivenPartners");
-  }, [setScreen, setSelLoanPartnerKey]);
-
-  const openLoanGivenFromPartners = useCallback(
-    (loanGivenId) => {
-      const id = String(loanGivenId || "").trim();
-      if (!id) return;
-      const row = (state.loansGiven || []).find((l) => l && String(l.id) === id);
-      if (!row) return;
-      setSelLoanPartyKey(null);
-      setSelLoanGivenId(id);
-      setScreen("loanGivenDetail");
-    },
-    [setScreen, setSelLoanGivenId, setSelLoanPartyKey, state.loansGiven],
-  );
-
-  const openLoanGivenPartys = useCallback(() => {
-    setSelLoanPartnerKey(null);
-    setSelLoanPartyKey(null);
-    setScreen("loanGivenPartys");
-  }, [setScreen, setSelLoanPartnerKey, setSelLoanPartyKey]);
-
-  const closeLoanGivenPartys = useCallback(() => {
-    setSelLoanPartyKey(null);
-    setScreen(null);
-  }, [setScreen, setSelLoanPartyKey]);
-
-  const openLoanGivenPartyDetail = useCallback(
-    (partyKey) => {
-      const key = normalizeLoanPartyKey(partyKey);
-      if (!key) return;
-      setSelLoanPartnerKey(null);
-      setSelLoanPartyKey(key);
-      setScreen("loanGivenPartyDetail");
-    },
-    [setScreen, setSelLoanPartnerKey, setSelLoanPartyKey],
-  );
-
-  const closeLoanGivenPartyDetail = useCallback(() => {
-    setSelLoanPartyKey(null);
-    setScreen("loanGivenPartys");
-  }, [setScreen, setSelLoanPartyKey]);
-
-  const openLoanGivenFromPartys = useCallback(
-    (loanGivenId, partyKey) => {
-      const id = String(loanGivenId || "").trim();
-      if (!id) return;
-      const row = (state.loansGiven || []).find((l) => l && String(l.id) === id);
-      if (!row) return;
-      const pk = normalizeLoanPartyKey(partyKey || selLoanPartyKey);
-      if (pk) setSelLoanPartyKey(pk);
-      setSelLoanGivenId(id);
-      setScreen("loanGivenDetail");
-    },
-    [setScreen, setSelLoanGivenId, setSelLoanPartyKey, selLoanPartyKey, state.loansGiven],
-  );
-
-  const openEditLoanGiven = useCallback(
-    (row) => {
-      if (!row?.id) return;
-      setSelLoanGivenId(null);
-      setEditingLoanGivenId(row.id);
-      setLoanGivenEntry(loanGivenToForm(row));
-      setScreen("newLoanGiven");
-    },
-    [loanGivenToForm, setEditingLoanGivenId, setLoanGivenEntry, setScreen, setSelLoanGivenId],
-  );
-
   const patchBank = useCallback(
     (id, patch) => {
       const rest = { ...patch };
@@ -890,23 +679,6 @@ export function useAppNavigation({
     openNewOtherIncome,
     openEditOtherIncome,
     closeNewOtherIncome,
-    loanGivenToForm,
-    updLoanGiven,
-    openNewLoanGiven,
-    openLoanGivenDetail,
-    openLoanGivenFromLedger,
-    closeLoanGivenDetail,
-    openLoanGivenPartners,
-    closeLoanGivenPartners,
-    openLoanGivenPartnerDetail,
-    closeLoanGivenPartnerDetail,
-    openLoanGivenFromPartners,
-    openLoanGivenPartys,
-    closeLoanGivenPartys,
-    openLoanGivenPartyDetail,
-    closeLoanGivenPartyDetail,
-    openLoanGivenFromPartys,
-    openEditLoanGiven,
     patchBank,
     addBank,
     closeBankAccountDetail,

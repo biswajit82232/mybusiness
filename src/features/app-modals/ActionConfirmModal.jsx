@@ -5,6 +5,7 @@ export function ActionConfirmModal({
   onConfirmImportBackup,
   onContinueResetStep2,
   onCompleteReset,
+  onDownloadBackupBeforeReset,
 }) {
   if (!actionConfirm) return null;
 
@@ -29,6 +30,9 @@ export function ActionConfirmModal({
               <span className="modal-title">Replace all data?</span>
             </div>
             <p className="modal-sub">Replaces all data on this device. Cannot be undone.</p>
+            {actionConfirm.importMeta?.warning ? (
+              <p className="modal-sub modal-sub--warn">{actionConfirm.importMeta.warning}</p>
+            ) : null}
             <div className="modal-btns">
               <button type="button" className="ghost-btn" onClick={onCancel}>
                 Cancel
@@ -43,14 +47,36 @@ export function ActionConfirmModal({
             <div className="modal-hdr">
               <span className="modal-title">Reset all data?</span>
             </div>
-            <p className="modal-sub">Erases all data on this device.</p>
-            <div className="modal-btns">
-              <button type="button" className="ghost-btn" onClick={onCancel}>
-                Cancel
+            <p className="modal-sub">
+              Download a backup first if you may need your books later. Reset erases sales, expenses, inventory, and
+              settings on this device.
+            </p>
+            <div className="modal-btns modal-btns--stack">
+              <button
+                type="button"
+                className="ghost-btn"
+                onClick={() => {
+                  onDownloadBackupBeforeReset?.();
+                }}
+              >
+                Download backup now
               </button>
-              <button type="button" className="primary-btn" onClick={onContinueResetStep2}>
-                Continue
-              </button>
+              <div className="modal-btns">
+                <button type="button" className="ghost-btn" onClick={onCancel}>
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="primary-btn"
+                  onClick={() =>
+                    onContinueResetStep2?.({
+                      backupDownloaded: actionConfirm.backupDownloaded,
+                    })
+                  }
+                >
+                  Continue
+                </button>
+              </div>
             </div>
           </>
         ) : (
@@ -58,7 +84,12 @@ export function ActionConfirmModal({
             <div className="modal-hdr">
               <span className="modal-title">Erase everything?</span>
             </div>
-            <p className="modal-sub">Permanent. Cannot be undone.</p>
+            <p className="modal-sub">
+              Permanent. Cannot be undone.
+              {actionConfirm.backupDownloaded
+                ? " You downloaded a backup in this session."
+                : " No backup was downloaded in this session."}
+            </p>
             <div className="modal-btns">
               <button type="button" className="ghost-btn" onClick={onCancel}>
                 Cancel

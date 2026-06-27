@@ -2,6 +2,7 @@
  * Pure domain: defaults, normalization, merge, helpers (no React).
  * Split from App.jsx — keep in sync when editing persisted state shape.
  */
+import { normSaleDraft } from "./saleDraft.js";
 
 export const MAX_DISMISSED_ALERTS = 500;
 /** Chunk size for long scrolling lists (sales, ledger, etc.). */
@@ -38,7 +39,16 @@ export function stockInCashAmount(entry) {
 }
 
 /** Per calendar day in `YYYY-MM` with cash in/out (payment dates for sales; bank-linked expenses, stock, supplier payments — matches `bankingActivityForMonth`). */
-export function aggregateCashflowDaysInMonth(sales, expenses, inventoryEntries, otherIncomes, monthKey, purchases = [], loansGiven = []) {
+export function aggregateCashflowDaysInMonth(
+  sales,
+  expenses,
+  inventoryEntries,
+  otherIncomes,
+  monthKey,
+  purchases = [],
+  loansGiven = [],
+  bankTransfers = [],
+) {
   const mk = String(monthKey || "").slice(0, 7);
   if (mk.length < 7) return [];
   const map = new Map();
@@ -96,6 +106,17 @@ export function aggregateCashflowDaysInMonth(sales, expenses, inventoryEntries, 
     for (const rep of lg.repaymentEntries || []) {
       if (!rep || !String(rep.bankAccountId || "").trim()) continue;
       bumpIn(String(rep.date || "").slice(0, 10), num(rep.amount));
+    }
+  }
+  for (const t of bankTransfers || []) {
+    if (!t || typeof t !== "object") continue;
+    const day = String(t.date || "").slice(0, 10);
+    const from = String(t.fromAccountId || "");
+    const to = String(t.toAccountId || "");
+    if (from === BANK_EXTERNAL_SOURCE_ID && to && to !== BANK_EXTERNAL_SINK_ID) {
+      bumpIn(day, num(t.amount));
+    } else if (to === BANK_EXTERNAL_SINK_ID && from && from !== BANK_EXTERNAL_SOURCE_ID) {
+      bumpOut(day, num(t.amount));
     }
   }
   return [...map.entries()]
@@ -1058,6 +1079,14 @@ export function resolveSaleDueDate(sale, defaultDueDays = 30) {
   return addDaysStr(base, Math.max(1, num(defaultDueDays) || 30));
 }
 
+/** Resolve purchase due date with settings fallback (used by payables/aging views). */
+export function resolvePurchaseDueDate(purchase, defaultDueDays = 30) {
+  const explicit = String(purchase?.dueDate || "").slice(0, 10);
+  if (explicit) return explicit;
+  const base = String(purchase?.date || "").slice(0, 10) || todayStr();
+  return addDaysStr(base, Math.max(1, num(defaultDueDays) || 30));
+}
+
 export const CUSTOMER_REVIEWS_URL = "https://www.biswajitpowerhub.in/reviews";
 
 /** Append a review request footer to customer-facing WhatsApp messages. */
@@ -1667,14 +1696,30 @@ export function normBankTransfers(raw) {
   if (!Array.isArray(raw)) return [];
   return raw
     .filter((x) => x && typeof x === "object")
-    .map((x) => ({
-      id: String(x.id || makeId()),
-      date: String(x.date || todayStr()).slice(0, 10),
-      fromAccountId: String(x.fromAccountId || "").trim(),
-      toAccountId: String(x.toAccountId || "").trim(),
-      amount: num(x.amount),
-      note: String(x.note ?? "").trim(),
-    }))
+    .map((x) => {
+      const fromAccountId = String(x.fromAccountId || "").trim();
+      const toAccountId = String(x.toAccountId || "").trim();
+      const kindRaw = String(x.kind || "").trim();
+      let kind = kindRaw;
+      if (!kind) {
+        if (fromAccountId === BANK_EXTERNAL_SOURCE_ID && toAccountId && toAccountId !== BANK_EXTERNAL_SINK_ID) {
+          kind = "deposit";
+        } else if (toAccountId === BANK_EXTERNAL_SINK_ID && fromAccountId && fromAccountId !== BANK_EXTERNAL_SOURCE_ID) {
+          kind = "withdraw";
+        } else {
+          kind = "transfer";
+        }
+      }
+      return {
+        id: String(x.id || makeId()),
+        date: String(x.date || todayStr()).slice(0, 10),
+        fromAccountId,
+        toAccountId,
+        amount: num(x.amount),
+        note: String(x.note ?? "").trim(),
+        kind,
+      };
+    })
     .filter((x) => x.amount > 0 && x.fromAccountId && x.toAccountId && x.fromAccountId !== x.toAccountId);
 }
 
@@ -1961,8 +2006,21 @@ export function buildBankAccountTransactions(accountId, expenses, sales, transfe
   }
   for (const t of transfers || []) {
     if (!t) continue;
+    const kind = String(t.kind || "").trim();
+    const fromExt = String(t.fromAccountId) === BANK_EXTERNAL_SOURCE_ID;
+    const toExt = String(t.toAccountId) === BANK_EXTERNAL_SINK_ID;
+    const note = String(t.note || "").trim();
+    const kindLabel =
+      kind === "ownerDrawing"
+        ? "Owner drawing"
+        : kind === "ownerCapital"
+          ? "Owner capital in"
+          : fromExt
+            ? "Cash deposit"
+            : toExt
+              ? "Cash withdrawal"
+              : "Between accounts";
     if (String(t.fromAccountId) === id) {
-      const note = String(t.note || "").trim();
       rows.push({
         key: `x-${t.id}-out`,
         linkKind: "transfer",
@@ -1971,13 +2029,12 @@ export function buildBankAccountTransactions(accountId, expenses, sales, transfe
         date: t.date,
         dir: "out",
         amount: num(t.amount),
-        title: `To ${bankAccountLabel(banks, t.toAccountId)}`,
-        sub: note ? `Transfer · ${note}` : "Between accounts",
+        title: toExt ? "Cash withdrawal" : `To ${bankAccountLabel(banks, t.toAccountId)}`,
+        sub: note ? `${kindLabel} · ${note}` : kindLabel,
         sortMs: entityTimeMsFromId(t.id),
       });
     }
     if (String(t.toAccountId) === id) {
-      const note = String(t.note || "").trim();
       rows.push({
         key: `x-${t.id}-in`,
         linkKind: "transfer",
@@ -1986,8 +2043,8 @@ export function buildBankAccountTransactions(accountId, expenses, sales, transfe
         date: t.date,
         dir: "in",
         amount: num(t.amount),
-        title: `From ${bankAccountLabel(banks, t.fromAccountId)}`,
-        sub: note ? `Transfer · ${note}` : "Between accounts",
+        title: fromExt ? "Cash deposit" : `From ${bankAccountLabel(banks, t.fromAccountId)}`,
+        sub: note ? `${kindLabel} · ${note}` : kindLabel,
         sortMs: entityTimeMsFromId(t.id),
       });
     }
@@ -4403,6 +4460,28 @@ export function normServicingWaSent(raw) {
     .filter((x) => x.saleId && x.serviceNum >= 1 && x.serviceNum <= 3);
 }
 
+export function normFyCloseSnapshots(raw) {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter((x) => x && typeof x === "object" && x.id != null)
+    .map((x) => ({
+      id: String(x.id),
+      fyLabel: String(x.fyLabel || ""),
+      savedAt: String(x.savedAt || ""),
+      asOfDate: String(x.asOfDate || "").slice(0, 10),
+      note: String(x.note || "").trim(),
+      totalAssets: num(x.totalAssets),
+      totalLiab: num(x.totalLiab),
+      netCapital: num(x.netCapital),
+      outstanding: num(x.outstanding),
+      stockVal: num(x.stockVal),
+      gstLiability: num(x.gstLiability),
+      revenue: num(x.revenue),
+      netProfit: num(x.netProfit),
+    }))
+    .slice(0, 20);
+}
+
 export const defaultState = applyComputedBankBalances({
   settings:{
     financialYearStartMonth:4,
@@ -4449,6 +4528,8 @@ export const defaultState = applyComputedBankBalances({
     bundles: [],
     /** Primary reporting basis — labels P&amp;L vs cash screens. */
     accountingBasis: "cash",
+    fyCloseSnapshots: [],
+    saleDraft: null,
     autoStockOutOnSale: false,
   },
   balance:normBalance({}),
@@ -4535,6 +4616,8 @@ export function mergePersistedPayload(p) {
         defaultProductHsn: String(settingsIn?.defaultProductHsn ?? "8711").trim() || "8711",
         defaultProductGstRate: Math.max(0, num(settingsIn?.defaultProductGstRate ?? 5)),
         darkMode: settingsIn?.darkMode === true ? true : settingsIn?.darkMode === false ? false : undefined,
+        fyCloseSnapshots: normFyCloseSnapshots(settingsIn?.fyCloseSnapshots),
+        saleDraft: normSaleDraft(settingsIn?.saleDraft),
       },
       balance: balanceMerged,
       sales: normSalesList(p.sales, balanceMerged.bankAccounts),

@@ -1,21 +1,9 @@
 import { useMemo, useState } from "react";
 import {
   aggregateCashflowDaysInMonth,
+  computeCashflowBreakdownForMonth,
+  computeCashflowBreakdownForDay,
   fyMonthSequence,
-  monthKeyFromRecord,
-  num,
-  sumExpenseCashOutInMonth,
-  sumExpenseCashOutOnDay,
-  sumSalePaymentsInMonth,
-  sumSalePaymentsOnDay,
-  sumStockInCashOutInMonth,
-  sumStockInCashOutOnDay,
-  sumPurchasePaymentsInMonth,
-  sumPurchasePaymentsOnDay,
-  sumLoanDisbursementCashOutInMonth,
-  sumLoanRepaymentCashInInMonth,
-  sumLoanDisbursementCashOutOnDay,
-  sumLoanRepaymentCashInOnDay,
   formatMonthLabel,
   currentMonthStr,
   todayStr,
@@ -34,6 +22,7 @@ export function CashFlowScreen({
   otherIncomes = [],
   purchases = [],
   loansGiven = [],
+  bankTransfers = [],
   fsm,
   fyYear,
   fyStr,
@@ -43,34 +32,37 @@ export function CashFlowScreen({
   const [cfMonthKey, setCfMonthKey] = useState(() => currentMonthStr());
   const [cfDay, setCfDay] = useState(() => todayStr());
 
+  const flowInputs = useMemo(
+    () => ({
+      sales,
+      expenses,
+      inventoryEntries: inventoryEntries || [],
+      otherIncomes: otherIncomes || [],
+      purchases: purchases || [],
+      loansGiven: loansGiven || [],
+      bankTransfers: bankTransfers || [],
+    }),
+    [sales, expenses, inventoryEntries, otherIncomes, purchases, loansGiven, bankTransfers],
+  );
+
   const { rows, periodLabel, colLabel } = useMemo(() => {
-    const oi = otherIncomes || [];
     if (cfGranularity === "fy") {
       const months = fyMonthSequence(fsm, fyYear);
-      const cashInForMonth = (m) => {
-        const fromSales = sumSalePaymentsInMonth(sales, m);
-        const fromOi = oi
-          .filter((x) => monthKeyFromRecord(x.date) === m && String(x.bankAccountId || "").trim())
-          .reduce((s, x) => s + num(x.amount), 0);
-        return fromSales + fromOi + sumLoanRepaymentCashInInMonth(loansGiven, m);
-      };
-      const maxIn = Math.max(1, ...months.map((m) => cashInForMonth(m)));
+      const maxIn = Math.max(
+        1,
+        ...months.map((m) => computeCashflowBreakdownForMonth({ ...flowInputs, monthKey: m }).totalIn),
+      );
       const list = months
         .map((m) => {
-          const cashIn = cashInForMonth(m);
-          const cashOutExp = sumExpenseCashOutInMonth(expenses, m);
-          const cashOutStock = sumStockInCashOutInMonth(inventoryEntries || [], m);
-          const cashOutPurch = sumPurchasePaymentsInMonth(purchases || [], m);
-          const cashOutLoan = sumLoanDisbursementCashOutInMonth(loansGiven, m);
-          const cashOut = cashOutExp + cashOutStock + cashOutPurch + cashOutLoan;
-          const net = cashIn - cashOut;
+          const b = computeCashflowBreakdownForMonth({ ...flowInputs, monthKey: m });
           return {
             key: m,
             label: formatMonthLabel(m),
-            cashIn,
-            cashOut,
-            net,
-            inPct: maxIn ? cashIn / maxIn : 0,
+            cashIn: b.totalIn,
+            cashOut: b.totalOut,
+            net: b.net,
+            ownerDrawings: b.ownerDrawings,
+            inPct: maxIn ? b.totalIn / maxIn : 0,
           };
         })
         .filter((r) => r.cashIn > 0 || r.cashOut > 0);
@@ -82,8 +74,18 @@ export function CashFlowScreen({
     }
 
     if (cfGranularity === "month") {
-      const mk = cfMonthKey && String(cfMonthKey).length >= 7 ? String(cfMonthKey).slice(0, 7) : currentMonthStr();
-      const pairs = aggregateCashflowDaysInMonth(sales, expenses, inventoryEntries, oi, mk, purchases || [], loansGiven);
+      const mk =
+        cfMonthKey && String(cfMonthKey).length >= 7 ? String(cfMonthKey).slice(0, 7) : currentMonthStr();
+      const pairs = aggregateCashflowDaysInMonth(
+        sales,
+        expenses,
+        inventoryEntries,
+        otherIncomes || [],
+        mk,
+        purchases || [],
+        loansGiven,
+        bankTransfers,
+      );
       const maxIn = Math.max(1, ...pairs.map(([, o]) => o.cashIn));
       const list = pairs.map(([day, o]) => ({
         key: day,
@@ -101,37 +103,80 @@ export function CashFlowScreen({
     }
 
     const d = cfDay && String(cfDay).length >= 10 ? String(cfDay).slice(0, 10) : todayStr();
-    const cashInSales = sumSalePaymentsOnDay(sales, d);
-    const cashInOi = oi
-      .filter((x) => String(x.date || "").slice(0, 10) === d && String(x.bankAccountId || "").trim())
-      .reduce((s, x) => s + num(x.amount), 0);
-    const cashIn = cashInSales + cashInOi + sumLoanRepaymentCashInOnDay(loansGiven, d);
-    const cashOutExp = sumExpenseCashOutOnDay(expenses, d);
-    const cashOutStock = sumStockInCashOutOnDay(inventoryEntries || [], d);
-    const cashOutPurch = sumPurchasePaymentsOnDay(purchases || [], d);
-    const cashOut = cashOutExp + cashOutStock + cashOutPurch + sumLoanDisbursementCashOutOnDay(loansGiven, d);
-    const net = cashIn - cashOut;
-    const maxIn = Math.max(1, cashIn);
+    const b = computeCashflowBreakdownForDay({ ...flowInputs, dayYmd: d });
+    const maxIn = Math.max(1, b.totalIn);
     return {
       rows: [
         {
           key: d,
           label: dateHuman(d),
-          cashIn,
-          cashOut,
-          net,
-          inPct: maxIn ? cashIn / maxIn : 0,
+          cashIn: b.totalIn,
+          cashOut: b.totalOut,
+          net: b.net,
+          inPct: maxIn ? b.totalIn / maxIn : 0,
         },
       ],
       periodLabel: dateHuman(d),
       colLabel: "Day",
     };
-  }, [cfGranularity, cfMonthKey, cfDay, sales, expenses, inventoryEntries, otherIncomes, purchases, loansGiven, fsm, fyYear, fyStr]);
+  }, [
+    cfGranularity,
+    cfMonthKey,
+    cfDay,
+    flowInputs,
+    sales,
+    expenses,
+    inventoryEntries,
+    otherIncomes,
+    purchases,
+    loansGiven,
+    bankTransfers,
+    fsm,
+    fyYear,
+    fyStr,
+  ]);
+
+  const periodBreakdown = useMemo(() => {
+    if (cfGranularity === "fy") {
+      const months = fyMonthSequence(fsm, fyYear);
+      let operatingIn = 0;
+      let operatingOut = 0;
+      let financingIn = 0;
+      let financingOut = 0;
+      let ownerDrawings = 0;
+      let ownerCapital = 0;
+      for (const m of months) {
+        const b = computeCashflowBreakdownForMonth({ ...flowInputs, monthKey: m });
+        operatingIn += b.operatingIn;
+        operatingOut += b.operatingOut;
+        financingIn += b.financingIn;
+        financingOut += b.financingOut;
+        ownerDrawings += b.ownerDrawings;
+        ownerCapital += b.ownerCapital;
+      }
+      return {
+        operatingIn,
+        operatingOut,
+        financingIn,
+        financingOut,
+        ownerDrawings,
+        ownerCapital,
+      };
+    }
+    if (cfGranularity === "month") {
+      const mk =
+        cfMonthKey && String(cfMonthKey).length >= 7 ? String(cfMonthKey).slice(0, 7) : currentMonthStr();
+      return computeCashflowBreakdownForMonth({ ...flowInputs, monthKey: mk });
+    }
+    const d = cfDay && String(cfDay).length >= 10 ? String(cfDay).slice(0, 10) : todayStr();
+    return computeCashflowBreakdownForDay({ ...flowInputs, dayYmd: d });
+  }, [cfGranularity, cfMonthKey, cfDay, flowInputs, fsm, fyYear]);
 
   const totalIn = useMemo(() => rows.reduce((s, r) => s + r.cashIn, 0), [rows]);
   const totalOut = useMemo(() => rows.reduce((s, r) => s + r.cashOut, 0), [rows]);
 
   const showEmpty = cfGranularity === "day" ? totalIn === 0 && totalOut === 0 : rows.length === 0;
+  const showOwnerDrawings = periodBreakdown.ownerDrawings > 0.009;
 
   return (
     <TabPageChrome title="Cash flow" onOpenSidebar={onOpenSidebar} right={<span className="page-hdr-meta">{periodLabel}</span>}>
@@ -189,6 +234,29 @@ export function CashFlowScreen({
           <div className={`recv-kpi-val ${totalIn - totalOut >= 0 ? "primary" : "danger"}`}>{money(totalIn - totalOut)}</div>
         </div>
       </div>
+      {(periodBreakdown.operatingIn > 0 ||
+        periodBreakdown.operatingOut > 0 ||
+        periodBreakdown.financingIn > 0 ||
+        periodBreakdown.financingOut > 0) && (
+        <div className="cashflow-breakdown-strip" aria-label="Operating vs financing">
+          <div className="cashflow-breakdown-row">
+            <span className="cashflow-breakdown-lbl">Operating</span>
+            <span className="cashflow-breakdown-in">{money(periodBreakdown.operatingIn)}</span>
+            <span className="cashflow-breakdown-out">{money(periodBreakdown.operatingOut)}</span>
+          </div>
+          <div className="cashflow-breakdown-row">
+            <span className="cashflow-breakdown-lbl">Financing</span>
+            <span className="cashflow-breakdown-in">{money(periodBreakdown.financingIn)}</span>
+            <span className="cashflow-breakdown-out">{money(periodBreakdown.financingOut)}</span>
+          </div>
+          {showOwnerDrawings ? (
+            <div className="cashflow-breakdown-row cashflow-breakdown-row--emph">
+              <span className="cashflow-breakdown-lbl">Owner drawings</span>
+              <span className="cashflow-breakdown-out cashflow-breakdown-span">{money(periodBreakdown.ownerDrawings)}</span>
+            </div>
+          ) : null}
+        </div>
+      )}
       <div className="list-area">
         {showEmpty ? (
           <EmptyState

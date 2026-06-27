@@ -21,6 +21,9 @@ import {
   saleDocPrefix,
   saleToEntry,
   sumSaleLineItems,
+  normSaleDraft,
+  clearSaleDraftSettings,
+  todayStr,
 } from "@/domain/index.js";
 
 /**
@@ -44,23 +47,64 @@ export function useSalesActions({
   emi3,
   emi4,
 }) {
-  const openNewSale = useCallback(() => {
-    setEditingSaleId(null);
-    const base = defSale();
-    const docType = base.docType === "billOfSupply" ? "billOfSupply" : "invoice";
-    const prefix = saleDocPrefix(state.settings, docType);
-    const nextNo =
-      docType === "billOfSupply"
-        ? state.settings?.billOfSupplyNextNumber
-        : state.settings?.invoiceNextNumber;
-    setSaleEntry({
-      ...base,
-      docType,
-      invoiceNo: genInvoiceNo(state.sales, prefix, nextNo),
-      dueDate: addDaysStr(base.date, num(state.settings?.defaultDueDays) || 30),
-    });
-    setScreen("newSale");
-  }, [setEditingSaleId, setSaleEntry, setScreen, state.sales, state.settings]);
+  const openNewSale = useCallback(
+    (opts) => {
+      setEditingSaleId(null);
+      if (!opts?.fresh) {
+        const draft = normSaleDraft(state.settings?.saleDraft);
+        if (draft?.entry) {
+          const base = { ...defSale(), ...draft.entry };
+          const docType = base.docType === "billOfSupply" ? "billOfSupply" : "invoice";
+          if (!String(base.invoiceNo || "").trim()) {
+            const prefix = saleDocPrefix(state.settings, docType);
+            const nextNo =
+              docType === "billOfSupply"
+                ? state.settings?.billOfSupplyNextNumber
+                : state.settings?.invoiceNextNumber;
+            base.invoiceNo = genInvoiceNo(state.sales, prefix, nextNo);
+          }
+          if (!String(base.dueDate || "").trim()) {
+            base.dueDate = addDaysStr(
+              base.date || todayStr(),
+              num(state.settings?.defaultDueDays) || 30,
+            );
+          }
+          setSaleEntry(base);
+          setScreen("newSale");
+          return;
+        }
+      }
+      if (opts?.fresh && state.settings?.saleDraft) {
+        setState((prev) => ({
+          ...prev,
+          settings: clearSaleDraftSettings(prev.settings),
+        }));
+      }
+      const base = defSale();
+      const docType = base.docType === "billOfSupply" ? "billOfSupply" : "invoice";
+      const prefix = saleDocPrefix(state.settings, docType);
+      const nextNo =
+        docType === "billOfSupply"
+          ? state.settings?.billOfSupplyNextNumber
+          : state.settings?.invoiceNextNumber;
+      setSaleEntry({
+        ...base,
+        docType,
+        invoiceNo: genInvoiceNo(state.sales, prefix, nextNo),
+        dueDate: addDaysStr(base.date, num(state.settings?.defaultDueDays) || 30),
+      });
+      setScreen("newSale");
+    },
+    [setEditingSaleId, setSaleEntry, setScreen, setState, state.sales, state.settings],
+  );
+
+  const discardSaleDraft = useCallback(() => {
+    setState((prev) => ({
+      ...prev,
+      settings: clearSaleDraftSettings(prev.settings),
+    }));
+    showToast("Draft discarded");
+  }, [setState, showToast]);
 
   const openEditSale = useCallback(
     (sale, emi) => {
@@ -368,7 +412,7 @@ export function useSalesActions({
 
         let next = {
           ...state,
-          settings: advanceSettingsNext(state.settings),
+          settings: clearSaleDraftSettings(advanceSettingsNext(state.settings)),
           sales: state.sales.map((s) => (s.id === editingSaleId ? updated : s)),
           emiEntries,
           inventoryEntries: nextInventoryEntries,
@@ -401,7 +445,7 @@ export function useSalesActions({
       };
       let next = {
         ...state,
-        settings: advanceSettingsNext(state.settings),
+        settings: clearSaleDraftSettings(advanceSettingsNext(state.settings)),
         sales: [sale, ...state.sales],
       };
       next = {
@@ -460,5 +504,5 @@ export function useSalesActions({
     ],
   );
 
-  return { onSaveSale, openNewSale, openEditSale, closeNewSale };
+  return { onSaveSale, openNewSale, openEditSale, closeNewSale, discardSaleDraft };
 }

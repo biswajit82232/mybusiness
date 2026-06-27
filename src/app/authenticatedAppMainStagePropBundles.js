@@ -30,6 +30,7 @@ export function mergeAuthenticatedMainStageProps(c) {
     {
       state: c.state,
       kpis: c.kpis,
+      kpiSparklines: c.kpiSparklines,
       accountingBasis: c.state.settings?.accountingBasis === "accrual" ? "accrual" : "cash",
       fyStr: c.fyStr,
       fyYear: c.fyYear,
@@ -118,6 +119,10 @@ export function mergeAuthenticatedMainStageProps(c) {
       requestNotifPermission: c.requestNotifPermission,
       openNewSale: c.openNewSale,
       openSaleDetail: c.openSaleDetail,
+      saleDraftResume: c.saleDraftResume,
+      onResumeSaleDraft: c.onResumeSaleDraft,
+      onDiscardSaleDraft: c.onDiscardSaleDraft,
+      discardSaleDraft: c.discardSaleDraft,
       openNewExpense: c.openNewExpense,
       openNewCustomer: c.openNewCustomer,
       openNewVendor: c.openNewVendor,

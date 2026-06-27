@@ -5,6 +5,7 @@ import {
   upsertLocalEntityRecord,
   tombstoneLocalEntityRecord,
 } from "@/data/local/indexedDbStore.js";
+import { withPersistLock } from "@/data/local/persistMutex.js";
 import { runWithStableStringifyMemoAsync, stableStringify, applyComputedBankBalances } from "@/domain/index.js";
 
 /**
@@ -55,6 +56,7 @@ export function useDebouncedLocalPersist({
           return;
         }
 
+        await withPersistLock(async () => {
         await runWithStableStringifyMemoAsync(async () => {
         const updatedAt = new Date().toISOString();
 
@@ -148,6 +150,7 @@ export function useDebouncedLocalPersist({
         // Keep a full-state fallback snapshot for crash-safe reload recovery.
         await writeAppCache(normalizedBalance).catch(() => {});
         persistWarnedRef.current = false;
+        });
         });
       } catch (persistErr) {
         // Local save failures are handled separately from UI navigation state.

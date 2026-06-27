@@ -35,6 +35,7 @@ import {
 import { Field, TabPageChrome } from "@/shared/ui/layout/AppChrome.jsx";
 import { MenuSelect } from "@/shared/ui/inputs/MenuSelect.jsx";
 import { SettingsHubRow } from "./SettingsHubRow.jsx";
+import { FyCloseWizard } from "./FyCloseWizard.jsx";
 
 /** Support WhatsApp for bug reports (India mobile, no leading 0). */
 const REPORT_BUGS_WHATSAPP = "9635505436";
@@ -42,6 +43,8 @@ const REPORT_BUGS_WHATSAPP = "9635505436";
 export function SettingsScreen({
   settings,
   fyStr,
+  balSum,
+  kpis,
   onSavePartial,
   onOpenSidebar,
   onExportBackup,
@@ -84,6 +87,7 @@ export function SettingsScreen({
     invoice: "Invoice settings",
     accounting: "Accounting & inventory",
     fy: "Financial year",
+    fyClose: "Year-end close",
     finance: "Finance companies",
     expenseCats: "Expense categories",
     otherIncomeCats: "Other income categories",
@@ -174,6 +178,13 @@ export function SettingsScreen({
           title: "Financial year",
           subtitle: "FY year & start month",
           keywords: ["fy", "financial", "year", "month", "april", "tax", "period"],
+        },
+        {
+          k: "fyClose",
+          icon: <IcSales />,
+          title: "Year-end close",
+          subtitle: "FY snapshot, backup & checklist",
+          keywords: ["year", "end", "close", "closing", "march", "snapshot", "audit", "ca"],
         },
         {
           k: "finance",
@@ -657,6 +668,19 @@ export function SettingsScreen({
             </div>
             <button type="submit" className="primary-btn submit-btn">Save</button>
           </form>
+        )}
+
+        {sub === "fyClose" && (
+          <div className="form-sections settings-sub-pad">
+            <FyCloseWizard
+              fyStr={fyStr}
+              balSum={balSum}
+              kpis={kpis}
+              fyCloseSnapshots={settings.fyCloseSnapshots || []}
+              onExportBackup={onExportBackup}
+              onSavePartial={onSavePartial}
+            />
+          </div>
         )}
 
         {sub === "finance" && (

@@ -6,6 +6,7 @@ import {
   getDefaultBankAccountId,
   BANK_EXTERNAL_SOURCE_ID,
   BANK_EXTERNAL_SINK_ID,
+  BANK_TRANSFER_KIND,
   bankAccountCountsInLiquidTotal,
   formatMonthLabel,
   currentMonthStr,
@@ -114,6 +115,8 @@ export function BankingTab({
   const [cashMoveAmt, setCashMoveAmt] = useState("");
   const [cashMoveDate, setCashMoveDate] = useState(() => todayStr());
   const [cashMoveNote, setCashMoveNote] = useState("");
+  const [cashMoveOwnerDrawing, setCashMoveOwnerDrawing] = useState(false);
+  const [cashMoveOwnerCapital, setCashMoveOwnerCapital] = useState(false);
 
   const openXferModal = () => {
     const ids = bankAccounts.map((a) => a.id).filter(Boolean);
@@ -148,6 +151,8 @@ export function BankingTab({
     setCashMoveAmt("");
     setCashMoveDate(todayStr());
     setCashMoveNote("");
+    setCashMoveOwnerDrawing(false);
+    setCashMoveOwnerCapital(false);
     setCashMoveOpen(true);
   };
 
@@ -155,12 +160,20 @@ export function BankingTab({
     e.preventDefault();
     if (!onTransfer) return;
     const isDeposit = cashMoveType === "deposit";
+    const kind = isDeposit
+      ? cashMoveOwnerCapital
+        ? BANK_TRANSFER_KIND.OWNER_CAPITAL
+        : BANK_TRANSFER_KIND.DEPOSIT
+      : cashMoveOwnerDrawing
+        ? BANK_TRANSFER_KIND.OWNER_DRAWING
+        : BANK_TRANSFER_KIND.WITHDRAW;
     const ok = await onTransfer({
       fromAccountId: isDeposit ? BANK_EXTERNAL_SOURCE_ID : cashMoveAccountId,
       toAccountId: isDeposit ? cashMoveAccountId : BANK_EXTERNAL_SINK_ID,
       amount: cashMoveAmt,
       date: cashMoveDate,
       note: cashMoveNote,
+      kind,
     });
     if (ok) setCashMoveOpen(false);
   };
@@ -442,6 +455,25 @@ export function BankingTab({
                   required
                 />
               </Field>
+              {cashMoveType === "withdraw" ? (
+                <label className="field-check">
+                  <input
+                    type="checkbox"
+                    checked={cashMoveOwnerDrawing}
+                    onChange={(e) => setCashMoveOwnerDrawing(e.target.checked)}
+                  />
+                  <span>Owner drawing (personal withdrawal)</span>
+                </label>
+              ) : (
+                <label className="field-check">
+                  <input
+                    type="checkbox"
+                    checked={cashMoveOwnerCapital}
+                    onChange={(e) => setCashMoveOwnerCapital(e.target.checked)}
+                  />
+                  <span>Owner capital introduced</span>
+                </label>
+              )}
               <Field label="Note (optional)">
                 <input
                   type="text"

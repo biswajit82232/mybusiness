@@ -5,6 +5,7 @@ import {
   runCloudSyncPass,
 } from "@/data/sync/cloudSync.js";
 import { withSupabaseSyncHint } from "@/data/sync/syncErrorHints.js";
+import { waitForPersistIdle } from "@/data/local/persistMutex.js";
 import {
   getPendingOutboxCount,
   loadUserLocalState,
@@ -100,6 +101,7 @@ export function useCloudSyncExecutor({
           return r;
         }
         if (r.fullRestore && r.pullPayload) {
+          await waitForPersistIdle().catch(() => {});
           let merged = mergePersistedPayload(r.pullPayload) || defaultState;
           merged = appendConflictRowsLocal(merged, r.conflictRows);
           await applyCloudPullToAppState(uid, merged, {
@@ -115,7 +117,9 @@ export function useCloudSyncExecutor({
               suppressPersistRef.current = false;
             });
           }
-        } else if ((r.remoteRowsApplied ?? 0) > 0 && !pendingWritesRef?.current) {
+        } else if ((r.remoteRowsApplied ?? 0) > 0) {
+          await waitForPersistIdle().catch(() => {});
+          if (!pendingWritesRef?.current) {
           // Re-read IDB after pull+push — pullPayload is captured before push and can be stale
           // if the user saved while sync was in flight.
           const freshPayload = await loadUserLocalState(uid);
@@ -128,6 +132,7 @@ export function useCloudSyncExecutor({
           Promise.resolve().then(() => {
             suppressPersistRef.current = false;
           });
+          }
         }
         const parts = [];
         if (r.fullRestore) parts.push("Restored from cloud");

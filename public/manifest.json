@@ -29,13 +29,6 @@
       "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     },
     {
-      "name": "Loans Given",
-      "short_name": "Loans",
-      "description": "View and manage loans given",
-      "url": "/?action=loans_given",
-      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
-    },
-    {
       "name": "Balance Sheet",
       "short_name": "Balance",
       "description": "Open the balance sheet overview",

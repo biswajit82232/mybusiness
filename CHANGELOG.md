@@ -2,6 +2,62 @@
 
 All notable changes are tracked here. The Settings screen shows **Version** from `package.json`.
 
+## [8.0.9] — 2026-06-27
+
+### Features
+- **Draft invoices** — New-sale form auto-saves in progress to `settings.saleDraft`; resume from Home or Invoices, discard from banner or the form; cleared on successful save.
+- **Owner drawings** — Banking withdraw/deposit modals support owner drawing and owner capital flags; Cash flow shows operating vs financing breakdown with owner drawings line.
+
+### Improvements
+- **Balance sheet** — New line **Current assets − liabilities** (working capital) after total liabilities, with signed coloring.
+
+App version **8.0.9**; service worker cache **v108**.
+
+---
+
+## [8.0.8] — 2026-06-27
+
+### Features
+- **Balance sheet — as-of date** — Pick a historical date; receivables, stock, GST, payables, and fixed-asset net book recalculate for that day (bank balances stay current with a clear note).
+- **Fixed assets — auto depreciation** — Straight-line net book from purchase date and % p.a.; balance sheet and register show net (not gross) totals.
+- **Settings — Year-end close** — Guided checklist, FY-labelled backup download, and saved FY snapshots (totals + optional note).
+
+### Improvements
+- **Reset all data** — Reset flow offers “Download backup now” before the final erase step; confirms whether a backup was downloaded this session.
+- **Backup import** — Validates schema version and app version; blocks imports from newer schemas; warns on legacy or older app backups.
+
+App version **8.0.8**; service worker cache **v107**.
+
+---
+
+## [8.0.7] — 2026-06-27
+
+### Features
+- **Balance sheet** — GST net liability row, Assets = Liabilities + Equity verification strip, and current ratio when liabilities exist.
+- **Dashboard** — 60-day sparklines on Revenue, Net profit, and Receivables KPI cards.
+- **Reports** — Month-over-month delta on revenue and net profit when viewing a single month.
+- **Search** — Fuzzy matching via Fuse.js (names, SKUs, typos) with legacy phone/digit matchers kept.
+
+### Improvements
+- **Service worker** — Cache `VERSION` auto-syncs from `package.json` on build (`scripts/sync-sw-version.mjs`); no manual `sw.js` bump.
+- **Vitest** — Domain unit tests (`npm run test:unit`) for money rounding, GST, banking activity, EMI alerts, sparklines, purchase duplicates.
+- **Sync safety** — Persist mutex prevents cloud sync from overwriting in-flight IndexedDB saves.
+- **Banking** — Deleting a bank account clears linked payment/stock/expense references (no orphaned IDs).
+- **Purchases** — Blocks duplicate supplier invoice numbers for the same vendor.
+
+App version **8.0.7**; service worker cache **v106**.
+
+---
+
+## [8.0.6] — 2026-06-27
+
+### Improvements
+- **Dead code removal** — Retired Loans Given UI (15 screens), orphaned Daily Summary and Bundles screens, unused `useLoanGivenActions`, and legacy `src/lib` re-export shim. Loan *data* still loads/syncs and appears in banking, cash flow, and ledger; only the unreachable management UI and nav plumbing were removed. PWA shortcut for loans removed.
+
+App version **8.0.6**; service worker cache **v105**.
+
+---
+
 ## [8.0.5] — 2026-06-26
 
 ### Improvements

@@ -5,6 +5,7 @@ import {
   makeId,
   normBranchesList,
   normPurchasesList,
+  findDuplicatePurchase,
   roundMoney2,
   num,
 } from "@/domain/index.js";
@@ -43,6 +44,17 @@ export function usePurchaseActions({
       }
       if (!(purchaseEntry.supplierName || "").trim()) {
         showToast("Enter supplier name");
+        return;
+      }
+      const invoiceRef = (purchaseEntry.invoiceRef || "").trim();
+      const dup = findDuplicatePurchase(
+        base.purchases,
+        purchaseEntry.supplierName,
+        invoiceRef,
+        editingPurchaseId,
+      );
+      if (dup) {
+        showToast("This supplier invoice # was already entered");
         return;
       }
       const totalAmount = roundMoney2(lines.reduce((s, l) => s + l.qty * l.costPerUnit, 0));

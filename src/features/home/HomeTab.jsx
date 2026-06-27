@@ -7,6 +7,7 @@ import {
   dateHuman,
   num,
   saleStatus,
+  sparklineSvgPoints,
 } from "@/domain/index.js";
 import {
   IcBell,
@@ -18,11 +19,23 @@ import {
   IcSpend,
 } from "@/shared/ui/icons/AppIcons.jsx";
 import { MonthFilterCompact } from "@/shared/ui/shell/MonthFilterCompact.jsx";
+import { SaleDraftBanner } from "@/features/invoices/SaleDraftBanner.jsx";
 import { NotifPanel } from "./NotifPanel.jsx";
 
 const PROFIT_MASK_KEYS = new Set(["profit", "gross", "revenue", "cogs"]);
 const RECENT_LIMIT = 5;
 const AV_COLORS = ["av-blue", "av-green", "av-purple", "av-orange", "av-teal", "av-indigo", "av-amber", "av-red"];
+const SPARKLINE_TILE_KEYS = new Set(["revenue", "profit", "recv"]);
+
+function KpiSparkline({ values, className = "home-md3-kpi-spark" }) {
+  const points = useMemo(() => sparklineSvgPoints(values, 120, 22), [values]);
+  if (!points) return null;
+  return (
+    <svg className={className} width="100%" height="22" viewBox="0 0 120 22" preserveAspectRatio="none" aria-hidden>
+      <polyline fill="none" stroke="currentColor" strokeWidth="1.25" opacity="0.8" points={points} />
+    </svg>
+  );
+}
 
 function getInitials(name) {
   return (name || "?")
@@ -73,6 +86,7 @@ function Md3Section({ title, children, emptyHint }) {
 export function HomeTab({
   state,
   kpis,
+  kpiSparklines = { revenue: [], netProfit: [], receivables: [] },
   accountingBasis,
   onToggleAccountingBasis,
   fyStr,
@@ -86,6 +100,9 @@ export function HomeTab({
   openPurchaseDetail,
   openNewExpense,
   openSearch,
+  saleDraftSummary: saleDraftResume = null,
+  onResumeSaleDraft,
+  onDiscardSaleDraft,
   alertItems,
   notifOpen,
   setNotifOpen,
@@ -134,15 +151,8 @@ export function HomeTab({
 
   const kpiTiles = useMemo(
     () => [
-      {
-        key: "profit",
-        label: "Net profit",
-        value: money(kpis.netProfit),
-        sub: otherIncomeSub,
-        hero: true,
-        tone: profitPositive ? "tone-good" : "tone-bad",
-      },
-      { key: "revenue", label: revenueLabel, value: money(kpis.revenue), tone: "tone-primary" },
+      { key: "profit", label: "Net profit", value: money(kpis.netProfit), sub: otherIncomeSub, hero: true, tone: profitPositive ? "tone-good" : "tone-bad", spark: "netProfit" },
+      { key: "revenue", label: revenueLabel, value: money(kpis.revenue), tone: "tone-primary", spark: "revenue" },
       { key: "cogs", label: "COGS", value: money(kpis.cogs), tone: "tone-warn" },
       {
         key: "gross",
@@ -157,6 +167,7 @@ export function HomeTab({
         value: money(kpis.outstanding),
         tone: "tone-accent",
         wideMobile: true,
+        spark: "receivables",
       },
       {
         key: "liquid",
@@ -300,6 +311,9 @@ export function HomeTab({
                         {tile.sub}
                       </span>
                     ) : null}
+                    {tile.spark && SPARKLINE_TILE_KEYS.has(tile.key) ? (
+                      <KpiSparkline values={kpiSparklines[tile.spark]} />
+                    ) : null}
                   </div>
                   <button
                     type="button"
@@ -326,6 +340,9 @@ export function HomeTab({
                       {tile.sub}
                     </span>
                   ) : null}
+                  {tile.spark && SPARKLINE_TILE_KEYS.has(tile.key) ? (
+                    <KpiSparkline values={kpiSparklines[tile.spark]} />
+                  ) : null}
                 </>
               )}
             </div>
@@ -343,6 +360,16 @@ export function HomeTab({
             <span>Expense</span>
           </button>
         </div>
+
+        {saleDraftResume ? (
+          <SaleDraftBanner
+            summary={saleDraftResume}
+            onResume={onResumeSaleDraft}
+            onDiscard={onDiscardSaleDraft}
+            compact
+            className="sale-draft-banner--home"
+          />
+        ) : null}
 
         <Md3Section title="Recent sales" emptyHint="No sales in this period.">
           {recentSales.length > 0

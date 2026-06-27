@@ -1,10 +1,12 @@
-import { num, money, sumAccounts } from "@/domain/index.js";
+import { num, money, sumFixedAssetsGross, sumFixedAssetsNetBook, todayStr } from "@/domain/index.js";
 import { IcPlus, IcTrash } from "@/shared/ui/icons/AppIcons.jsx";
 import { TabPageChrome } from "@/shared/ui/layout/AppChrome.jsx";
 
 export function FixedAssetsTab({ state, patchFixed, addFixed, removeFixed, saveFixed, onOpenSidebar, requestConfirm }) {
   const fixed = state.balance.fixedAssetAccounts || [];
-  const total = sumAccounts(fixed);
+  const asOf = todayStr();
+  const grossTotal = sumFixedAssetsGross(fixed);
+  const netTotal = sumFixedAssetsNetBook(fixed, asOf);
   const n = fixed.length;
 
   const onRemove = (id) => {
@@ -33,8 +35,11 @@ export function FixedAssetsTab({ state, patchFixed, addFixed, removeFixed, saveF
     >
       <div className="banking-summary" aria-label="Fixed assets overview">
         <div className="banking-sum-cell">
-          <span className="banking-sum-lbl">Book value</span>
-          <span className="banking-sum-val">{money(total)}</span>
+          <span className="banking-sum-lbl">Net book value</span>
+          <span className="banking-sum-val">{money(netTotal)}</span>
+          {grossTotal > netTotal + 0.01 ? (
+            <span className="banking-sum-meta">{money(grossTotal)} gross</span>
+          ) : null}
         </div>
         <div className="banking-sum-cell">
           <span className="banking-sum-lbl">On register</span>

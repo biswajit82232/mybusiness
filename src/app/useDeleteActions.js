@@ -7,6 +7,7 @@ import {
   normPurchasesList,
   normSalesList,
   normVendorDirectory,
+  stripBankAccountReferences,
 } from "@/domain/index.js";
 
 /**
@@ -18,8 +19,6 @@ export function useDeleteActions({
   selExpenseId,
   selOtherIncomeId,
   editingOtherIncomeId,
-  editingLoanGivenId,
-  selLoanGivenId,
   invItemDetail,
   showToast,
   setState,
@@ -31,9 +30,6 @@ export function useDeleteActions({
   setSelExpenseCategory,
   setSelOtherIncomeId,
   setEditingOtherIncomeId,
-  setSelLoanGivenId,
-  setEditingLoanGivenId,
-  setLoanGivenEntry,
   setEditingInventoryId,
   setInvItemDetail,
   setSelCustomerName,
@@ -49,7 +45,6 @@ export function useDeleteActions({
   otherIncomeOpenedFromRef,
   stockNavRef,
   openedFromGlobalSearchRef,
-  emptyLoanGivenForm,
 }) {
   const onDeleteConfirmed = useCallback(async () => {
     if (!delConfirm) return;
@@ -135,25 +130,6 @@ export function useDeleteActions({
         else setPage("otherIncome");
       }
       showToast("Deleted");
-
-    } else if (type === "loanGiven") {
-      const next = {
-        ...state,
-        loansGiven: (state.loansGiven || []).filter((x) => x && x.id !== id),
-      };
-      const __p = await persistWholeStateImmediate(next);
-      if (__p) setState(__p);
-      if (selLoanGivenId === id) {
-        setSelLoanGivenId(null);
-        setScreen(null);
-      }
-      if (editingLoanGivenId === id) {
-        setEditingLoanGivenId(null);
-        setLoanGivenEntry(emptyLoanGivenForm());
-        setScreen(null);
-        setPage("loansGiven");
-      }
-      showToast("Loan removed");
 
     } else if (type === "recurring") {
       const next = {
@@ -338,21 +314,7 @@ export function useDeleteActions({
       showToast("Supplier payment removed");
 
     } else if (type === "bankAccount") {
-      const xfers = state.balance.bankTransfers || [];
-      if (xfers.some((t) => t && (t.fromAccountId === id || t.toAccountId === id))) {
-        showToast(
-          "This account has saved transfers. It can't be deleted until those transfers can be removed or adjusted.",
-        );
-        setDelConfirm(null);
-        return;
-      }
-      const next = {
-        ...state,
-        balance: {
-          ...state.balance,
-          bankAccounts: (state.balance.bankAccounts || []).filter((a) => a && a.id !== id),
-        },
-      };
+      const next = stripBankAccountReferences(state, id);
       try {
         const __p = await persistWholeStateImmediate(next);
         if (__p) {
@@ -373,9 +335,7 @@ export function useDeleteActions({
   }, [
     appendAuditEvent,
     delConfirm,
-    editingLoanGivenId,
     editingOtherIncomeId,
-    emptyLoanGivenForm,
     expenseNavRef,
     invItemDetail,
     openedFromGlobalSearchRef,
@@ -385,21 +345,17 @@ export function useDeleteActions({
     purchaseNavRef,
     saleNavRef,
     selExpenseId,
-    selLoanGivenId,
     selOtherIncomeId,
     setDelConfirm,
     setEditingInventoryId,
-    setEditingLoanGivenId,
     setEditingOtherIncomeId,
     setInvItemDetail,
-    setLoanGivenEntry,
     setPage,
     setScreen,
     setSelBankAccountId,
     setSelCustomerName,
     setSelExpenseCategory,
     setSelExpenseId,
-    setSelLoanGivenId,
     setSelOtherIncomeId,
     setSelPurchaseId,
     setSelSaleId,

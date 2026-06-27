@@ -14,7 +14,6 @@ export function PaginatedLedgerRows({
   onOpenExpense,
   onOpenInventoryEntry,
   onOpenPurchase,
-  onOpenLoanGiven,
   emptyState,
 }) {
   const [listCap, setListCap] = useState(LIST_PAGE_SIZE);
@@ -36,9 +35,7 @@ export function PaginatedLedgerRows({
                   ? () => onOpenInventoryEntry(entry.inventoryId)
                   : entry.purchaseId && onOpenPurchase
                     ? () => onOpenPurchase(entry.purchaseId)
-                    : entry.loanGivenId && onOpenLoanGiven
-                      ? () => onOpenLoanGiven(entry.loanGivenId)
-                      : undefined;
+                    : undefined;
         return (
           <div
             key={entry.id}

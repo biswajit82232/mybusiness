@@ -36,6 +36,7 @@ import {
   useBackupActions,
   useCloudSyncExecutor,
   useSalesActions,
+  useSaleDraftAutosave,
   usePaymentActions,
   useDeleteActions,
   usePurchaseActions,
@@ -82,9 +83,6 @@ import {
   clearStoredSessionNav,
   compareSalesByInvoiceNo,
   makeId,
-  sumAccounts,
-  sumBankAccountBalances,
-  bankAccountCountsInBalanceSheet,
   fyLabel,
   isOverdue,
   daysDiffFromToday,
@@ -99,17 +97,16 @@ import {
   defExpense,
   defOtherIncome,
   BANK_ACCOUNT_KINDS,
-  roundMoney2,
   normBranchesList,
   getDefaultBranchId,
   computeInvRowsForBranch,
   computeInvRowsAggregated,
-  sumPurchaseCreditOutstanding,
+  computeBalanceSheetSummary,
   defPurchase,
-  emptyLoanGivenForm,
   defVendor,
   defaultState,
   mergePersistedPayload,
+  saleDraftSummary,
 } from "@/domain/index.js";
 
 /* ─── App ─────────────────────────────────────────────────── */
@@ -142,8 +139,6 @@ export default function AuthenticatedApp() {
   const [invItemDetail, setInvItemDetail] = useState(null);
   const [oiEntry, setOiEntry] = useState(defOtherIncome);
   const [editingOtherIncomeId, setEditingOtherIncomeId] = useState(null);
-  const [, setLoanGivenEntry] = useState(() => emptyLoanGivenForm());
-  const [editingLoanGivenId, setEditingLoanGivenId] = useState(null);
   const [payModal, setPayModal] = useState(null);
   /** Supplier payment modal — purchase id (mutually exclusive with `payModal`). */
   const [payPurchaseModal, setPayPurchaseModal] = useState(null);
@@ -174,9 +169,6 @@ export default function AuthenticatedApp() {
   const [selBankAccountId, setSelBankAccountId] = useState(nav0.selBankAccountId ?? null);
   const [selPurchaseId, setSelPurchaseId] = useState(() => nav0.selPurchaseId ?? null);
   const [selOtherIncomeId, setSelOtherIncomeId] = useState(nav0.selOtherIncomeId ?? null);
-  const [selLoanGivenId, setSelLoanGivenId] = useState(nav0.selLoanGivenId ?? null);
-  const [selLoanPartnerKey, setSelLoanPartnerKey] = useState(null);
-  const [selLoanPartyKey, setSelLoanPartyKey] = useState(null);
   /** IDs already delivered as OS notifications this session */
   const firedNotifIds = useRef(new Set());
   const persistTimerRef = useRef(null);
@@ -212,11 +204,6 @@ export default function AuthenticatedApp() {
     otherIncomeDetailFromRef.current = "list";
     otherIncomeOpenedFromRef.current = { from: "list" };
     newExpenseOpenedFromRef.current = { screen: "expenses" };
-    setEditingLoanGivenId(null);
-    setLoanGivenEntry(emptyLoanGivenForm());
-    setSelLoanGivenId(null);
-    setSelLoanPartnerKey(null);
-    setSelLoanPartyKey(null);
   }, []);
 
   const closeOtherIncomeDetail = useCallback(() => {
@@ -239,34 +226,6 @@ export default function AuthenticatedApp() {
     setPage("otherIncome");
   }, [setPage, setScreen]);
 
-  const closeNewLoanGiven = useCallback(() => {
-    setEditingLoanGivenId(null);
-    setLoanGivenEntry(emptyLoanGivenForm());
-    setSelLoanGivenId(null);
-    setScreen(null);
-    setPage("loansGiven");
-  }, [setPage, setScreen]);
-
-  const closeLoanGivenPartners = useCallback(() => {
-    setSelLoanPartnerKey(null);
-    setScreen(null);
-  }, [setScreen]);
-
-  const closeLoanGivenPartnerDetail = useCallback(() => {
-    setSelLoanPartnerKey(null);
-    setScreen("loanGivenPartners");
-  }, [setScreen]);
-
-  const closeLoanGivenPartys = useCallback(() => {
-    setSelLoanPartyKey(null);
-    setScreen(null);
-  }, [setScreen]);
-
-  const closeLoanGivenPartyDetail = useCallback(() => {
-    setSelLoanPartyKey(null);
-    setScreen("loanGivenPartys");
-  }, [setScreen]);
-
   const suppressPersistRef = useRef(false);
   const currentUserIdRef = useRef(null);
   const lastPersistedStateRef = useRef(null);
@@ -287,7 +246,6 @@ export default function AuthenticatedApp() {
     selBankAccountId,
     selPurchaseId,
     selOtherIncomeId,
-    selLoanGivenId,
     setPage,
     setScreen,
     setDelConfirm,
@@ -337,11 +295,6 @@ export default function AuthenticatedApp() {
     setSearchTerm,
     otherIncomeOpenedFromRef,
     closeOtherIncomeDetail,
-    closeNewLoanGiven,
-    closeLoanGivenPartners,
-    closeLoanGivenPartnerDetail,
-    closeLoanGivenPartys,
-    closeLoanGivenPartyDetail,
     detailScreenClosersRef,
   });
 
@@ -540,10 +493,6 @@ export default function AuthenticatedApp() {
     selBankAccountId,
     selPurchaseId,
     selOtherIncomeId,
-    selLoanGivenId,
-    selLoanPartnerKey,
-    selLoanPartyKey,
-    editingLoanGivenId,
     setScreen,
     setSelSaleId,
     setSelCustomerName,
@@ -555,11 +504,6 @@ export default function AuthenticatedApp() {
     setSelBankAccountId,
     setSelPurchaseId,
     setSelOtherIncomeId,
-    setSelLoanGivenId,
-    setSelLoanPartnerKey,
-    setSelLoanPartyKey,
-    setEditingLoanGivenId,
-    closeNewLoanGiven,
     onClearGlobalSearchReturn: clearGlobalSearchReturnFlag,
     onResetPurchaseNavFromStale: resetPurchaseNavFromStale,
     onResetEmiNavFromStale: resetEmiNavFromStale,
@@ -629,6 +573,7 @@ export default function AuthenticatedApp() {
     dashOtherIncome,
     expensesInSelCategory,
     kpis,
+    kpiSparklines,
   } = useAuthenticatedDerivedMetrics({
     state,
     businessMonth,
@@ -705,20 +650,17 @@ export default function AuthenticatedApp() {
     setState,
     setScreen,
     setPage,
-    setSidebarOpen,
     setEditingCustomerId,
     setEditingVendorId,
     setEditingExpenseId,
     setEditingInventoryId,
     setEditingOtherIncomeId,
-    setEditingLoanGivenId,
     setEditingPurchaseId,
     setCustomerEntry,
     setVendorEntry,
     setExpEntry,
     setStockEntry,
     setOiEntry,
-    setLoanGivenEntry,
     setPurchaseEntry,
     setSelSaleId,
     setSelExpenseId,
@@ -729,11 +671,6 @@ export default function AuthenticatedApp() {
     setSelVendorName,
     setSelPurchaseId,
     setSelOtherIncomeId,
-    setSelLoanGivenId,
-    setSelLoanPartnerKey,
-    selLoanPartnerKey,
-    setSelLoanPartyKey,
-    selLoanPartyKey,
     setInvItemDetail,
     setDelConfirm,
     editingCustomerId,
@@ -1001,39 +938,18 @@ export default function AuthenticatedApp() {
     if (n.kind === "stock") setPage("inventory");
   }, [state.sales, state.emiEntries]);
 
-  const balSum = useMemo(() => {
-    const outstanding    = (state.sales || []).reduce((s,x)=>s + (x ? num(x.outstanding) : 0), 0);
-    const stockVal       = invRows.reduce((s,r)=>s+r.stockValue,0);
-    const branchesForInv = normBranchesList(state.settings?.branches);
-    const inventoryByBranch = branchesForInv.map((b) => {
-      const rows = computeInvRowsForBranch(state.inventoryEntries || [], b.id, branchesForInv);
-      const sv = rows.reduce((s, r) => s + r.stockValue, 0);
-      return { id: b.id, name: b.name, stockValue: sv };
-    });
-    const bankTotal      = sumBankAccountBalances(state.balance.bankAccounts, bankAccountCountsInBalanceSheet);
-    const fixedAssets    = sumAccounts(state.balance.fixedAssetAccounts);
-    const curAssets      = bankTotal + num(state.balance.otherAssets) + outstanding + stockVal;
-    const totalAssets    = curAssets+fixedAssets;
-    const purchaseCredit = sumPurchaseCreditOutstanding(state.purchases || []);
-    const schedule = Array.isArray(state.balance?.loanSchedule) ? state.balance.loanSchedule : [];
-    const loansLiab =
-      schedule.length > 0
-        ? schedule.reduce((s, ln) => s + (ln && typeof ln === "object" ? num(ln.balance) : 0), 0)
-        : num(state.balance.loans);
-    const totalLiab = roundMoney2(num(state.balance.supplierPayables) + loansLiab + purchaseCredit);
-    return {
-      outstanding,
-      stockVal,
-      inventoryByBranch,
-      bankTotal,
-      curAssets,
-      fixedAssets,
-      totalAssets,
-      totalLiab,
-      purchaseCredit,
-      netCapital: totalAssets - totalLiab,
-    };
-  }, [invRows, state.balance, state.sales, state.inventoryEntries, state.settings?.branches, state.purchases]);
+  const balSum = useMemo(
+    () =>
+      computeBalanceSheetSummary({
+        sales: state.sales,
+        purchases: state.purchases,
+        inventoryEntries: state.inventoryEntries,
+        balance: state.balance,
+        settings: state.settings,
+        invRows,
+      }),
+    [invRows, state.balance, state.sales, state.inventoryEntries, state.settings, state.purchases],
+  );
 
   const selSale = useMemo(()=>selSaleId?state.sales.find(s=>s.id===selSaleId):null,[selSaleId,state.sales]);
   const selEmi  = useMemo(()=>selSale?state.emiEntries.find(e=>e.invoiceNo===selSale.invoiceNo):null,[selSale,state.emiEntries]);
@@ -1093,7 +1009,7 @@ export default function AuthenticatedApp() {
     persistWholeStateImmediate,
   });
 
-  const { onSaveSale, openNewSale, openEditSale, closeNewSale } = useSalesActions({
+  const { onSaveSale, openNewSale, openEditSale, closeNewSale, discardSaleDraft } = useSalesActions({
     state,
     saleEntry,
     editingSaleId,
@@ -1110,6 +1026,24 @@ export default function AuthenticatedApp() {
     emi3,
     emi4,
   });
+
+  useSaleDraftAutosave({ screen, editingSaleId, saleEntry, setState });
+
+  const saleDraftResume = useMemo(
+    () => saleDraftSummary(state.settings?.saleDraft),
+    [state.settings?.saleDraft],
+  );
+
+  const onResumeSaleDraft = useCallback(() => {
+    openNewSale();
+  }, [openNewSale]);
+
+  const onDiscardSaleDraft = useCallback(() => {
+    discardSaleDraft();
+    if (screen === "newSale" && !editingSaleId) {
+      openNewSale({ fresh: true });
+    }
+  }, [discardSaleDraft, openNewSale, screen, editingSaleId]);
 
   usePwaLaunchActions(authState, setScreen, setPage, openNewSale);
 
@@ -1137,8 +1071,6 @@ export default function AuthenticatedApp() {
     selExpenseId,
     selOtherIncomeId,
     editingOtherIncomeId,
-    editingLoanGivenId,
-    selLoanGivenId,
     invItemDetail,
     showToast,
     setState,
@@ -1150,9 +1082,6 @@ export default function AuthenticatedApp() {
     setSelExpenseCategory,
     setSelOtherIncomeId,
     setEditingOtherIncomeId,
-    setSelLoanGivenId,
-    setEditingLoanGivenId,
-    setLoanGivenEntry,
     setEditingInventoryId,
     setInvItemDetail,
     setSelCustomerName,
@@ -1168,7 +1097,6 @@ export default function AuthenticatedApp() {
     otherIncomeOpenedFromRef,
     stockNavRef,
     openedFromGlobalSearchRef,
-    emptyLoanGivenForm,
   });
 
   const { onSavePurchase } = usePurchaseActions({
@@ -1386,6 +1314,7 @@ export default function AuthenticatedApp() {
     setActionConfirm,
     state,
     kpis,
+    kpiSparklines,
     fyStr,
     fyYear,
     fsm,
@@ -1468,6 +1397,10 @@ export default function AuthenticatedApp() {
     requestNotifPermission,
     openNewSale,
     openSaleDetail,
+    saleDraftResume,
+    onResumeSaleDraft,
+    onDiscardSaleDraft,
+    discardSaleDraft,
     openNewExpense,
     openNewCustomer,
     openNewVendor,
@@ -1569,7 +1502,7 @@ export default function AuthenticatedApp() {
     setEditingCustomerId, setCustomerEntry, setSelVendorName,
     setEditingVendorId, setVendorEntry, setDelConfirm, setPayModal,
     setPayPurchaseModal, setPayBankAccountId, setPayAmt, setActionConfirm,
-    state, kpis, fyStr, fyYear, fsm, balSum,
+    state, kpis, kpiSparklines, fyStr, fyYear, fsm, balSum,
     businessMonth, setBusinessMonth,
     dashSales, dashPurchases, dashExp, dashOtherIncome,
     filteredSales, saleView, setSaleView, searchTerm, setSearchTerm,
@@ -1589,7 +1522,8 @@ export default function AuthenticatedApp() {
     expensesInSelCategory, darkMode, cloudSyncMeta, swUpdateReady, toast,
     purchaseEntry, updPurchase, editingPurchaseId,
     dismissAlert, dismissAllAlerts, onNotificationClick, notifPerm,
-    requestNotifPermission, openNewSale, openSaleDetail, openNewExpense,
+    requestNotifPermission, openNewSale, openSaleDetail, saleDraftResume,
+    onResumeSaleDraft, onDiscardSaleDraft, discardSaleDraft, openNewExpense,
     openNewCustomer, openNewVendor, openAddStock, invItemDetail,
     openInventoryItemDetail, openInventoryItemDetailFromSearch,
     closeInventoryItemDetail, openNewOtherIncome, openNewPurchase,

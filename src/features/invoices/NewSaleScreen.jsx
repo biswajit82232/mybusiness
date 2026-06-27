@@ -19,6 +19,8 @@ import {
 import { MenuSelect } from "@/shared/ui/inputs/MenuSelect.jsx";
 import { Field, OverlayScreen, PageHeader } from "@/shared/ui/layout/AppChrome.jsx";
 import { InventoryItemPickField } from "@/features/inventory/index.js";
+import { SaleDraftBanner } from "./SaleDraftBanner.jsx";
+import { saleDraftSummary } from "@/domain/index.js";
 
 /** Build a fresh blank line — `id` keeps React keys stable across re-renders. */
 function blankLine() {
@@ -102,6 +104,8 @@ export function NewSaleScreen({
   gstEnabled = true,
   onSubmit,
   onClose,
+  draftSavedAt = null,
+  onDiscardDraft,
 }) {
   const lineItems = useMemo(() => hydrateLineItems(entry), [entry]);
   const lastSalePriceByKey = useMemo(
@@ -250,6 +254,14 @@ export function NewSaleScreen({
   return (
     <OverlayScreen className="overlay-screen--form-footer overlay-screen--new-sale">
       <PageHeader title={isEdit ? "Edit Sale" : "New Sale"} onBack={onClose} />
+      {!isEdit && draftSavedAt && onDiscardDraft ? (
+        <SaleDraftBanner
+          compact
+          showResume={false}
+          summary={saleDraftSummary({ savedAt: draftSavedAt, entry })}
+          onDiscard={onDiscardDraft}
+        />
+      ) : null}
       <div className="overlay-scroll overlay-scroll--form-body">
         <form id="form-new-sale" className="form-sections" onSubmit={onSubmit}>
           <div className="form-card">

@@ -5,6 +5,8 @@ import {
   effectiveEntryBranchId,
   normBranchesList,
   normBundlesList,
+  normFyCloseSnapshots,
+  normSaleDraft,
   normalizeExpenseCategoriesFromPersist,
   normalizeOtherIncomeCategoriesFromPersist,
   num,
@@ -104,6 +106,12 @@ export function useSettingsActions({
       if ("autoStockOutOnSale" in updates) s.autoStockOutOnSale = !!updates.autoStockOutOnSale;
       if ("bundles" in updates) s.bundles = normBundlesList(updates.bundles);
       if ("darkMode" in updates) s.darkMode = !!updates.darkMode;
+      if ("fyCloseSnapshots" in updates)
+        s.fyCloseSnapshots = normFyCloseSnapshots(updates.fyCloseSnapshots);
+      if ("saleDraft" in updates) {
+        s.saleDraft =
+          updates.saleDraft == null ? null : normSaleDraft(updates.saleDraft) || null;
+      }
       const next = { ...state, settings: s };
       const __p = await persistWholeStateImmediate(next);
       if (__p) setState(__p);
@@ -125,14 +133,6 @@ export function useSettingsActions({
     async (list) => {
       await saveSettingsPartial({ branches: normBranchesList(list) }, { silent: true });
       showToast("Branch added");
-    },
-    [saveSettingsPartial, showToast],
-  );
-
-  const saveBundlesList = useCallback(
-    async (list) => {
-      await saveSettingsPartial({ bundles: normBundlesList(list) }, { silent: true });
-      showToast("Bundles saved");
     },
     [saveSettingsPartial, showToast],
   );
@@ -170,7 +170,6 @@ export function useSettingsActions({
     saveSettingsPartial,
     setDarkModeAndPersist,
     saveBranchesList,
-    saveBundlesList,
     removeBranchById,
   };
 }

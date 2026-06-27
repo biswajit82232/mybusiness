@@ -4,6 +4,7 @@ import {
   upsertLocalEntityRecord,
   tombstoneLocalEntityRecord,
 } from "@/data/local/indexedDbStore.js";
+import { withPersistLock } from "@/data/local/persistMutex.js";
 import { defaultState, mergePersistedPayload, runWithStableStringifyMemoAsync, stableStringify } from "@/domain/index.js";
 
 /**
@@ -18,6 +19,7 @@ export function useImmediatePersistence({ currentUserIdRef, lastPersistedStateRe
         if (!userId || !sale?.id) return;
         const updatedAt = new Date().toISOString();
 
+        await withPersistLock(async () => {
         await upsertLocalEntityRecord({
           userId,
           entityType: "sales",
@@ -35,6 +37,7 @@ export function useImmediatePersistence({ currentUserIdRef, lastPersistedStateRe
             updatedAt,
           });
         }
+        });
       } finally {
         pendingWritesRef.current = Math.max(0, pendingWritesRef.current - 1);
       }
@@ -47,6 +50,7 @@ export function useImmediatePersistence({ currentUserIdRef, lastPersistedStateRe
       let persisted = null;
       pendingWritesRef.current += 1;
       try {
+        return await withPersistLock(async () => {
         const userId = currentUserIdRef.current;
         if (!userId) throw new Error("Local user context not ready");
 
@@ -140,10 +144,11 @@ export function useImmediatePersistence({ currentUserIdRef, lastPersistedStateRe
         lastPersistedStateRef.current = safe;
         await writeAppCache(safe).catch(() => {});
         });
+        return persisted;
+        });
       } finally {
         pendingWritesRef.current = Math.max(0, pendingWritesRef.current - 1);
       }
-      return persisted;
     },
     [currentUserIdRef, lastPersistedStateRef, pendingWritesRef],
   );

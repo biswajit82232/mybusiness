@@ -41,7 +41,7 @@ assert.equal(
 );
 
 const verify = String(pkg.scripts?.verify || "");
-const required = ["test:makeId", "test:domain", "test:sync", "test:scan", "test:config", "test:sql", "test:supabase", "test:supabase:push", "test:scripts", "test:pkg"];
+const required = ["test:unit", "test:makeId", "test:domain", "test:sync", "test:scan", "test:config", "test:sql", "test:supabase", "test:supabase:push", "test:scripts", "test:pkg"];
 for (const s of required) {
   assert.ok(verify.includes(s), `verify script should run ${s}`);
 }

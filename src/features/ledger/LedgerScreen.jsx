@@ -70,7 +70,6 @@ export function LedgerScreen({
   onOpenExpense,
   onOpenInventoryEntry,
   onOpenPurchase,
-  onOpenLoanGiven,
   onOpenSidebar,
 }) {
   const [filter, setFilter] = useState("all");
@@ -429,7 +428,6 @@ export function LedgerScreen({
           onOpenExpense={onOpenExpense}
           onOpenInventoryEntry={onOpenInventoryEntry}
           onOpenPurchase={onOpenPurchase}
-          onOpenLoanGiven={onOpenLoanGiven}
           emptyState={<EmptyState icon={<IcLedger />} title={emptyTitle} />}
         />
       </div>

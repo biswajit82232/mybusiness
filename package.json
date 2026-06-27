@@ -1,14 +1,16 @@
 {
   "name": "mybusiness-react",
   "private": true,
-  "version": "8.0.5",
+  "version": "8.0.9",
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "prebuild": "node scripts/sync-sw-version.mjs",
     "build": "vite build && node scripts/inject-precache.mjs",
     "build:analyze": "cross-env ANALYZE=1 vite build",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
+    "test:unit": "vitest run",
     "test:makeId": "node scripts/makeId-sanity.mjs",
     "test:domain": "node scripts/domain-sanity.mjs",
     "test:sync": "node scripts/sync-sanity.mjs",
@@ -19,7 +21,7 @@
     "test:supabase:push": "node scripts/supabase-pre-push-safety.mjs",
     "test:scripts": "node scripts/scripts-sanity.mjs",
     "test:pkg": "node scripts/pkg-sanity.mjs",
-    "verify": "npm run build && npm run lint && npm run test:makeId && npm run test:domain && npm run test:sync && npm run test:scan && npm run test:config && npm run test:sql && npm run test:supabase && npm run test:supabase:push && npm run test:scripts && npm run test:pkg",
+    "verify": "npm run build && npm run lint && npm run test:unit && npm run test:makeId && npm run test:domain && npm run test:sync && npm run test:scan && npm run test:config && npm run test:sql && npm run test:supabase && npm run test:supabase:push && npm run test:scripts && npm run test:pkg",
     "check": "npm run verify",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
@@ -37,6 +39,7 @@
   "dependencies": {
     "@noble/hashes": "^2.2.0",
     "@supabase/supabase-js": "^2.105.4",
+    "fuse.js": "^7.1.0",
     "idb": "^8.0.3",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
@@ -56,6 +59,7 @@
     "globals": "^17.6.0",
     "rollup-plugin-visualizer": "^7.0.1",
     "supabase": "^2.98.2",
-    "vite": "^8.0.13"
+    "vite": "^8.0.13",
+    "vitest": "^3.2.4"
   }
 }

@@ -1,4 +1,5 @@
 import { addDaysStr, isOverdue } from "@/domain/index.js";
+import { SaleDraftBanner } from "@/features/invoices/SaleDraftBanner.jsx";
 import { IcMenu, IcPlus, IcSales, IcSearch, IcX } from "@/shared/ui/icons/AppIcons.jsx";
 import { EmptyState } from "@/shared/ui/layout/AppChrome.jsx";
 import { MonthFilterCompact } from "@/shared/ui/shell/MonthFilterCompact.jsx";
@@ -17,6 +18,9 @@ export function SalesTab({
   openNewSale,
   openSaleDetail,
   defaultDueDays = 30,
+  saleDraftSummary: saleDraftResume = null,
+  onResumeSaleDraft,
+  onDiscardSaleDraft,
   onOpenSidebar,
 }) {
   const unpaidCt = filteredSales.filter((s) => s.outstanding > 0 && !isOverdue(s.dueDate || addDaysStr(s.date, defaultDueDays))).length;
@@ -65,6 +69,13 @@ export function SalesTab({
           <MonthFilterCompact value={businessMonth} onChange={setBusinessMonth} instanceId="global" />
         </div>
       )}
+      {saleDraftResume ? (
+        <SaleDraftBanner
+          summary={saleDraftResume}
+          onResume={onResumeSaleDraft}
+          onDiscard={onDiscardSaleDraft}
+        />
+      ) : null}
       <div className="seg-bar">
         {[
           { v: "all", l: "All" },
