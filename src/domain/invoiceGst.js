@@ -92,7 +92,9 @@ export function placeOfSupplyLabel(stateName, stateCode = "") {
   return "";
 }
 
-export function isInterStateSale(businessState, customerState) {
+export function isInterStateSale(businessState, customerState, interStateOverride) {
+  if (interStateOverride === true) return true;
+  if (interStateOverride === false) return false;
   const b = normalizeGstStateKey(businessState);
   const c = normalizeGstStateKey(customerState);
   if (!b || !c) return false;
@@ -120,6 +122,7 @@ export function buildInvoiceGstModel({
   discount = 0,
   businessState = "",
   customerState = "",
+  interStateOverride,
   settings = {},
 }) {
   const disc = roundMoney2(Math.max(0, num(discount)));
@@ -159,7 +162,7 @@ export function buildInvoiceGstModel({
   });
 
   const ratio = subtotalInclusive > 0 ? Math.max(0, subtotalInclusive - disc) / subtotalInclusive : 1;
-  const interstate = isInterStateSale(businessState, customerState);
+  const interstate = isInterStateSale(businessState, customerState, interStateOverride);
 
   let taxableTotal = 0;
   let cgstTotal = 0;

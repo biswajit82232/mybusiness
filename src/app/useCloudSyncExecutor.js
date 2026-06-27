@@ -125,34 +125,23 @@ export function useCloudSyncExecutor({
               typeof r.pullCursorMaxIso === "string" ? r.pullCursorMaxIso : undefined,
           });
           await writeAppCache(merged).catch(() => {});
-          let stateHydrated = false;
-          if (!pendingWritesRef?.current) {
-            suppressPersistRef.current = true;
-            setState(merged);
-            lastPersistedStateRef.current = merged;
-            stateHydrated = true;
-            Promise.resolve().then(() => {
-              suppressPersistRef.current = false;
-            });
-          }
-          if (!stateHydrated && (r.conflictRows?.length ?? 0) > 0) {
-            setState((prev) => appendConflictRowsLocal(prev, r.conflictRows));
-          }
+          suppressPersistRef.current = true;
+          setState(merged);
+          lastPersistedStateRef.current = merged;
+          Promise.resolve().then(() => {
+            suppressPersistRef.current = false;
+          });
         } else if ((r.remoteRowsApplied ?? 0) > 0) {
-          if (!pendingWritesRef?.current) {
-            const freshPayload = await loadUserLocalState(uid);
-            let merged = mergePersistedPayload(freshPayload) || defaultState;
-            merged = appendConflictRowsLocal(merged, r.conflictRows);
-            suppressPersistRef.current = true;
-            setState(merged);
-            lastPersistedStateRef.current = merged;
-            await writeAppCache(merged).catch(() => {});
-            Promise.resolve().then(() => {
-              suppressPersistRef.current = false;
-            });
-          } else if ((r.conflictRows?.length ?? 0) > 0) {
-            setState((prev) => appendConflictRowsLocal(prev, r.conflictRows));
-          }
+          const freshPayload = await loadUserLocalState(uid);
+          let merged = mergePersistedPayload(freshPayload) || defaultState;
+          merged = appendConflictRowsLocal(merged, r.conflictRows);
+          suppressPersistRef.current = true;
+          setState(merged);
+          lastPersistedStateRef.current = merged;
+          await writeAppCache(merged).catch(() => {});
+          Promise.resolve().then(() => {
+            suppressPersistRef.current = false;
+          });
         } else if ((r.conflictRows?.length ?? 0) > 0) {
           setState((prev) => appendConflictRowsLocal(prev, r.conflictRows));
         }

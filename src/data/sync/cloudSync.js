@@ -478,6 +478,9 @@ async function pullRemoteIntoLocal(client, userId, businessId, { forceFullReconc
   if (forceFullReconcile) {
     const rows = await fetchEntityRecordsPaged(client, businessId, null);
     if (!rows.length) {
+      if (!empty) {
+        return { didPull: false, pullPayload: null, fullRestore: false, remoteRowsApplied: 0, pullCursorMaxIso: null };
+      }
       const legacyPayload = await fetchLegacyWorkspacePayload(client, userId);
       if (!legacyPayload) {
         return { didPull: false, pullPayload: null, fullRestore: false, remoteRowsApplied: 0, pullCursorMaxIso: null };
@@ -535,21 +538,6 @@ async function pullRemoteIntoLocal(client, userId, businessId, { forceFullReconc
   const cursor = await getRemotePullCursor(userId);
   const rows = await fetchEntityRecordsPaged(client, businessId, cursor);
   if (!rows.length) {
-    // Compatibility: projects still on legacy workspace_* tables may have no entity_records yet.
-    // If we have no pull cursor either, attempt one-time legacy import/backfill even when local isn't empty.
-    if (!cursor) {
-      const legacyPayload = await fetchLegacyWorkspacePayload(client, userId);
-      if (legacyPayload && !isPayloadEffectivelyEmpty(legacyPayload)) {
-        await seedEntityRecordsFromPayload(client, businessId, legacyPayload);
-        return {
-          didPull: true,
-          pullPayload: legacyPayload,
-          fullRestore: true,
-          remoteRowsApplied: 0,
-          pullCursorMaxIso: null,
-        };
-      }
-    }
     return { didPull: false, pullPayload: null, fullRestore: false, remoteRowsApplied: 0, pullCursorMaxIso: null };
   }
 

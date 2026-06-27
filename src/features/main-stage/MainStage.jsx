@@ -82,7 +82,7 @@ export function MainStage(props) {
     setActionConfirm,
     requestConfirm,
     kpis,
-    kpiSparklines = { revenue: [], netProfit: [] },
+    kpiSparklines = { revenue: { dates: [], values: [] }, netProfit: { dates: [], values: [] } },
     fyStr,
     fyYear,
     fsm,

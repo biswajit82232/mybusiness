@@ -6,12 +6,14 @@ import {
   num,
   roundMoney2,
   sumBankAccountBalances,
+  sumBankAccountBalancesAsOf,
   bankAccountCountsInBalanceSheet,
   sumPurchaseCreditOutstanding,
   computeInvRowsForBranch,
   computeInvRowsAggregated,
   normBranchesList,
-  normalizePaymentEntries,
+  normBankTransfers,
+  normalizeReceivablePaymentEntries,
   normalizePurchasePaymentEntries,
   todayStr,
   compareYmdAsc,
@@ -134,7 +136,7 @@ export function saleOutstandingAsOf(sale, asOfDate) {
   }
   const total = num(sale.totalSale);
   if (total <= 0) return 0;
-  const pes = normalizePaymentEntries(sale);
+  const pes = normalizeReceivablePaymentEntries(sale);
   let received = 0;
   for (const pe of pes) {
     const pd = String(pe.date || invoiceDate).slice(0, 10);
@@ -203,6 +205,24 @@ function filterPurchasesOnOrBefore(purchases, asOfDate) {
   });
 }
 
+function filterTransfersOnOrBefore(transfers, asOfDate) {
+  const asOf = String(asOfDate || todayStr()).slice(0, 10);
+  return normBankTransfers(transfers).filter((t) => {
+    if (!t || typeof t !== "object") return false;
+    const d = String(t.date || "").slice(0, 10);
+    return d.length < 10 || compareYmdAsc(d, asOf) <= 0;
+  });
+}
+
+function filterLoansGivenOnOrBefore(loansGiven, asOfDate) {
+  const asOf = String(asOfDate || todayStr()).slice(0, 10);
+  return (Array.isArray(loansGiven) ? loansGiven : []).filter((lg) => {
+    if (!lg || typeof lg !== "object") return false;
+    const d = String(lg.disbursementDate || lg.dateGiven || "").slice(0, 10);
+    return d.length < 10 || compareYmdAsc(d, asOf) <= 0;
+  });
+}
+
 /**
  * Full balance sheet summary including GST liability and equation verification.
  */
@@ -213,6 +233,9 @@ export function computeBalanceSheetSummary({
   balance = {},
   settings = {},
   invRows: _invRows = [],
+  expenses = [],
+  otherIncomes = [],
+  loansGiven = [],
   asOfDate,
 }) {
   const asOf = String(asOfDate || todayStr()).slice(0, 10);
@@ -234,7 +257,20 @@ export function computeBalanceSheetSummary({
   });
 
   const bankAccounts = balance.bankAccounts || [];
-  const bankTotal = sumBankAccountBalances(bankAccounts, bankAccountCountsInBalanceSheet);
+  const bankTotal = isLive
+    ? sumBankAccountBalances(bankAccounts, bankAccountCountsInBalanceSheet)
+    : sumBankAccountBalancesAsOf({
+        bankAccounts,
+        expenses: filterEntriesOnOrBefore(expenses, asOf),
+        sales: filterSalesOnOrBefore(sales, asOf),
+        transfers: filterTransfersOnOrBefore(balance.bankTransfers, asOf),
+        inventoryEntries: entriesForStock,
+        otherIncomes: filterEntriesOnOrBefore(otherIncomes, asOf),
+        purchases: filterPurchasesOnOrBefore(purchases, asOf),
+        loansGiven: filterLoansGivenOnOrBefore(loansGiven, asOf),
+        asOfDate: asOf,
+        predicate: bankAccountCountsInBalanceSheet,
+      });
   const fixedAssetAccounts = balance.fixedAssetAccounts || [];
   const fixedAssetsGross = sumFixedAssetsGross(fixedAssetAccounts);
   const fixedAssets = sumFixedAssetsNetBook(fixedAssetAccounts, asOf);

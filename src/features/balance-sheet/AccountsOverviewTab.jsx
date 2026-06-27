@@ -58,9 +58,12 @@ export function AccountsOverviewTab({ state, saveOtherBalance, onOpenSidebar }) 
         inventoryEntries: state.inventoryEntries,
         balance: state.balance,
         settings: state.settings,
+        expenses: state.expenses,
+        otherIncomes: state.otherIncomes,
+        loansGiven: state.loansGiven,
         asOfDate,
       }),
-    [state.sales, state.purchases, state.inventoryEntries, state.balance, state.settings, asOfDate],
+    [state.sales, state.purchases, state.inventoryEntries, state.balance, state.settings, state.expenses, state.otherIncomes, state.loansGiven, asOfDate],
   );
 
   const retainedOps = num(balSum.netCapital) - num(balance.ownerCapitalInvested);

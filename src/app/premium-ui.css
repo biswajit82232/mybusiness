@@ -1392,6 +1392,10 @@ kbd {
   overflow: hidden;
 }
 
+.home-md3-kpi:has(.home-kpi-spark-wrap) {
+  overflow: visible;
+}
+
 .home-md3-kpi--hero {
   grid-column: 1 / -1;
   position: relative;
@@ -1464,9 +1468,77 @@ kbd {
 .home-md3-kpi-spark {
   display: block;
   width: 100%;
-  margin-top: 4px;
   color: var(--primary);
   opacity: 0.9;
+  pointer-events: none;
+}
+
+.home-kpi-spark-wrap {
+  position: relative;
+  width: 100%;
+  min-height: 40px;
+  margin-top: 2px;
+  padding: 10px 0 4px;
+  display: flex;
+  align-items: center;
+  touch-action: none;
+  cursor: crosshair;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.home-kpi-spark-vline {
+  stroke: currentColor;
+  stroke-width: 0.75;
+  opacity: 0.45;
+  vector-effect: non-scaling-stroke;
+}
+
+.home-kpi-spark-dot {
+  fill: currentColor;
+  stroke: var(--card);
+  stroke-width: 0.75;
+  vector-effect: non-scaling-stroke;
+}
+
+.home-kpi-spark-tip {
+  position: absolute;
+  bottom: calc(100% + 2px);
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  padding: 3px 7px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--card) 68%, transparent);
+  backdrop-filter: blur(20px) saturate(1.4);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  border: 1px solid color-mix(in srgb, var(--line) 55%, transparent);
+  color: var(--text);
+  font-size: 0.62rem;
+  line-height: 1.25;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 4;
+  box-shadow:
+    0 2px 10px color-mix(in srgb, var(--text) 8%, transparent),
+    0 0 0 0.5px color-mix(in srgb, var(--card) 40%, transparent) inset;
+}
+
+.home-kpi-spark-tip-date {
+  color: var(--muted);
+  font-size: 0.58rem;
+}
+
+.home-kpi-spark-tip-amt {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.home-md3-kpi--hero .home-kpi-spark-wrap {
+  color: var(--on-surface);
 }
 
 .home-md3-kpi--hero .home-md3-kpi-spark {
@@ -1761,6 +1833,15 @@ kbd {
 }
 [data-theme="dark"] .home-md3-kpi--hero.tone-bad {
   background: color-mix(in srgb, var(--danger) 14%, var(--card));
+}
+[data-theme="dark"] .home-kpi-spark-tip {
+  background: color-mix(in srgb, var(--card) 58%, transparent);
+  backdrop-filter: blur(24px) saturate(1.25);
+  -webkit-backdrop-filter: blur(24px) saturate(1.25);
+  border-color: color-mix(in srgb, var(--line) 45%, transparent);
+  box-shadow:
+    0 2px 14px rgba(0, 0, 0, 0.28),
+    0 0 0 0.5px color-mix(in srgb, var(--line) 30%, transparent) inset;
 }
 [data-theme="dark"] .home-md3-section {
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);

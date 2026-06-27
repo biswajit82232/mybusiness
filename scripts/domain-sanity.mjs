@@ -174,6 +174,8 @@ import {
   wrapStateForBackup,
   unwrapBackupFilePayload,
 } from "../src/domain/backup.js";
+import { computeBalanceSheetSummary, saleOutstandingAsOf } from "../src/domain/balanceSheet.js";
+import { buildInvoiceGstModel, isInterStateSale } from "../src/domain/invoiceGst.js";
 
 function ok(name, fn) {
   try {
@@ -1851,6 +1853,64 @@ ok("backup envelope: invalid payloads return null", () => {
   assert.equal(unwrapBackupFilePayload(null), null);
   assert.equal(unwrapBackupFilePayload([]), null);
   assert.equal(unwrapBackupFilePayload("x"), null);
+});
+
+ok("saleOutstandingAsOf: counts non-bank payment lines toward received", () => {
+  const sale = {
+    date: "2025-01-15",
+    totalSale: 10000,
+    paymentEntries: [
+      { id: "1", date: "2025-01-15", amount: 4000, bankAccountId: "b1" },
+      { id: "2", date: "2025-01-15", amount: 3000, bankAccountId: "" },
+    ],
+  };
+  assert.equal(saleOutstandingAsOf(sale, "2025-06-01"), 3000);
+});
+
+ok("computeBalanceSheetSummary: historical bank total from transactions, not stored amount", () => {
+  const bankId = "cash-1";
+  const bs = computeBalanceSheetSummary({
+    sales: [],
+    purchases: [],
+    inventoryEntries: [],
+    expenses: [],
+    otherIncomes: [],
+    loansGiven: [],
+    balance: {
+      bankAccounts: [
+        {
+          id: bankId,
+          name: "Cash",
+          openingBalance: 1000,
+          amount: 50000,
+          excludeFromBalanceSheet: false,
+        },
+      ],
+      bankTransfers: [],
+    },
+    settings: {},
+    asOfDate: "2020-01-01",
+  });
+  assert.equal(bs.bankTotal, 1000);
+});
+
+ok("isInterStateSale: explicit override when customer state blank", () => {
+  assert.equal(isInterStateSale("Karnataka", "", true), true);
+  assert.equal(isInterStateSale("Karnataka", "", false), false);
+  assert.equal(isInterStateSale("Karnataka", "Tamil Nadu"), true);
+});
+
+ok("buildInvoiceGstModel: interStateOverride applies IGST when customer state missing", () => {
+  const model = buildInvoiceGstModel({
+    lineItems: [{ item: "Widget", qty: 1, salePrice: 1180, gstRate: 18 }],
+    discount: 0,
+    businessState: "Karnataka",
+    customerState: "",
+    interStateOverride: true,
+    settings: { gstEnabled: true, defaultProductGstRate: 18 },
+  });
+  assert.ok(model.igst > 0);
+  assert.equal(model.cgst, 0);
 });
 
 await runWithStableStringifyMemoAsync(async () => {

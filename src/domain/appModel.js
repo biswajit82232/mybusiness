@@ -1737,6 +1737,20 @@ export function normalizePaymentEntries(sale) {
     .filter((p) => p.amount > 0 && p.bankAccountId);
 }
 
+/** All positive payment lines for receivable/outstanding (includes non-bank cash). */
+export function normalizeReceivablePaymentEntries(sale) {
+  const raw = sale?.paymentEntries;
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter((p) => p && typeof p === "object")
+    .map((p) => ({
+      id: String(p.id || makeId()),
+      date: String(p.date || sale?.date || todayStr()).slice(0, 10),
+      amount: num(p.amount),
+    }))
+    .filter((p) => p.amount > 0);
+}
+
 /** One row in the new-sale payment split editor. */
 export function defSalePaymentLine(defaultBankId = "") {
   return { id: makeId(), amount: "", bankAccountId: String(defaultBankId || "") };
@@ -2658,49 +2672,82 @@ export function moneyInputStr(v) {
   return Number.isFinite(n) ? String(n) : "";
 }
 
+function activityDateOnOrBefore(recordDate, fallbackDate, asOf) {
+  if (!asOf) return true;
+  const d = String(recordDate || fallbackDate || "").slice(0, 10);
+  if (d.length < 10) return false;
+  return compareYmdAsc(d, asOf) <= 0;
+}
+
 /** Net effect on one account from linked expenses (out), invoice payments (in), supplier payments (out), transfers, stock-in (cash out), and other income (in). */
-export function computeAccountActivityNet(accountId, expenses, sales, transfers, inventoryEntries, otherIncomes, purchases = [], loansGiven = []) {
+export function computeAccountActivityNet(
+  accountId,
+  expenses,
+  sales,
+  transfers,
+  inventoryEntries,
+  otherIncomes,
+  purchases = [],
+  loansGiven = [],
+  asOfDate = null,
+) {
   const id = String(accountId || "");
+  const asOf = asOfDate ? String(asOfDate).slice(0, 10) : null;
   let net = 0;
   for (const e of expenses || []) {
     if (!e || String(e.bankAccountId || "").trim() !== id) continue;
+    if (!activityDateOnOrBefore(e.date, null, asOf)) continue;
     net -= num(e.amount);
   }
   for (const oi of otherIncomes || []) {
     if (!oi || String(oi.bankAccountId || "").trim() !== id) continue;
+    if (!activityDateOnOrBefore(oi.date, null, asOf)) continue;
     net += num(oi.amount);
   }
   for (const s of sales || []) {
-    for (const pe of normalizePaymentEntries(s)) {
-      if (String(pe.bankAccountId || "").trim() !== id) continue;
-      net += num(pe.amount);
+    const pes = normalizePaymentEntries(s);
+    if (pes.length) {
+      for (const pe of pes) {
+        if (String(pe.bankAccountId || "").trim() !== id) continue;
+        if (!activityDateOnOrBefore(pe.date, s.date, asOf)) continue;
+        net += num(pe.amount);
+      }
+    } else if (num(s.received) > 0 && String(s.bankAccountId || "").trim() === id) {
+      if (activityDateOnOrBefore(s.date, null, asOf)) net += num(s.received);
     }
   }
   for (const t of transfers || []) {
     if (!t) continue;
+    if (!activityDateOnOrBefore(t.date, null, asOf)) continue;
     if (String(t.fromAccountId) === id) net -= num(t.amount);
     if (String(t.toAccountId) === id) net += num(t.amount);
   }
   for (const inv of inventoryEntries || []) {
     if (!inv || inv.type === "out") continue;
     if (String(inv.bankAccountId || "").trim() !== id) continue;
+    if (!activityDateOnOrBefore(inv.date, null, asOf)) continue;
     net -= stockInCashAmount(inv);
   }
   for (const p of purchases || []) {
     if (!p || typeof p !== "object") continue;
     for (const pe of normalizePurchasePaymentEntries(p)) {
       if (String(pe.bankAccountId || "").trim() !== id) continue;
+      if (!activityDateOnOrBefore(pe.date, p.date, asOf)) continue;
       net -= num(pe.amount);
     }
   }
   for (const lg of loansGiven || []) {
     if (!lg || typeof lg !== "object") continue;
     if (String(lg.disbursementBankAccountId || "").trim() === id) {
-      const damt = num(lg.disbursementAmount) > 0 ? num(lg.disbursementAmount) : num(lg.principal);
-      if (damt > 0) net -= damt;
+      const disbDate = lg.disbursementDate || lg.dateGiven;
+      if (activityDateOnOrBefore(disbDate, null, asOf)) {
+        const damt = num(lg.disbursementAmount) > 0 ? num(lg.disbursementAmount) : num(lg.principal);
+        if (damt > 0) net -= damt;
+      }
     }
     for (const rep of lg.repaymentEntries || []) {
       if (!rep || String(rep.bankAccountId || "").trim() !== id) continue;
+      if (!activityDateOnOrBefore(rep.date, null, asOf)) continue;
       net += num(rep.amount);
     }
   }
@@ -2717,6 +2764,7 @@ export function computeBankAccountBookBalance(
   otherIncomes,
   purchases = [],
   loansGiven = [],
+  asOfDate = null,
 ) {
   if (!account?.id) return 0;
   const opening = roundMoney2(account.openingBalance);
@@ -2730,17 +2778,57 @@ export function computeBankAccountBookBalance(
       otherIncomes,
       purchases,
       loansGiven,
+      asOfDate,
     ),
   );
   const adjRaw = account.balanceAdjustment;
   let adj;
   if (adjRaw !== null && adjRaw !== undefined && adjRaw !== "") {
     adj = roundMoney2(adjRaw);
+  } else if (asOfDate) {
+    adj = 0;
   } else {
     const stored = roundMoney2(account.amount);
     adj = roundMoney2(stored - opening - activity);
   }
   return roundMoney2(opening + activity + adj);
+}
+
+/** Sum bank book balances as-of a date (historical balance sheet). */
+export function sumBankAccountBalancesAsOf({
+  bankAccounts = [],
+  expenses = [],
+  sales = [],
+  transfers = [],
+  inventoryEntries = [],
+  otherIncomes = [],
+  purchases = [],
+  loansGiven = [],
+  asOfDate,
+  predicate = () => true,
+} = {}) {
+  const asOf = String(asOfDate || todayStr()).slice(0, 10);
+  const xfers = normBankTransfers(transfers);
+  return roundMoney2(
+    (Array.isArray(bankAccounts) ? bankAccounts : [])
+      .filter((a) => a && a.id && predicate(a))
+      .reduce(
+        (sum, acc) =>
+          sum +
+          computeBankAccountBookBalance(
+            acc,
+            expenses,
+            sales,
+            xfers,
+            inventoryEntries,
+            otherIncomes,
+            purchases,
+            loansGiven,
+            asOf,
+          ),
+        0,
+      ),
+  );
 }
 
 /**

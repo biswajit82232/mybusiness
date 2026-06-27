@@ -25,6 +25,7 @@ import {
   clearSaleDraftSettings,
   todayStr,
 } from "@/domain/index.js";
+import { isGstEnabled } from "@/domain/invoiceGst.js";
 
 /**
  * Save-sale handler (new + edit), including stock-out automation and EMI capture.
@@ -207,6 +208,10 @@ export function useSalesActions({
         : null;
 
       const docType = saleEntry.docType === "billOfSupply" ? "billOfSupply" : "invoice";
+      if (isGstEnabled(state.settings) && docType !== "billOfSupply" && !(saleEntry.customerState || "").trim()) {
+        showToast("Customer state is required for GST tax invoices");
+        return;
+      }
       const docPrefix = saleDocPrefix(state.settings, docType);
       const docNextSetting =
         docType === "billOfSupply"

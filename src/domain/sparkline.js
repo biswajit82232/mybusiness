@@ -44,34 +44,41 @@ function lastDayOfMonth(monthKey) {
 export function buildDailySparklineRange(valuesByDate, startDate, endDate) {
   const start = String(startDate || "").slice(0, 10);
   let end = String(endDate || "").slice(0, 10);
-  if (start.length < 10 || end.length < 10 || end < start) return [];
+  if (start.length < 10 || end.length < 10 || end < start) return { dates: [], values: [] };
   const today = todayStr();
   if (end > today) end = today;
-  const points = [];
+  const dates = [];
+  const values = [];
   let d = start;
   while (d <= end) {
-    points.push(num(valuesByDate.get(d)));
+    dates.push(d);
+    values.push(num(valuesByDate.get(d)));
     d = addDaysStr(d, 1);
   }
-  return points;
+  return { dates, values };
 }
 
 /** Daily series for a calendar month (respects month filter). */
 export function buildDailySparklineForMonth(valuesByDate, monthKey) {
   const mk = String(monthKey || "").slice(0, 7);
-  if (mk.length < 7) return [];
+  if (mk.length < 7) return { dates: [], values: [] };
   return buildDailySparklineRange(valuesByDate, `${mk}-01`, lastDayOfMonth(mk));
 }
 
 /** Daily series for the active financial year (when month filter is cleared). */
 export function buildDailySparklineForFy(valuesByDate, fsm, fyYear) {
   const months = fyMonthSequence(fsm, fyYear);
-  if (!months.length) return [];
+  if (!months.length) return { dates: [], values: [] };
   return buildDailySparklineRange(valuesByDate, `${months[0]}-01`, lastDayOfMonth(months[months.length - 1]));
 }
 
-/** Period-scoped sparkline: selected month or full FY. */
+/** Period-scoped sparkline: selected month or full FY — values only (legacy). */
 export function buildPeriodDailySparkline(valuesByDate, { businessMonth, fsm, fyYear }) {
+  return buildPeriodDailySparklineSeries(valuesByDate, { businessMonth, fsm, fyYear }).values;
+}
+
+/** Period-scoped sparkline with dates for interactive scrubber. */
+export function buildPeriodDailySparklineSeries(valuesByDate, { businessMonth, fsm, fyYear }) {
   return businessMonth
     ? buildDailySparklineForMonth(valuesByDate, businessMonth)
     : buildDailySparklineForFy(valuesByDate, fsm, fyYear);

@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import {
   compareRecordsByRecency,
   currentMonthStr,
@@ -7,7 +7,6 @@ import {
   dateHuman,
   num,
   saleStatus,
-  sparklineSvgPoints,
 } from "@/domain/index.js";
 import {
   IcBell,
@@ -27,13 +26,137 @@ const RECENT_LIMIT = 5;
 const AV_COLORS = ["av-blue", "av-green", "av-purple", "av-orange", "av-teal", "av-indigo", "av-amber", "av-red"];
 const SPARKLINE_TILE_KEYS = new Set(["revenue", "profit"]);
 
-function KpiSparkline({ values, className = "home-md3-kpi-spark" }) {
-  const points = useMemo(() => sparklineSvgPoints(values, 120, 22), [values]);
-  if (!points) return null;
+const SPARK_W = 120;
+const SPARK_H = 22;
+
+function sparkTipDate(ymd) {
+  if (!ymd) return "—";
+  const dt = new Date(`${ymd}T00:00:00`);
+  if (Number.isNaN(dt.getTime())) return ymd;
+  return dt.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+}
+
+function normalizeSparkSeries(raw) {
+  if (Array.isArray(raw)) return { dates: [], values: raw };
+  return {
+    dates: Array.isArray(raw?.dates) ? raw.dates : [],
+    values: Array.isArray(raw?.values) ? raw.values : [],
+  };
+}
+
+/** Touch/drag scrubber — tooltip shows date + amount only while active. */
+function KpiSparkline({ series, className = "home-md3-kpi-spark", masked = false }) {
+  const { dates, values } = normalizeSparkSeries(series);
+  const wrapRef = useRef(null);
+  const [activeIdx, setActiveIdx] = useState(null);
+
+  const coords = useMemo(() => {
+    if (values.length < 2) return [];
+    const mx = Math.max(1, ...values.map((v) => Math.abs(num(v))));
+    return values.map((v, i) => ({
+      x: (i / (values.length - 1)) * (SPARK_W - 2) + 1,
+      y: SPARK_H - 2 - (Math.max(0, num(v)) / mx) * (SPARK_H - 4),
+      v: num(v),
+    }));
+  }, [values]);
+
+  const polyline = useMemo(
+    () => (coords.length < 2 ? "" : coords.map((c) => `${c.x.toFixed(1)},${c.y.toFixed(1)}`).join(" ")),
+    [coords],
+  );
+
+  const pickIndex = useCallback(
+    (clientX) => {
+      const el = wrapRef.current;
+      if (!el || values.length < 2) return null;
+      const rect = el.getBoundingClientRect();
+      if (rect.width <= 0) return null;
+      const ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+      return Math.round(ratio * (values.length - 1));
+    },
+    [values.length],
+  );
+
+  const onPointerDown = useCallback(
+    (e) => {
+      e.preventDefault();
+      e.currentTarget.setPointerCapture(e.pointerId);
+      setActiveIdx(pickIndex(e.clientX));
+    },
+    [pickIndex],
+  );
+
+  const onPointerMove = useCallback(
+    (e) => {
+      if (!e.currentTarget.hasPointerCapture(e.pointerId)) return;
+      setActiveIdx(pickIndex(e.clientX));
+    },
+    [pickIndex],
+  );
+
+  const endScrub = useCallback((e) => {
+    if (e?.currentTarget?.hasPointerCapture?.(e.pointerId)) {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    }
+    setActiveIdx(null);
+  }, []);
+
+  const onLostPointerCapture = useCallback(() => {
+    setActiveIdx(null);
+  }, []);
+
+  if (!polyline) return null;
+
+  const pt = activeIdx != null ? coords[activeIdx] : null;
+  const tipLeftPct = pt ? Math.min(90, Math.max(10, (pt.x / SPARK_W) * 100)) : 0;
+
   return (
-    <svg className={className} width="100%" height="22" viewBox="0 0 120 22" preserveAspectRatio="none" aria-hidden>
-      <polyline fill="none" stroke="currentColor" strokeWidth="1.25" opacity="0.8" points={points} />
-    </svg>
+    <div
+      ref={wrapRef}
+      className="home-kpi-spark-wrap"
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={endScrub}
+      onPointerCancel={endScrub}
+      onLostPointerCapture={onLostPointerCapture}
+      role="img"
+      aria-label="Trend chart — touch or drag to inspect daily values"
+    >
+      <svg
+        className={className}
+        width="100%"
+        height={SPARK_H}
+        viewBox={`0 0 ${SPARK_W} ${SPARK_H}`}
+        preserveAspectRatio="none"
+      >
+        <polyline fill="none" stroke="currentColor" strokeWidth="1.25" opacity="0.8" points={polyline} />
+        {pt ? (
+          <>
+            <line
+              className="home-kpi-spark-vline"
+              x1={pt.x}
+              y1={1}
+              x2={pt.x}
+              y2={SPARK_H - 1}
+            />
+            <circle className="home-kpi-spark-dot" cx={pt.x} cy={pt.y} r="2.25" />
+          </>
+        ) : null}
+      </svg>
+      {pt ? (
+        <div
+          className="home-kpi-spark-tip"
+          style={{ left: `${tipLeftPct}%` }}
+          role="status"
+          aria-live="polite"
+        >
+          <span className="home-kpi-spark-tip-date">{sparkTipDate(dates[activeIdx])}</span>
+          <span className={`home-kpi-spark-tip-amt${masked ? " home-md3-kpi-val--masked" : ""}`}>
+            {masked ? "••••" : money(pt.v)}
+          </span>
+        </div>
+      ) : null}
+    </div>
   );
 }
 
@@ -86,7 +209,7 @@ function Md3Section({ title, children, emptyHint }) {
 export function HomeTab({
   state,
   kpis,
-  kpiSparklines = { revenue: [], netProfit: [] },
+  kpiSparklines = { revenue: { dates: [], values: [] }, netProfit: { dates: [], values: [] } },
   accountingBasis,
   onToggleAccountingBasis,
   fyStr,
@@ -311,7 +434,7 @@ export function HomeTab({
                       </span>
                     ) : null}
                     {tile.spark && SPARKLINE_TILE_KEYS.has(tile.key) ? (
-                      <KpiSparkline values={kpiSparklines[tile.spark]} />
+                      <KpiSparkline series={kpiSparklines[tile.spark]} masked={maskProfit} />
                     ) : null}
                   </div>
                   <button
@@ -340,7 +463,7 @@ export function HomeTab({
                     </span>
                   ) : null}
                   {tile.spark && SPARKLINE_TILE_KEYS.has(tile.key) ? (
-                    <KpiSparkline values={kpiSparklines[tile.spark]} />
+                    <KpiSparkline series={kpiSparklines[tile.spark]} masked={maskProfit} />
                   ) : null}
                 </>
               )}

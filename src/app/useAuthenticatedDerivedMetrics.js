@@ -16,7 +16,7 @@ import {
   buildDailyNetProfitMap,
   buildDailyCashRevenueMap,
   buildDailyCashNetProfitMap,
-  buildPeriodDailySparkline,
+  buildPeriodDailySparklineSeries,
 } from "@/domain/index.js";
 
 /**
@@ -234,8 +234,8 @@ export function useAuthenticatedDerivedMetrics({
       : buildDailyCashNetProfitMap(safeSales, safeExpenses, safeOtherIncomes);
     const periodOpts = { businessMonth, fsm, fyYear };
     return {
-      revenue: buildPeriodDailySparkline(revenueMap, periodOpts),
-      netProfit: buildPeriodDailySparkline(netMap, periodOpts),
+      revenue: buildPeriodDailySparklineSeries(revenueMap, periodOpts),
+      netProfit: buildPeriodDailySparklineSeries(netMap, periodOpts),
     };
   }, [
     accountingBasisSetting,

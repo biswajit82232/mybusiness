@@ -951,9 +951,12 @@ export default function AuthenticatedApp() {
         inventoryEntries: state.inventoryEntries,
         balance: state.balance,
         settings: state.settings,
+        expenses: state.expenses,
+        otherIncomes: state.otherIncomes,
+        loansGiven: state.loansGiven,
         invRows,
       }),
-    [invRows, state.balance, state.sales, state.inventoryEntries, state.settings, state.purchases],
+    [invRows, state.balance, state.sales, state.inventoryEntries, state.settings, state.purchases, state.expenses, state.otherIncomes, state.loansGiven],
   );
 
   const selSale = useMemo(()=>selSaleId?state.sales.find(s=>s.id===selSaleId):null,[selSaleId,state.sales]);
@@ -1219,7 +1222,6 @@ export default function AuthenticatedApp() {
     saveOtherBalance,
     saveOwnerCapitalInvested,
   } = useBalanceSheetActions({
-    latestStateRef,
     showToast,
     setState,
     persistWholeStateImmediate,

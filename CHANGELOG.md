@@ -2,6 +2,38 @@
 
 All notable changes are tracked here. The Settings screen shows **Version** from `package.json`.
 
+## [8.1.5] — 2026-06-27
+
+### Fixes
+- **Historical balance sheet** — Bank totals as-of a past date are recomputed from transactions (opening + activity), not today’s stored book balances.
+- **Receivables / outstanding** — Non-bank payment lines now count toward amount received (mixed bank + cash payments no longer overstate outstanding).
+- **Fixed assets save** — Save reads latest edits via functional `setState` (same fix as Banking); no more stale values when saving immediately after edit.
+- **Cloud sync restore** — Full restore and incremental pull always hydrate React state after IndexedDB apply; legacy workspace import no longer overwrites non-empty local data.
+- **GST tax invoices** — Customer state is required when saving a GST-enabled tax invoice; `interStateOverride` supported for explicit IGST when place of supply is known.
+
+App version **8.1.5**; service worker cache **v116**.
+
+---
+
+## [8.1.4] — 2026-06-27
+
+### Improvements
+- **Dashboard sparkline tooltip** — Frosted glass pointer (deep blur) that blends with the KPI card background in light and dark mode.
+- **Mobile scrubber** — Taller touch target (40px), edge-clamped tooltip, and lost-pointer cleanup so drag feels smooth on phones without fighting page scroll.
+
+App version **8.1.4**; service worker cache **v115**.
+
+---
+
+## [8.1.3] — 2026-06-27
+
+### Features
+- **Dashboard sparkline scrubber** — Touch or drag Revenue and Net profit mini-charts to see a minimal pointer with date and amount; hidden until interacted with.
+
+App version **8.1.3**; service worker cache **v114**.
+
+---
+
 ## [8.1.2] — 2026-06-27
 
 ### Improvements
