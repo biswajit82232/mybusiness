@@ -2,6 +2,15 @@
 
 All notable changes are tracked here. The Settings screen shows **Version** from `package.json`.
 
+## [8.0.11] — 2026-06-27
+
+### Improvements
+- **Sidebar** — Restored flat navigation (no collapsible sections); neutral dim overlay and charcoal drawer styling so opening the menu no longer washes the screen blue.
+
+App version **8.0.11**; service worker cache **v110**.
+
+---
+
 ## [8.0.10] — 2026-06-27
 
 ### Improvements

@@ -49,9 +49,9 @@
   --sidebar-w:    min(264px, 88vw);
   --hdr-h:        clamp(54px, 8.2vw, 60px);
   --content-max:  1280px;
-  --sidebar-bg:           #0b1224;
+  --sidebar-bg:           #12151a;
   --sidebar-surface-hover: rgba(255, 255, 255, 0.06);
-  --sidebar-surface-active: rgba(37, 99, 235, 0.22);
+  --sidebar-surface-active: rgba(255, 255, 255, 0.10);
   --sidebar-border:       rgba(255, 255, 255, 0.08);
   --sidebar-text:         #e8edf5;
   --sidebar-text-soft:    #94a3b8;

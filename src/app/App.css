@@ -113,8 +113,7 @@ a:focus-visible {
   transform: translateX(-100%);
   transition:
     transform var(--dur-base) var(--ease-out),
-    box-shadow var(--dur-base) var(--ease-out),
-    background var(--dur-base) var(--ease-out);
+    box-shadow var(--dur-base) var(--ease-out);
   overflow-y: auto;
   overflow-x: hidden;
   scroll-behavior: auto;
@@ -173,7 +172,7 @@ a:focus-visible {
 .sidebar-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(2, 6, 23, 0.52);
+  background: rgba(0, 0, 0, 0.42);
   z-index: 199;
   opacity: 0;
   visibility: hidden;
@@ -254,63 +253,20 @@ a:focus-visible {
   margin-top: 10px;
 }
 
-/* Collapsible sidebar groups — less clutter on mobile */
-.sidebar-group {
-  margin: 0;
-  border: none;
+.sidebar-section {
+  margin-top: 4px;
 }
-.sidebar-group-summary {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 8px 14px 4px;
-  list-style: none;
-  cursor: pointer;
-  user-select: none;
-  touch-action: manipulation;
-  -webkit-tap-highlight-color: transparent;
-}
-.sidebar-group-summary::-webkit-details-marker {
-  display: none;
-}
-.sidebar-group-label {
-  font-size: 0.62rem;
+
+.sidebar-section-label {
+  padding: 6px 12px 2px;
+  font-size: 0.66rem;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--sidebar-text-soft);
+  opacity: 0.92;
 }
-.sidebar-group--active .sidebar-group-label {
-  color: color-mix(in srgb, var(--primary) 55%, var(--sidebar-text));
-}
-.sidebar-group-chev {
-  display: grid;
-  place-items: center;
-  width: 20px;
-  height: 20px;
-  color: var(--sidebar-text-soft);
-  transition: transform var(--dur-fast) var(--ease-out);
-}
-.sidebar-group-chev svg {
-  width: 14px;
-  height: 14px;
-  stroke: currentColor;
-  stroke-width: 2;
-  fill: none;
-}
-.sidebar-group[open] .sidebar-group-chev {
-  transform: rotate(180deg);
-}
-.sidebar-group-body {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  padding-bottom: 2px;
-}
-.sidebar-item--top {
-  margin-bottom: 4px;
-}
+
 .sidebar-item {
   display: flex;
   align-items: center;
