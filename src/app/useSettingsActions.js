@@ -45,6 +45,7 @@ export function useSettingsActions({
       if ("invoiceNotes" in updates) s.invoiceNotes = String(updates.invoiceNotes ?? "").trim();
       if ("invoiceTerms" in updates) s.invoiceTerms = String(updates.invoiceTerms ?? "").trim();
       if ("invoiceSignatory" in updates) s.invoiceSignatory = String(updates.invoiceSignatory ?? "").trim();
+      if ("invoiceSignature" in updates) s.invoiceSignature = String(updates.invoiceSignature ?? "").trim();
       if ("gstEnabled" in updates) s.gstEnabled = updates.gstEnabled !== false;
       if ("defaultProductHsn" in updates)
         s.defaultProductHsn = String(updates.defaultProductHsn ?? "8711").trim() || "8711";

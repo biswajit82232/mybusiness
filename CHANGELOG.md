@@ -2,6 +2,18 @@
 
 All notable changes are tracked here. The Settings screen shows **Version** from `package.json`.
 
+## [8.1.1] — 2026-06-27
+
+### Features
+- **Signature upload** — Settings → Invoice → Upload signature; image appears above “Authorised Signatory” on all printed invoices (PNG/JPG, max 350 KB).
+
+### Fixes
+- **TAX INVOICE title** — Large centered “TAX INVOICE” banner on every GST invoice print (with copy label). Full GST columns print whenever GST invoicing is on and business GSTIN is set.
+
+App version **8.1.1**; service worker cache **v112**.
+
+---
+
 ## [8.1.0] — 2026-06-27
 
 ### Features

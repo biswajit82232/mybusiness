@@ -471,161 +471,7 @@ export function SettingsScreen({
         )}
 
         {sub === "invoice" && (
-          <div className="form-sections settings-sub-pad">
-            <div className="form-card">
-              <div className="toggle-row">
-                <div>
-                  <div className="toggle-label">GST invoicing</div>
-                  <p className="settings-notif-hint">
-                    HSN/GST on products and sales, business GSTIN, and tax-invoice print layout
-                  </p>
-                </div>
-                <label className="toggle-switch" aria-label="GST invoicing">
-                  <input
-                    type="checkbox"
-                    checked={settings.gstEnabled !== false}
-                    onChange={(e) => onSavePartial({ gstEnabled: e.target.checked }, { silent: true })}
-                  />
-                  <span className="toggle-track" />
-                </label>
-              </div>
-            </div>
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                const d = new FormData(e.currentTarget);
-                const gstOn = settings.gstEnabled !== false;
-                onSavePartial({
-                  invoicePrefix: d.get("invoicePrefix"),
-                  billOfSupplyPrefix: d.get("billOfSupplyPrefix"),
-                  invoiceNextNumber: num(d.get("invoiceNextNumber")),
-                  billOfSupplyNextNumber: num(d.get("billOfSupplyNextNumber")),
-                  defaultDueDays: num(d.get("defaultDueDays")),
-                  monthlySalesTarget: num(d.get("monthlySalesTarget")),
-                  ...(gstOn
-                    ? {
-                        defaultProductHsn: d.get("defaultProductHsn"),
-                        defaultProductGstRate: num(d.get("defaultProductGstRate")),
-                      }
-                    : {}),
-                  invoiceNotes: d.get("invoiceNotes"),
-                  invoiceTerms: d.get("invoiceTerms"),
-                  invoiceSignatory: d.get("invoiceSignatory"),
-                });
-              }}
-            >
-              <div className="form-card">
-                <div className="form-stack">
-                  <Field label="Invoice prefix">
-                    <input name="invoicePrefix" type="text" key={`ip-${settings.invoicePrefix}`} defaultValue={settings.invoicePrefix} placeholder="e.g. MB" autoComplete="off" />
-                  </Field>
-                  <Field label="Bill of Supply prefix">
-                    <input
-                      name="billOfSupplyPrefix"
-                      type="text"
-                      key={`bsp-${settings.billOfSupplyPrefix || "BOS"}`}
-                      defaultValue={settings.billOfSupplyPrefix || "BOS"}
-                      placeholder="e.g. BOS"
-                      autoComplete="off"
-                    />
-                  </Field>
-                  <Field label="Invoice next number">
-                    <input
-                      name="invoiceNextNumber"
-                      type="number"
-                      min="1"
-                      step="1"
-                      key={`inn-${settings.invoiceNextNumber || 1}`}
-                      defaultValue={settings.invoiceNextNumber || 1}
-                    />
-                  </Field>
-                  <Field label="Bill of Supply next number">
-                    <input
-                      name="billOfSupplyNextNumber"
-                      type="number"
-                      min="1"
-                      step="1"
-                      key={`bsnn-${settings.billOfSupplyNextNumber || 1}`}
-                      defaultValue={settings.billOfSupplyNextNumber || 1}
-                    />
-                  </Field>
-                  <Field label="Default due days">
-                    <input name="defaultDueDays" type="number" min="1" max="365" key={`dd-${settings.defaultDueDays}`} defaultValue={settings.defaultDueDays} />
-                  </Field>
-                  <Field label="Monthly sales target (no. of sales)">
-                    <input
-                      name="monthlySalesTarget"
-                      type="number"
-                      min="0"
-                      step="1"
-                      key={`mst-${settings.monthlySalesTarget ?? 0}`}
-                      defaultValue={settings.monthlySalesTarget ?? 0}
-                      placeholder="e.g. 10"
-                    />
-                  </Field>
-                </div>
-              </div>
-              <div className="form-card">
-                <div className="form-card-title">
-                  {settings.gstEnabled !== false ? "Print invoice (GST)" : "Print invoice"}
-                </div>
-                <div className="form-stack">
-                  {settings.gstEnabled !== false ? (
-                    <>
-                      <Field label="Default HSN / SAC">
-                        <input
-                          name="defaultProductHsn"
-                          type="text"
-                          key={`hsn-${settings.defaultProductHsn || "8711"}`}
-                          defaultValue={settings.defaultProductHsn || "8711"}
-                          placeholder="8711"
-                        />
-                      </Field>
-                      <Field label="Default GST % (inclusive price)">
-                        <input
-                          name="defaultProductGstRate"
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          key={`gstr-${settings.defaultProductGstRate ?? 5}`}
-                          defaultValue={settings.defaultProductGstRate ?? 5}
-                        />
-                      </Field>
-                    </>
-                  ) : null}
-                  <Field label="Print notes">
-                    <input
-                      name="invoiceNotes"
-                      type="text"
-                      key={`in-${settings.invoiceNotes || DEFAULT_INVOICE_NOTES}`}
-                      defaultValue={settings.invoiceNotes || DEFAULT_INVOICE_NOTES}
-                    />
-                  </Field>
-                  <Field label="Signatory line">
-                    <input
-                      name="invoiceSignatory"
-                      type="text"
-                      key={`is-${settings.invoiceSignatory || ""}`}
-                      defaultValue={settings.invoiceSignatory || ""}
-                      placeholder={`For ${(settings.businessName || "YOUR BUSINESS").toUpperCase()}`}
-                    />
-                  </Field>
-                  <Field label="Terms &amp; conditions">
-                    <textarea
-                      name="invoiceTerms"
-                      className="textarea-compact"
-                      rows={5}
-                      key={`it-${settings.invoiceTerms || DEFAULT_INVOICE_TERMS}`}
-                      defaultValue={settings.invoiceTerms || DEFAULT_INVOICE_TERMS}
-                    />
-                  </Field>
-                </div>
-              </div>
-              <button type="submit" className="primary-btn submit-btn">
-                Save
-              </button>
-            </form>
-          </div>
+          <InvoiceSettingsForm settings={settings} onSavePartial={onSavePartial} />
         )}
 
         {sub === "fy" && (
@@ -1229,6 +1075,195 @@ function ThemeAppearanceSection({ darkMode, setDarkMode }) {
           Tip: press <kbd>Cmd</kbd>/<kbd>Ctrl</kbd>+<kbd>K</kbd> or <kbd>/</kbd> anywhere to open search.
         </p>
       </div>
+    </div>
+  );
+}
+
+function InvoiceSettingsForm({ settings, onSavePartial }) {
+  const [signature, setSignature] = useState(String(settings.invoiceSignature || ""));
+  const gstOn = settings.gstEnabled !== false;
+
+  useEffect(() => {
+    setSignature(String(settings.invoiceSignature || ""));
+  }, [settings.invoiceSignature]);
+
+  const onSignatureFile = (e) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    if (f.size > 350000) {
+      window.alert("Signature image must be under 350 KB");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => setSignature(String(reader.result || ""));
+    reader.readAsDataURL(f);
+  };
+
+  return (
+    <div className="form-sections settings-sub-pad">
+      <div className="form-card">
+        <div className="toggle-row">
+          <div>
+            <div className="toggle-label">GST invoicing</div>
+            <p className="settings-notif-hint">
+              HSN/GST on products and sales, business GSTIN, and tax-invoice print layout
+            </p>
+          </div>
+          <label className="toggle-switch" aria-label="GST invoicing">
+            <input
+              type="checkbox"
+              checked={settings.gstEnabled !== false}
+              onChange={(e) => onSavePartial({ gstEnabled: e.target.checked }, { silent: true })}
+            />
+            <span className="toggle-track" />
+          </label>
+        </div>
+      </div>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          const d = new FormData(e.currentTarget);
+          onSavePartial({
+            invoicePrefix: d.get("invoicePrefix"),
+            billOfSupplyPrefix: d.get("billOfSupplyPrefix"),
+            invoiceNextNumber: num(d.get("invoiceNextNumber")),
+            billOfSupplyNextNumber: num(d.get("billOfSupplyNextNumber")),
+            defaultDueDays: num(d.get("defaultDueDays")),
+            monthlySalesTarget: num(d.get("monthlySalesTarget")),
+            ...(gstOn
+              ? {
+                  defaultProductHsn: d.get("defaultProductHsn"),
+                  defaultProductGstRate: num(d.get("defaultProductGstRate")),
+                }
+              : {}),
+            invoiceNotes: d.get("invoiceNotes"),
+            invoiceTerms: d.get("invoiceTerms"),
+            invoiceSignatory: d.get("invoiceSignatory"),
+            invoiceSignature: signature,
+          });
+        }}
+      >
+        <div className="form-card">
+          <div className="form-stack">
+            <Field label="Invoice prefix">
+              <input name="invoicePrefix" type="text" key={`ip-${settings.invoicePrefix}`} defaultValue={settings.invoicePrefix} placeholder="e.g. MB" autoComplete="off" />
+            </Field>
+            <Field label="Bill of Supply prefix">
+              <input
+                name="billOfSupplyPrefix"
+                type="text"
+                key={`bsp-${settings.billOfSupplyPrefix || "BOS"}`}
+                defaultValue={settings.billOfSupplyPrefix || "BOS"}
+                placeholder="e.g. BOS"
+                autoComplete="off"
+              />
+            </Field>
+            <Field label="Invoice next number">
+              <input
+                name="invoiceNextNumber"
+                type="number"
+                min="1"
+                step="1"
+                key={`inn-${settings.invoiceNextNumber || 1}`}
+                defaultValue={settings.invoiceNextNumber || 1}
+              />
+            </Field>
+            <Field label="Bill of Supply next number">
+              <input
+                name="billOfSupplyNextNumber"
+                type="number"
+                min="1"
+                step="1"
+                key={`bsnn-${settings.billOfSupplyNextNumber || 1}`}
+                defaultValue={settings.billOfSupplyNextNumber || 1}
+              />
+            </Field>
+            <Field label="Default due days">
+              <input name="defaultDueDays" type="number" min="1" max="365" key={`dd-${settings.defaultDueDays}`} defaultValue={settings.defaultDueDays} />
+            </Field>
+            <Field label="Monthly sales target (no. of sales)">
+              <input
+                name="monthlySalesTarget"
+                type="number"
+                min="0"
+                step="1"
+                key={`mst-${settings.monthlySalesTarget ?? 0}`}
+                defaultValue={settings.monthlySalesTarget ?? 0}
+                placeholder="e.g. 10"
+              />
+            </Field>
+          </div>
+        </div>
+        <div className="form-card">
+          <div className="form-card-title">{gstOn ? "Print invoice (GST)" : "Print invoice"}</div>
+          <div className="form-stack">
+            {gstOn ? (
+              <>
+                <Field label="Default HSN / SAC">
+                  <input
+                    name="defaultProductHsn"
+                    type="text"
+                    key={`hsn-${settings.defaultProductHsn || "8711"}`}
+                    defaultValue={settings.defaultProductHsn || "8711"}
+                    placeholder="8711"
+                  />
+                </Field>
+                <Field label="Default GST % (inclusive price)">
+                  <input
+                    name="defaultProductGstRate"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    key={`gstr-${settings.defaultProductGstRate ?? 5}`}
+                    defaultValue={settings.defaultProductGstRate ?? 5}
+                  />
+                </Field>
+              </>
+            ) : null}
+            <Field label="Print notes">
+              <input
+                name="invoiceNotes"
+                type="text"
+                key={`in-${settings.invoiceNotes || DEFAULT_INVOICE_NOTES}`}
+                defaultValue={settings.invoiceNotes || DEFAULT_INVOICE_NOTES}
+              />
+            </Field>
+            <Field label="Signatory line">
+              <input
+                name="invoiceSignatory"
+                type="text"
+                key={`is-${settings.invoiceSignatory || ""}`}
+                defaultValue={settings.invoiceSignatory || ""}
+                placeholder={`For ${(settings.businessName || "YOUR BUSINESS").toUpperCase()}`}
+              />
+            </Field>
+            {signature ? (
+              <div className="settings-logo-preview">
+                <img src={signature} alt="" />
+                <button type="button" className="ghost-btn ghost-btn--compact" onClick={() => setSignature("")}>
+                  Remove signature
+                </button>
+              </div>
+            ) : null}
+            <Field label="Upload signature">
+              <input type="file" accept="image/png,image/jpeg,image/webp,image/gif" onChange={onSignatureFile} />
+            </Field>
+            <p className="form-hint">Shown above &quot;Authorised Signatory&quot; on printed invoices. PNG or JPG, max 350 KB.</p>
+            <Field label="Terms &amp; conditions">
+              <textarea
+                name="invoiceTerms"
+                className="textarea-compact"
+                rows={5}
+                key={`it-${settings.invoiceTerms || DEFAULT_INVOICE_TERMS}`}
+                defaultValue={settings.invoiceTerms || DEFAULT_INVOICE_TERMS}
+              />
+            </Field>
+          </div>
+        </div>
+        <button type="submit" className="primary-btn submit-btn">
+          Save
+        </button>
+      </form>
     </div>
   );
 }

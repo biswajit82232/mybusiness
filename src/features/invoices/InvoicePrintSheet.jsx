@@ -10,7 +10,6 @@ import {
   num,
   placeOfSupplyLabel,
   saleAddressLines,
-  saleHasGstData,
 } from "@/domain/index.js";
 
 const AMT = new Intl.NumberFormat("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -62,8 +61,8 @@ function InvoiceHeader({ coName, coGstin, logo, addrLines, coPhone, coWa, settin
         </div>
       </div>
       <div className="ips-hdr-right">
-        <div className="ips-doc-type">{docTitle}</div>
-        {copyLabel && <div className="ips-copy-label">{copyLabel}</div>}
+        {docTitle ? <div className="ips-doc-type">{docTitle}</div> : null}
+        {copyLabel && docTitle ? <div className="ips-copy-label">{copyLabel}</div> : null}
       </div>
     </div>
   );
@@ -171,8 +170,20 @@ function TermsBlock({ terms }) {
   );
 }
 
+/** Centered document title — prominent on print (TAX INVOICE, etc.). */
+function DocTitleBanner({ title, copyLabel }) {
+  if (!title) return null;
+  return (
+    <div className="ips-doc-banner">
+      <div className="ips-doc-banner-title">{title}</div>
+      {copyLabel ? <div className="ips-doc-banner-copy">{copyLabel}</div> : null}
+    </div>
+  );
+}
+
 /** Signature + E&OE footer row. */
-function SigFooter({ signatory }) {
+function SigFooter({ signatory, signatureImage }) {
+  const sigImg = String(signatureImage || "").trim();
   return (
     <div className="ips-sig-row">
       <div className="ips-sig-eoe">
@@ -180,8 +191,12 @@ function SigFooter({ signatory }) {
       </div>
       <div className="ips-sig-block">
         {signatory ? <div className="ips-sig-name">{signatory}</div> : null}
-        <div className="ips-sig-space" />
-        <div className="ips-sig-line" />
+        {sigImg ? (
+          <img className="ips-sig-img" src={sigImg} alt="" />
+        ) : (
+          <div className="ips-sig-space" />
+        )}
+        {!sigImg ? <div className="ips-sig-line" /> : null}
         <div className="ips-sig-label">Authorised Signatory</div>
       </div>
     </div>
@@ -195,6 +210,7 @@ export function InvoicePrintSheet({ sale, settings = {} }) {
   const coPhone = String(settings.businessPhone || "").trim();
   const coWa = String(settings.businessWhatsapp || "").trim();
   const logo = String(settings.businessLogo || "").trim();
+  const signatureImage = String(settings.invoiceSignature || "").trim();
   const signatory =
     String(settings.invoiceSignatory || "").trim() || (coName ? `For ${coName.toUpperCase()}` : "");
   const notes = String(settings.invoiceNotes || "").trim();
@@ -225,12 +241,8 @@ export function InvoicePrintSheet({ sale, settings = {} }) {
     settings,
   });
 
-  const showGst =
-    isGstEnabled(settings) &&
-    !isBos &&
-    saleHasGstData(sale, settings) &&
-    !!coGstin &&
-    gstModel.hasGst;
+  const isTaxInvoice = isGstEnabled(settings) && !isBos;
+  const showGst = isTaxInvoice && !!coGstin;
 
   const customerGstin = String(sale?.customerGstin || "").trim();
   const pos =
@@ -242,14 +254,16 @@ export function InvoicePrintSheet({ sale, settings = {} }) {
   const grandTotal = showGst ? gstModel.grandTotal : num(sale?.totalSale);
   const totalQty = gstModel.lines.reduce((s, l) => s + l.qty, 0);
 
-  const headerProps = { coName, coGstin, logo, addrLines, coPhone, coWa, settings, copyLabel };
+  const headerProps = { coName, coGstin, logo, addrLines, coPhone, coWa, settings };
+  const sigProps = { signatory, signatureImage };
 
   /* ─────────────────────────── Bill of Supply ─────────────────────────── */
   if (isBos) {
     return (
       <div className="invoice-print-sheet invoice-print-sheet--bos">
-        <InvoiceHeader {...headerProps} docTitle="BILL OF SUPPLY" />
+        <InvoiceHeader {...headerProps} docTitle="BILL OF SUPPLY" copyLabel={copyLabel} />
         <div className="ips-divider" />
+        <DocTitleBanner title="BILL OF SUPPLY" />
 
         <div className="ips-meta-2col">
           <div className="ips-billto">
@@ -336,7 +350,7 @@ export function InvoicePrintSheet({ sale, settings = {} }) {
           </div>
         </div>
 
-        <SigFooter signatory={signatory} />
+        <SigFooter {...sigProps} />
       </div>
     );
   }
@@ -345,8 +359,9 @@ export function InvoicePrintSheet({ sale, settings = {} }) {
   if (showGst) {
     return (
       <div className="invoice-print-sheet invoice-print-sheet--gst">
-        <InvoiceHeader {...headerProps} docTitle="TAX INVOICE" />
+        <InvoiceHeader {...headerProps} docTitle="" copyLabel="" />
         <div className="ips-divider" />
+        <DocTitleBanner title="TAX INVOICE" copyLabel={copyLabel} />
 
         {/* Customer block + Invoice meta (two-column) */}
         <div className="ips-meta-2col">
@@ -626,16 +641,120 @@ export function InvoicePrintSheet({ sale, settings = {} }) {
           </div>
         </div>
 
-        <SigFooter signatory={signatory} />
+        <SigFooter {...sigProps} />
       </div>
     );
   }
 
-  /* ───────────────────── Simple Invoice (no GST data) ────────────────── */
+  /* ───────────── Tax invoice title when GST on but GSTIN missing ─────── */
+  if (isTaxInvoice) {
+    return (
+      <div className="invoice-print-sheet invoice-print-sheet--simple">
+        <InvoiceHeader {...headerProps} docTitle="" copyLabel="" />
+        <div className="ips-divider" />
+        <DocTitleBanner title="TAX INVOICE" copyLabel={copyLabel} />
+
+        <div className="ips-meta-2col">
+          <div className="ips-billto">
+            <div className="ips-section-lbl">Bill To</div>
+            <div className="ips-cust-name">{sale?.customerName || "—"}</div>
+            {hasSaleAddress(sale) ? (
+              <div className="ips-cust-addr">{saleAddressLines(sale).join(", ")}</div>
+            ) : null}
+            {customerGstin ? (
+              <div className="ips-cust-gstin">
+                GSTIN:&nbsp;<strong>{customerGstin}</strong>
+              </div>
+            ) : null}
+          </div>
+          <div className="ips-invmeta">
+            <table className="ips-det-tbl">
+              <tbody>
+                <tr>
+                  <th>Invoice No.</th>
+                  <td>
+                    <strong>{sale?.invoiceNo || "—"}</strong>
+                  </td>
+                </tr>
+                <tr>
+                  <th>Invoice Date</th>
+                  <td>{dateSlash(sale?.date)}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <table className="ips-itm">
+          <thead>
+            <tr>
+              <th className="ips-c-sno">Sr.</th>
+              <th className="ips-c-desc">Description of Goods / Services</th>
+              <th className="ips-c-qty">Qty</th>
+              <th className="ips-c-rate">Rate (₹)</th>
+              <th className="ips-c-amt">Amount (₹)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {invoiceLines.map((li, idx) => (
+              <tr key={li.id || idx}>
+                <td className="tc">{idx + 1}</td>
+                <td>
+                  <ProductCell line={li} saleNotes={saleNotes} showNotes={idx === 0} />
+                </td>
+                <td className="tr">{QTY.format(num(li.qty))}</td>
+                <td className="tr">{fmtAmt(li.salePrice)}</td>
+                <td className="tr">{fmtAmt(num(li.qty) * num(li.salePrice))}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        <div className="ips-floor">
+          <div className="ips-floor-l">
+            <div className="ips-words">
+              <span className="ips-words-lbl">Amount in Words:</span>
+              <span className="ips-words-val">&nbsp;{amountInWordsInr(num(sale?.totalSale))}</span>
+            </div>
+            {(notes || saleNotes) ? (
+              <div className="ips-notebox ips-notebox--nobordertop">
+                <div className="ips-notebox-hd">Notes</div>
+                <div className="ips-notebox-body">{notes || saleNotes}</div>
+              </div>
+            ) : null}
+            <TermsBlock terms={terms} />
+          </div>
+          <div className="ips-floor-r">
+            <table className="ips-simpletot">
+              <tbody>
+                <tr className="ips-st-grand">
+                  <td>Total Amount</td>
+                  <td className="tr">{fmtAmt(sale?.totalSale)}</td>
+                </tr>
+                <tr>
+                  <td>Payment Received</td>
+                  <td className="tr">{fmtAmt(received)}</td>
+                </tr>
+                <tr className={num(outstanding) > 0 ? "ips-st-due" : ""}>
+                  <td>Balance Due</td>
+                  <td className="tr">{fmtBalance(outstanding)}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <SigFooter {...sigProps} />
+      </div>
+    );
+  }
+
+  /* ───────────────────── Simple Invoice (GST disabled) ───────────────── */
   return (
     <div className="invoice-print-sheet invoice-print-sheet--simple">
-      <InvoiceHeader {...headerProps} docTitle="INVOICE" />
+      <InvoiceHeader {...headerProps} docTitle="INVOICE" copyLabel={copyLabel} />
       <div className="ips-divider" />
+      <DocTitleBanner title="INVOICE" />
 
       <div className="ips-meta-2col">
         <div className="ips-billto">
@@ -722,7 +841,7 @@ export function InvoicePrintSheet({ sale, settings = {} }) {
         </div>
       </div>
 
-      <SigFooter signatory={signatory} />
+      <SigFooter {...sigProps} />
     </div>
   );
 }

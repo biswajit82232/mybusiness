@@ -10599,6 +10599,31 @@ button.activity-row.activity-row--clickable:active { background: var(--line2); }
     margin: 0 0 0;
   }
 
+  /* ── Centered document title (TAX INVOICE, etc.) ─────────────────── */
+  .ips-doc-banner {
+    text-align: center;
+    padding: 8pt 10pt 7pt;
+    border: 0.75pt solid #000;
+    border-top: none;
+    page-break-inside: avoid;
+  }
+  .ips-doc-banner-title {
+    font-size: 14pt;
+    font-weight: 900;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #000;
+    line-height: 1.2;
+  }
+  .ips-doc-banner-copy {
+    margin-top: 4pt;
+    font-size: 6.5pt;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #444;
+  }
+
   /* ── Customer block + Invoice meta (2-column bordered box) ──────── */
   .ips-meta-2col {
     display: flex;
@@ -10857,6 +10882,14 @@ button.activity-row.activity-row--clickable:active { background: var(--line2); }
   .ips-sig-block { text-align: right; min-width: 130pt; flex-shrink: 0; }
   .ips-sig-name  { font-weight: 700; font-size: 8.5pt; margin-bottom: 2pt; color: #000; }
   .ips-sig-space { height: 26pt; }
+  .ips-sig-img {
+    display: block;
+    margin-left: auto;
+    max-height: 44pt;
+    max-width: 130pt;
+    object-fit: contain;
+    object-position: right bottom;
+  }
   .ips-sig-line  { border-top: 1pt solid #000; margin-bottom: 3pt; }
   .ips-sig-label { font-size: 7.5pt; color: #444; }
 }
