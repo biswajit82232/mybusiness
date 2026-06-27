@@ -472,6 +472,49 @@ export async function hasPendingOutboxForRecord({ userId, entityType, recordId }
   return !!row;
 }
 
+/**
+ * Pending outbox for merge/LWW — settings and balance share one logical record.
+ */
+export async function hasPendingLocalChangeForMerge({ userId, entityType, serverRecordId }) {
+  const t = String(entityType || "");
+  const rid = outboxRecordIdParamForMerge(t, serverRecordId);
+  if (t === "settings" || t === "balance") {
+    return hasPendingOutboxForRecord({ userId, entityType: "settings", recordId: rid });
+  }
+  return hasPendingOutboxForRecord({ userId, entityType: t, recordId: rid });
+}
+
+function outboxRecordIdParamForMerge(entityType, serverRecordId) {
+  if (entityType === "settings" || entityType === "balance") return "__settings__";
+  return String(serverRecordId ?? "");
+}
+
+/**
+ * After a successful cloud push, store server version/timestamp on the local row (no outbox).
+ */
+export async function updateLocalEntityAfterCloudPush({
+  userId,
+  entityType,
+  recordId,
+  revision,
+  updatedAt,
+}) {
+  const db = await getDb();
+  const entity = normalizeEntityType(entityType);
+  const storeName = makeEntityStore(entity);
+  const key =
+    entity === "settings" || entity === "balance" ? userId : makeEntityKey(userId, recordId);
+  const row = await db.get(storeName, key);
+  if (!row) return;
+  if (revision != null && Number.isFinite(Number(revision))) {
+    row.revision = Number(revision);
+  }
+  if (typeof updatedAt === "string" && updatedAt.length > 0) {
+    row.updatedAt = updatedAt;
+  }
+  await db.put(storeName, row);
+}
+
 /** Delete every normalized entity row for this user (not cache/outbox/sync_state). */
 export async function deleteAllEntityRowsForUser(userId) {
   const db = await getDb();

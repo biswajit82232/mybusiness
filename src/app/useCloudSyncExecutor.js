@@ -5,7 +5,7 @@ import {
   runCloudSyncPass,
 } from "@/data/sync/cloudSync.js";
 import { withSupabaseSyncHint } from "@/data/sync/syncErrorHints.js";
-import { waitForPersistIdle } from "@/data/local/persistMutex.js";
+import { waitForPersistIdle, isPersistLocked } from "@/data/local/persistMutex.js";
 import {
   getPendingOutboxCount,
   loadUserLocalState,
@@ -47,6 +47,7 @@ export function useCloudSyncExecutor({
   suppressPersistRef,
   lastPersistedStateRef,
   pendingWritesRef,
+  flushPendingLocalPersistRef,
 }) {
   const [cloudSyncMeta, setCloudSyncMeta] = useState(() => ({
     at: null,
@@ -78,6 +79,22 @@ export function useCloudSyncExecutor({
       }
 
       try {
+        await flushPendingLocalPersistRef?.current?.().catch((e) => {
+          console.warn("[sync] flush pending local persist failed:", e);
+        });
+        await waitForPersistIdle().catch((e) => {
+          console.warn("[sync] persist still active after idle wait:", e?.message || e);
+        });
+        if (pendingWritesRef?.current > 0 || isPersistLocked()) {
+          setCloudSyncMeta({
+            at: Date.now(),
+            ok: true,
+            detail: "Local save in progress — sync deferred",
+            errors: [],
+          });
+          return { ok: true, skipped: true, reason: "persist_busy" };
+        }
+
         const shouldForceOnStartup = !forceFullReconcile && !didStartupFullReconcileRef.current;
         const r = await runCloudSyncPass({
           forceFullReconcile: forceFullReconcile || shouldForceOnStartup,
@@ -101,7 +118,6 @@ export function useCloudSyncExecutor({
           return r;
         }
         if (r.fullRestore && r.pullPayload) {
-          await waitForPersistIdle().catch(() => {});
           let merged = mergePersistedPayload(r.pullPayload) || defaultState;
           merged = appendConflictRowsLocal(merged, r.conflictRows);
           await applyCloudPullToAppState(uid, merged, {
@@ -109,30 +125,36 @@ export function useCloudSyncExecutor({
               typeof r.pullCursorMaxIso === "string" ? r.pullCursorMaxIso : undefined,
           });
           await writeAppCache(merged).catch(() => {});
+          let stateHydrated = false;
           if (!pendingWritesRef?.current) {
             suppressPersistRef.current = true;
             setState(merged);
             lastPersistedStateRef.current = merged;
+            stateHydrated = true;
             Promise.resolve().then(() => {
               suppressPersistRef.current = false;
             });
           }
-        } else if ((r.remoteRowsApplied ?? 0) > 0) {
-          await waitForPersistIdle().catch(() => {});
-          if (!pendingWritesRef?.current) {
-          // Re-read IDB after pull+push — pullPayload is captured before push and can be stale
-          // if the user saved while sync was in flight.
-          const freshPayload = await loadUserLocalState(uid);
-          let merged = mergePersistedPayload(freshPayload) || defaultState;
-          merged = appendConflictRowsLocal(merged, r.conflictRows);
-          suppressPersistRef.current = true;
-          setState(merged);
-          lastPersistedStateRef.current = merged;
-          await writeAppCache(merged).catch(() => {});
-          Promise.resolve().then(() => {
-            suppressPersistRef.current = false;
-          });
+          if (!stateHydrated && (r.conflictRows?.length ?? 0) > 0) {
+            setState((prev) => appendConflictRowsLocal(prev, r.conflictRows));
           }
+        } else if ((r.remoteRowsApplied ?? 0) > 0) {
+          if (!pendingWritesRef?.current) {
+            const freshPayload = await loadUserLocalState(uid);
+            let merged = mergePersistedPayload(freshPayload) || defaultState;
+            merged = appendConflictRowsLocal(merged, r.conflictRows);
+            suppressPersistRef.current = true;
+            setState(merged);
+            lastPersistedStateRef.current = merged;
+            await writeAppCache(merged).catch(() => {});
+            Promise.resolve().then(() => {
+              suppressPersistRef.current = false;
+            });
+          } else if ((r.conflictRows?.length ?? 0) > 0) {
+            setState((prev) => appendConflictRowsLocal(prev, r.conflictRows));
+          }
+        } else if ((r.conflictRows?.length ?? 0) > 0) {
+          setState((prev) => appendConflictRowsLocal(prev, r.conflictRows));
         }
         const parts = [];
         if (r.fullRestore) parts.push("Restored from cloud");
@@ -163,9 +185,6 @@ export function useCloudSyncExecutor({
           detail: msg,
           errors: pushErrors,
         });
-        if ((r.conflictRows?.length ?? 0) > 0) {
-          setState((prev) => appendConflictRowsLocal(prev, r.conflictRows));
-        }
         return r;
       } finally {
         const u = currentUserIdRef.current;
@@ -182,6 +201,7 @@ export function useCloudSyncExecutor({
       setState,
       suppressPersistRef,
       pendingWritesRef,
+      flushPendingLocalPersistRef,
     ],
   );
 

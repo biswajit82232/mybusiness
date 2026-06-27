@@ -234,6 +234,18 @@ describe("bank transfer kinds", () => {
   });
 });
 
+describe("remoteWinsLocalRow / pending outbox", () => {
+  it("keeps local when outbox pending even if remote is newer", async () => {
+    const { remoteWinsLocalRow } = await import("@/data/sync/syncPayloadUtils.js");
+    expect(
+      remoteWinsLocalRow({ updatedAt: "2026-01-01T00:00:00Z" }, "2026-01-10T00:00:00Z", true),
+    ).toBe(false);
+    expect(
+      remoteWinsLocalRow({ updatedAt: "2026-01-01T00:00:00Z" }, "2026-01-10T00:00:00Z", false),
+    ).toBe(true);
+  });
+});
+
 describe("cashflow owner drawings", () => {
   it("counts owner drawings in financing out", () => {
     const transfers = normBankTransfers([

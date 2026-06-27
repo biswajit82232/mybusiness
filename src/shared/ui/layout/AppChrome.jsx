@@ -2,6 +2,7 @@ import { useRef } from "react";
 import { moneyFull, num, digitsOnly, waHref } from "@/domain/index.js";
 import { useFocusTrap } from "@/shared/hooks/useFocusTrap.js";
 import { IcBack, IcMenu, IcPhone, IcWhatsApp } from "@/shared/ui/icons/AppIcons.jsx";
+import { runNavTransition } from "./runNavTransition.js";
 
 export function Field({ label, children }) {
   return (
@@ -47,7 +48,7 @@ export function ContactIcons({ phone }) {
 export function PageHeader({ title, onBack, right }) {
   return (
     <header className="page-hdr">
-      <button type="button" className="icon-btn" onClick={onBack} aria-label="Back">
+      <button type="button" className="icon-btn back-btn" onClick={() => runNavTransition(onBack)} aria-label="Back">
         <IcBack />
       </button>
       <span className="page-hdr-title">{title}</span>
@@ -62,7 +63,7 @@ export function TabPageChrome({ title, right, onOpenSidebar, onBack, children, c
     <div className={`tab-page${className ? ` ${className}` : ""}`}>
       <div className="tab-appbar">
         {typeof onBack === "function" && (
-          <button type="button" className="icon-btn tab-appbar-back" onClick={onBack} aria-label="Back">
+          <button type="button" className="icon-btn tab-appbar-back back-btn" onClick={() => runNavTransition(onBack)} aria-label="Back">
             <IcBack />
           </button>
         )}

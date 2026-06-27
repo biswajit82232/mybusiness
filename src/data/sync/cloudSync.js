@@ -11,6 +11,7 @@ import {
   isPayloadEffectivelyEmpty,
   isTransientSyncError,
   normalizeEntityPayloadWithRecordId,
+  parseUpdatedAtMs,
   remoteWinsLocalRow,
 } from "./syncPayloadUtils.js";
 
@@ -24,7 +25,7 @@ import {
   applyMergedStateToIndexedDbWithoutOutbox,
   clearOutboxForUser,
   getLocalEntityRecord,
-  hasPendingOutboxForRecord,
+  hasPendingLocalChangeForMerge,
   getPendingOutboxEntries,
   getRemotePullCursor,
   loadUserLocalState,
@@ -32,7 +33,9 @@ import {
   removeOutboxEntryById,
   removePendingOutboxForRecord,
   setRemotePullCursor,
+  updateLocalEntityAfterCloudPush,
 } from "../local/indexedDbStore.js";
+import { withPersistLock } from "../local/persistMutex.js";
 
 export const ENTITY_TYPES = [
   "settings",
@@ -311,24 +314,25 @@ function isSafeEntityPayload(t, row) {
 }
 
 async function mergeRemoteRowsIntoLocal(userId, rows) {
-  let applied = 0;
-  for (const row of rows || []) {
-    const t = row?.entity_type;
-    if (!t || !ENTITY_TYPES.includes(t)) continue;
-    if (typeof row.updated_at !== "string" || !row.updated_at) continue;
-    if (!isSafeEntityPayload(t, row)) continue;
+  return withPersistLock(async () => {
+    let applied = 0;
+    for (const row of rows || []) {
+      const t = row?.entity_type;
+      if (!t || !ENTITY_TYPES.includes(t)) continue;
+      if (typeof row.updated_at !== "string" || !row.updated_at) continue;
+      if (!isSafeEntityPayload(t, row)) continue;
 
-    const localId = localRecordIdForGet(t, row.record_id);
-    const local = await getLocalEntityRecord({ userId, entityType: t, recordId: localId });
-    const recordKey = outboxRecordIdParam(t, row.record_id);
-    const hasPendingLocalChange = await hasPendingOutboxForRecord({
-      userId,
-      entityType: t,
-      recordId: recordKey,
-    });
-    if (!remoteWinsLocalRow(local, row.updated_at, hasPendingLocalChange)) continue;
+      const localId = localRecordIdForGet(t, row.record_id);
+      const local = await getLocalEntityRecord({ userId, entityType: t, recordId: localId });
+      const recordKey = outboxRecordIdParam(t, row.record_id);
+      const hasPendingLocalChange = await hasPendingLocalChangeForMerge({
+        userId,
+        entityType: t,
+        serverRecordId: recordKey,
+      });
+      if (!remoteWinsLocalRow(local, row.updated_at, hasPendingLocalChange)) continue;
 
-    if (t === "settings" || t === "balance") {
+      if (t === "settings" || t === "balance") {
       const currentSettingsRow = await getLocalEntityRecord({
         userId,
         entityType: "settings",
@@ -396,14 +400,15 @@ async function mergeRemoteRowsIntoLocal(userId, rows) {
       });
     }
 
-    await removePendingOutboxForRecord({
-      userId,
-      entityType: t,
-      recordId: recordKey,
-    });
-    applied += 1;
-  }
-  return applied;
+      await removePendingOutboxForRecord({
+        userId,
+        entityType: t,
+        recordId: recordKey,
+      });
+      applied += 1;
+    }
+    return applied;
+  });
 }
 
 export async function ensureBusinessId(client) {
@@ -588,6 +593,9 @@ async function upsertEntityRow(client, businessId, row) {
       applied: !!info?.applied,
       conflict: !!info?.conflict,
       reason: info?.conflict_reason ? String(info.conflict_reason) : "",
+      currentVersion: info?.current_version != null ? Number(info.current_version) : null,
+      currentUpdatedAt:
+        typeof info?.current_updated_at === "string" ? info.current_updated_at : updatedAt,
     };
   };
   if (row.entityType === "settings") {
@@ -611,22 +619,53 @@ async function upsertEntityRow(client, businessId, row) {
       recordId,
       row.op === "delete" ? {} : { balance: row.payload?.balance ?? null },
     );
-    return { conflict: a.conflict || b.conflict, reason: a.reason || b.reason || "" };
+    const conflict = a.conflict || b.conflict;
+    const applied = !conflict && a.applied && b.applied;
+    return {
+      conflict,
+      applied,
+      reason: a.reason || b.reason || "",
+      currentVersion: Math.max(a.currentVersion ?? 0, b.currentVersion ?? 0) || null,
+      currentUpdatedAt:
+        parseUpdatedAtMs(b.currentUpdatedAt) >= parseUpdatedAtMs(a.currentUpdatedAt)
+          ? b.currentUpdatedAt
+          : a.currentUpdatedAt,
+    };
   }
 
   const recordId = recordIdForDb(row.entityType, row.recordId);
   const out = await upsertViaRpc(row.entityType, recordId, row.op === "delete" ? {} : row.payload ?? {});
-  return { conflict: out.conflict, reason: out.reason || "" };
+  return {
+    conflict: out.conflict,
+    applied: out.applied && !out.conflict,
+    reason: out.reason || "",
+    currentVersion: out.currentVersion,
+    currentUpdatedAt: out.currentUpdatedAt,
+  };
 }
 
 const OUTBOX_MAX_ATTEMPTS = 6;
+const OUTBOX_BATCH_SIZE = 500;
+const OUTBOX_MAX_BATCHES_PER_PASS = 20;
 
-/**
- * Push pending outbox entries to `entity_records`.
- * Transient errors (network, 5xx, 429) retry with exponential backoff + jitter.
- */
-export async function pushOutboxToCloud(client, businessId, userId) {
-  const pending = await getPendingOutboxEntries(userId, { limit: 500 });
+async function applyCloudPushResultToLocal(userId, syncRow, result) {
+  if (!result?.applied || result.conflict) return;
+  const entityType = String(syncRow.entityType || "");
+  const recordId =
+    entityType === "settings" || entityType === "balance"
+      ? "settings"
+      : String(syncRow.recordId || "");
+  await updateLocalEntityAfterCloudPush({
+    userId,
+    entityType: entityType === "balance" ? "settings" : entityType,
+    recordId,
+    revision: result.currentVersion,
+    updatedAt: result.currentUpdatedAt,
+  });
+}
+
+async function pushOutboxBatch(client, businessId, userId) {
+  const pending = await getPendingOutboxEntries(userId, { limit: OUTBOX_BATCH_SIZE });
   let pushed = 0;
   let conflicts = 0;
   const conflictRows = [];
@@ -645,9 +684,6 @@ export async function pushOutboxToCloud(client, businessId, userId) {
       try {
         const result = await upsertEntityRow(client, businessId, syncRow);
         if (result?.conflict) {
-          // Drop stale local outbox row; fresh remote value will be pulled on next pass.
-          // Preserve a preview of the rejected local payload so the user can recover
-          // their edit from Settings → Sync conflicts instead of silently losing it.
           let localPayloadPreview;
           try {
             if (syncRow.op !== "delete" && syncRow.payload && typeof syncRow.payload === "object") {
@@ -667,6 +703,11 @@ export async function pushOutboxToCloud(client, businessId, userId) {
           });
           break;
         }
+        if (!result?.applied) {
+          errors.push(`Upload not applied (${syncRow.entityType}:${syncRow.recordId || ""})`);
+          break;
+        }
+        await applyCloudPushResultToLocal(userId, syncRow, result);
         await removeOutboxEntryById(syncRow.id);
         pushed += 1;
         break;
@@ -680,6 +721,29 @@ export async function pushOutboxToCloud(client, businessId, userId) {
         await sleepMs(350 * 2 ** (attempt - 1) + Math.random() * 150);
       }
     }
+  }
+
+  return { pushed, conflicts, conflictRows, errors, hadMore: pending.length >= OUTBOX_BATCH_SIZE };
+}
+
+/**
+ * Push pending outbox entries to `entity_records`.
+ * Transient errors (network, 5xx, 429) retry with exponential backoff + jitter.
+ */
+export async function pushOutboxToCloud(client, businessId, userId) {
+  let pushed = 0;
+  let conflicts = 0;
+  const conflictRows = [];
+  const errors = [];
+
+  for (let batch = 0; batch < OUTBOX_MAX_BATCHES_PER_PASS; batch += 1) {
+    const result = await pushOutboxBatch(client, businessId, userId);
+    pushed += result.pushed;
+    conflicts += result.conflicts;
+    conflictRows.push(...result.conflictRows);
+    errors.push(...result.errors);
+    if (!result.hadMore) break;
+    if (result.pushed === 0 && result.conflicts === 0 && result.errors.length > 0) break;
   }
 
   return { pushed, conflicts, conflictRows, errors };

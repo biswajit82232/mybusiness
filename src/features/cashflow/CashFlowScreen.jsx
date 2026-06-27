@@ -179,7 +179,7 @@ export function CashFlowScreen({
   const showOwnerDrawings = periodBreakdown.ownerDrawings > 0.009;
 
   return (
-    <TabPageChrome title="Cash flow" onOpenSidebar={onOpenSidebar} right={<span className="page-hdr-meta">{periodLabel}</span>}>
+    <TabPageChrome title="Cash flow" onOpenSidebar={onOpenSidebar} className="tab-page--cash-flow" right={<span className="page-hdr-meta">{periodLabel}</span>}>
       <div className="cashflow-period-controls">
         <div className="sort-bar sort-bar--compact" role="group" aria-label="Cash flow period">
           <span className="sort-bar-lbl">Period</span>
@@ -220,7 +220,7 @@ export function CashFlowScreen({
           </div>
         )}
       </div>
-      <div className="overlay-kpi-strip">
+      <div className="overlay-kpi-strip cashflow-kpi-strip">
         <div className="recv-kpi">
           <div className="recv-kpi-lbl">Total In</div>
           <div className="recv-kpi-val cashflow-kpi-in">{money(totalIn)}</div>
@@ -239,6 +239,11 @@ export function CashFlowScreen({
         periodBreakdown.financingIn > 0 ||
         periodBreakdown.financingOut > 0) && (
         <div className="cashflow-breakdown-strip" aria-label="Operating vs financing">
+          <div className="cashflow-breakdown-hd">
+            <span className="cashflow-breakdown-hd-type" aria-hidden="true" />
+            <span className="cashflow-breakdown-hd-in">In</span>
+            <span className="cashflow-breakdown-hd-out">Out</span>
+          </div>
           <div className="cashflow-breakdown-row">
             <span className="cashflow-breakdown-lbl">Operating</span>
             <span className="cashflow-breakdown-in">{money(periodBreakdown.operatingIn)}</span>

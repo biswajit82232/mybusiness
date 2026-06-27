@@ -1,6 +1,6 @@
 # MyBusiness (React + Vite)
 
-**Current version: 8.0.9** (shown in **Settings → Version**; service worker cache **v108**.)
+**Current version: 8.0.10** (shown in **Settings → Version**; service worker cache **v109**.)
 
 Offline-first business management for small shops and traders: sales invoices, inventory, purchases, banking, expenses, GST-aware reporting, and optional Supabase cloud sync. Works as a installable **PWA** on phone and desktop.
 

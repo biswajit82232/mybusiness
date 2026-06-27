@@ -5,6 +5,7 @@ import {
   IcCashFlow,
   IcCatalog,
   IcChart,
+  IcChevD,
   IcEmi,
   IcFinance,
   IcHome,
@@ -20,11 +21,11 @@ import {
   IcSales,
   IcSettings,
   IcSpend,
-  IcUsers,
   IcUpload,
+  IcUsers,
   IcX,
 } from "@/shared/ui/icons/AppIcons.jsx";
-import { memo } from "react";
+import { memo, useCallback, useEffect, useState } from "react";
 import { prefetchMainStagePage } from "@/features/main-stage/lazyMainStageScreens.jsx";
 
 /** Warm route chunks on hover/focus so taps feel instant after browsing the menu. */
@@ -33,15 +34,154 @@ function tabPrefetchProps(pageId) {
   return { onPointerEnter: run, onFocus: run };
 }
 
+const NAV_GROUPS = [
+  {
+    id: "sales",
+    label: "Sales",
+    defaultOpen: true,
+    items: [
+      { page: "invoices", label: "Invoices", Icon: IcSales },
+      { page: "customers", label: "Customers", Icon: IcUsers, screens: ["customerDetail"] },
+      { page: "receivables", label: "Receivables", Icon: IcReceivable },
+      { page: "emi", label: "EMI", Icon: IcEmi },
+      { page: "servicing", label: "Servicing", Icon: IcServicing },
+    ],
+  },
+  {
+    id: "buy",
+    label: "Buy & pay",
+    items: [
+      { page: "payables", label: "Payables", Icon: IcPayable },
+      { page: "purchases", label: "Purchases", Icon: IcUpload },
+      { page: "vendors", label: "Vendors", Icon: IcUsers, screens: ["vendorDetail"] },
+    ],
+  },
+  {
+    id: "stock",
+    label: "Stock",
+    items: [
+      { page: "inventory", label: "Inventory", Icon: IcBox },
+      { page: "branch", label: "Branches", Icon: IcBranch },
+      { page: "products", label: "Products", Icon: IcCatalog },
+    ],
+  },
+  {
+    id: "finance",
+    label: "Finance",
+    items: [
+      { page: "accounts", label: "Balance sheet", Icon: IcFinance },
+      { page: "banking", label: "Banking", Icon: IcBanking, screens: ["bankAccountDetail"] },
+      { page: "fixedAssets", label: "Fixed Assets", Icon: IcLandmark },
+      { page: "cashFlow", label: "Cash flow", Icon: IcCashFlow },
+      { page: "ledger", label: "Ledger", Icon: IcLedger },
+    ],
+  },
+  {
+    id: "costs",
+    label: "Costs & income",
+    items: [
+      { page: "expenses", label: "Expenses", Icon: IcSpend, screens: ["expenseCategory"] },
+      { page: "otherIncome", label: "Other income", Icon: IcIncome, screens: ["newOtherIncome"] },
+    ],
+  },
+  {
+    id: "reports",
+    label: "Reports",
+    items: [
+      { page: "reports", label: "Reports", Icon: IcReport },
+      { page: "capitalGrowth", label: "Growth", Icon: IcChart },
+      { page: "netWorth", label: "Net Worth", Icon: IcNetWorth },
+    ],
+  },
+];
+
+function isItemActive(page, screen, item) {
+  if (item.screens?.includes(screen)) return true;
+  return !screen && page === item.page;
+}
+
+function groupHasActive(page, screen, group) {
+  return group.items.some((item) => isItemActive(page, screen, item));
+}
+
+function SidebarNavItem({ item, active, onNav }) {
+  const { Icon } = item;
+  return (
+    <button
+      type="button"
+      className={`sidebar-item${active ? " active" : ""}`}
+      {...tabPrefetchProps(item.page)}
+      onClick={() => onNav(item.page)}
+    >
+      <span className="sidebar-item-icon">
+        <Icon />
+      </span>
+      <span className="sidebar-item-label">{item.label}</span>
+    </button>
+  );
+}
+
+function SidebarNavGroup({ group, page, screen, open, onToggle, onNav }) {
+  const active = groupHasActive(page, screen, group);
+  return (
+    <details
+      className={`sidebar-group${active ? " sidebar-group--active" : ""}`}
+      open={open}
+      onToggle={(e) => onToggle(group.id, e.currentTarget.open)}
+    >
+      <summary className="sidebar-group-summary">
+        <span className="sidebar-group-label">{group.label}</span>
+        <span className="sidebar-group-chev" aria-hidden="true">
+          <IcChevD />
+        </span>
+      </summary>
+      <div className="sidebar-group-body">
+        {group.items.map((item) => (
+          <SidebarNavItem
+            key={item.page}
+            item={item}
+            active={isItemActive(page, screen, item)}
+            onNav={onNav}
+          />
+        ))}
+      </div>
+    </details>
+  );
+}
+
 export const AppSidebar = memo(function AppSidebar({ open, onClose, page, screen, alertCount, goPage, pendingOutbox = 0, onLogout }) {
-  const nav = (pageId) => {
-    goPage(pageId);
-  };
-  const isActive = (pageId) => !screen && page === pageId;
+  const nav = useCallback(
+    (pageId) => {
+      goPage(pageId);
+    },
+    [goPage],
+  );
+
+  const [openGroups, setOpenGroups] = useState(() =>
+    Object.fromEntries(NAV_GROUPS.map((g) => [g.id, g.defaultOpen ?? false])),
+  );
+
+  useEffect(() => {
+    setOpenGroups((prev) => {
+      let next = prev;
+      for (const group of NAV_GROUPS) {
+        if (groupHasActive(page, screen, group) && !prev[group.id]) {
+          if (next === prev) next = { ...prev };
+          next[group.id] = true;
+        }
+      }
+      return next;
+    });
+  }, [page, screen]);
+
+  const onGroupToggle = useCallback((id, isOpen) => {
+    setOpenGroups((prev) => (prev[id] === isOpen ? prev : { ...prev, [id]: isOpen }));
+  }, []);
+
+  const dashboardActive = !screen && page === "dashboard";
 
   return (
     <nav className={`sidebar${open ? " open" : ""}`} aria-label="Main navigation">
-      {/* Brand */}
       <div className="sidebar-brand">
         <img src="/icon-192.png" alt="" className="sidebar-brand-logo" />
         <span className="sidebar-brand-name">MyBusiness</span>
@@ -50,11 +190,10 @@ export const AppSidebar = memo(function AppSidebar({ open, onClose, page, screen
         </button>
       </div>
 
-      <div className="sidebar-nav sidebar-nav-compact sidebar-nav-flat sidebar-nav-grouped">
-        <p className="sidebar-section-label">Overview</p>
+      <div className="sidebar-nav sidebar-nav-compact sidebar-nav-flat">
         <button
           type="button"
-          className={`sidebar-item${isActive("dashboard") ? " active" : ""}`}
+          className={`sidebar-item sidebar-item--top${dashboardActive ? " active" : ""}`}
           {...tabPrefetchProps("dashboard")}
           onClick={() => nav("dashboard")}
         >
@@ -65,254 +204,23 @@ export const AppSidebar = memo(function AppSidebar({ open, onClose, page, screen
           {alertCount > 0 && <span className="sidebar-item-badge">{alertCount > 99 ? "99+" : alertCount}</span>}
         </button>
 
-        <p className="sidebar-section-label">Sales</p>
-        <button
-          type="button"
-          className={`sidebar-item${isActive("invoices") ? " active" : ""}`}
-          {...tabPrefetchProps("invoices")}
-          onClick={() => nav("invoices")}
-        >
-          <span className="sidebar-item-icon">
-            <IcSales />
-          </span>
-          <span className="sidebar-item-label">Invoices</span>
-        </button>
-        <button
-          type="button"
-          className={`sidebar-item${isActive("customers") || screen === "customerDetail" ? " active" : ""}`}
-          {...tabPrefetchProps("customers")}
-          onClick={() => nav("customers")}
-        >
-          <span className="sidebar-item-icon">
-            <IcUsers />
-          </span>
-          <span className="sidebar-item-label">Customers</span>
-        </button>
-        <button
-          type="button"
-          className={`sidebar-item${isActive("receivables") ? " active" : ""}`}
-          {...tabPrefetchProps("receivables")}
-          onClick={() => nav("receivables")}
-        >
-          <span className="sidebar-item-icon">
-            <IcReceivable />
-          </span>
-          <span className="sidebar-item-label">Receivables</span>
-        </button>
-        <button
-          type="button"
-          className={`sidebar-item${isActive("emi") ? " active" : ""}`}
-          {...tabPrefetchProps("emi")}
-          onClick={() => nav("emi")}
-        >
-          <span className="sidebar-item-icon">
-            <IcEmi />
-          </span>
-          <span className="sidebar-item-label">EMI</span>
-        </button>
-        <button
-          type="button"
-          className={`sidebar-item${isActive("servicing") ? " active" : ""}`}
-          {...tabPrefetchProps("servicing")}
-          onClick={() => nav("servicing")}
-        >
-          <span className="sidebar-item-icon">
-            <IcServicing />
-          </span>
-          <span className="sidebar-item-label">Servicing</span>
-        </button>
-
-        <p className="sidebar-section-label">Purchasing</p>
-        <button
-          type="button"
-          className={`sidebar-item${isActive("payables") ? " active" : ""}`}
-          {...tabPrefetchProps("payables")}
-          onClick={() => nav("payables")}
-        >
-          <span className="sidebar-item-icon">
-            <IcPayable />
-          </span>
-          <span className="sidebar-item-label">Payables</span>
-        </button>
-        <button
-          type="button"
-          className={`sidebar-item${isActive("purchases") ? " active" : ""}`}
-          {...tabPrefetchProps("purchases")}
-          onClick={() => nav("purchases")}
-        >
-          <span className="sidebar-item-icon">
-            <IcUpload />
-          </span>
-          <span className="sidebar-item-label">Purchases</span>
-        </button>
-        <button
-          type="button"
-          className={`sidebar-item${isActive("vendors") || screen === "vendorDetail" ? " active" : ""}`}
-          {...tabPrefetchProps("vendors")}
-          onClick={() => nav("vendors")}
-        >
-          <span className="sidebar-item-icon">
-            <IcUsers />
-          </span>
-          <span className="sidebar-item-label">Vendors</span>
-        </button>
-
-        <p className="sidebar-section-label">Stock</p>
-        <button
-          type="button"
-          className={`sidebar-item${isActive("inventory") ? " active" : ""}`}
-          {...tabPrefetchProps("inventory")}
-          onClick={() => nav("inventory")}
-        >
-          <span className="sidebar-item-icon">
-            <IcBox />
-          </span>
-          <span className="sidebar-item-label">Inventory</span>
-        </button>
-        <button
-          type="button"
-          className={`sidebar-item${isActive("branch") ? " active" : ""}`}
-          {...tabPrefetchProps("branch")}
-          onClick={() => nav("branch")}
-        >
-          <span className="sidebar-item-icon">
-            <IcBranch />
-          </span>
-          <span className="sidebar-item-label">Branches</span>
-        </button>
-        <button
-          type="button"
-          className={`sidebar-item${isActive("products") ? " active" : ""}`}
-          {...tabPrefetchProps("products")}
-          onClick={() => nav("products")}
-        >
-          <span className="sidebar-item-icon">
-            <IcCatalog />
-          </span>
-          <span className="sidebar-item-label">Products</span>
-        </button>
-
-        <p className="sidebar-section-label">Finance</p>
-        <button
-          type="button"
-          className={`sidebar-item${isActive("accounts") ? " active" : ""}`}
-          {...tabPrefetchProps("accounts")}
-          onClick={() => nav("accounts")}
-        >
-          <span className="sidebar-item-icon">
-            <IcFinance />
-          </span>
-          <span className="sidebar-item-label">Balance sheet</span>
-        </button>
-        <button
-          type="button"
-          className={`sidebar-item${isActive("banking") || screen === "bankAccountDetail" ? " active" : ""}`}
-          {...tabPrefetchProps("banking")}
-          onClick={() => nav("banking")}
-        >
-          <span className="sidebar-item-icon">
-            <IcBanking />
-          </span>
-          <span className="sidebar-item-label">Banking</span>
-        </button>
-        <button
-          type="button"
-          className={`sidebar-item${isActive("fixedAssets") ? " active" : ""}`}
-          {...tabPrefetchProps("fixedAssets")}
-          onClick={() => nav("fixedAssets")}
-        >
-          <span className="sidebar-item-icon">
-            <IcLandmark />
-          </span>
-          <span className="sidebar-item-label">Fixed Assets</span>
-        </button>
-        <button
-          type="button"
-          className={`sidebar-item${isActive("cashFlow") ? " active" : ""}`}
-          {...tabPrefetchProps("cashFlow")}
-          onClick={() => nav("cashFlow")}
-        >
-          <span className="sidebar-item-icon">
-            <IcCashFlow />
-          </span>
-          <span className="sidebar-item-label">Cash flow</span>
-        </button>
-        <button
-          type="button"
-          className={`sidebar-item${isActive("ledger") ? " active" : ""}`}
-          {...tabPrefetchProps("ledger")}
-          onClick={() => nav("ledger")}
-        >
-          <span className="sidebar-item-icon">
-            <IcLedger />
-          </span>
-          <span className="sidebar-item-label">Ledger</span>
-        </button>
-
-        <p className="sidebar-section-label">Costs & income</p>
-        <button
-          type="button"
-          className={`sidebar-item${isActive("expenses") || screen === "expenseCategory" ? " active" : ""}`}
-          {...tabPrefetchProps("expenses")}
-          onClick={() => nav("expenses")}
-        >
-          <span className="sidebar-item-icon">
-            <IcSpend />
-          </span>
-          <span className="sidebar-item-label">Expenses</span>
-        </button>
-        <button
-          type="button"
-          className={`sidebar-item${isActive("otherIncome") || screen === "newOtherIncome" ? " active" : ""}`}
-          {...tabPrefetchProps("otherIncome")}
-          onClick={() => nav("otherIncome")}
-        >
-          <span className="sidebar-item-icon">
-            <IcIncome />
-          </span>
-          <span className="sidebar-item-label">Other income</span>
-        </button>
-
-        <p className="sidebar-section-label">Reports</p>
-        <button
-          type="button"
-          className={`sidebar-item${isActive("reports") ? " active" : ""}`}
-          {...tabPrefetchProps("reports")}
-          onClick={() => nav("reports")}
-        >
-          <span className="sidebar-item-icon">
-            <IcReport />
-          </span>
-          <span className="sidebar-item-label">Reports</span>
-        </button>
-        <button
-          type="button"
-          className={`sidebar-item${isActive("capitalGrowth") ? " active" : ""}`}
-          {...tabPrefetchProps("capitalGrowth")}
-          onClick={() => nav("capitalGrowth")}
-        >
-          <span className="sidebar-item-icon">
-            <IcChart />
-          </span>
-          <span className="sidebar-item-label">Growth</span>
-        </button>
-        <button
-          type="button"
-          className={`sidebar-item${isActive("netWorth") ? " active" : ""}`}
-          {...tabPrefetchProps("netWorth")}
-          onClick={() => nav("netWorth")}
-        >
-          <span className="sidebar-item-icon">
-            <IcNetWorth />
-          </span>
-          <span className="sidebar-item-label">Net Worth</span>
-        </button>
+        {NAV_GROUPS.map((group) => (
+          <SidebarNavGroup
+            key={group.id}
+            group={group}
+            page={page}
+            screen={screen}
+            open={openGroups[group.id]}
+            onToggle={onGroupToggle}
+            onNav={nav}
+          />
+        ))}
       </div>
 
       <div className="sidebar-footer sidebar-footer-compact">
         <button
           type="button"
-          className={`sidebar-item${isActive("settings") ? " active" : ""}`}
+          className={`sidebar-item${!screen && page === "settings" ? " active" : ""}`}
           {...tabPrefetchProps("settings")}
           onClick={() => nav("settings")}
         >

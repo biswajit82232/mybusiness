@@ -77,9 +77,10 @@ export function parseUpdatedAtMs(iso) {
 
 /**
  * Conflict rule: last-write-wins by `updatedAt` timestamp.
- * Pending outbox is tracked separately; when local is newer, keep local even if outbox was cleared after push.
+ * When local has a pending outbox row, remote must not overwrite (unsynced edit).
  */
-export function remoteWinsLocalRow(localRow, remoteIso, _hasPendingLocalChange) {
+export function remoteWinsLocalRow(localRow, remoteIso, hasPendingLocalChange) {
+  if (hasPendingLocalChange) return false;
   if (!localRow) return true;
   const lt = parseUpdatedAtMs(localRow.updatedAt);
   const rt = parseUpdatedAtMs(remoteIso);

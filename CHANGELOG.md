@@ -5,6 +5,7 @@ All notable changes are tracked here. The Settings screen shows **Version** from
 ## [8.0.10] — 2026-06-27
 
 ### Improvements
+- **Cloud sync reliability** — Flush debounced local saves before sync; defer pull when persist is busy; honor pending outbox in LWW merge; persist audit/conflict queues; store server revision after push; multi-batch outbox drain; fix duplicate conflict queue entries.
 - **Balance sheet** — Removed the Assets = Liabilities + Equity verification strip and current ratio line from the overview.
 
 App version **8.0.10**; service worker cache **v109**.

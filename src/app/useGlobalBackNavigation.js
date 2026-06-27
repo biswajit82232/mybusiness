@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, startTransition } from "react";
 import { LS_WELCOME_DONE } from "@/domain/index.js";
 
 /**
@@ -60,6 +60,7 @@ export function useGlobalBackNavigation({
   );
   const tryDismissOverlaysAndScreens = useCallback(
     (mode) => {
+      startTransition(() => {
       if (welcomeOpen) {
         try {
           localStorage.setItem(LS_WELCOME_DONE, "1");
@@ -164,9 +165,9 @@ export function useGlobalBackNavigation({
       }
       if (page !== "dashboard") {
         setPage("dashboard");
-        return true;
+        return;
       }
-      return false;
+      });
     },
     [
       welcomeOpen,

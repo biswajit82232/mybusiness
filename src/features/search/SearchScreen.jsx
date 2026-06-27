@@ -24,6 +24,7 @@ import {
   IcX,
 } from "@/shared/ui/icons/AppIcons.jsx";
 import { OverlayScreen } from "@/shared/ui/layout/AppChrome.jsx";
+import { runNavTransition } from "@/shared/ui/layout/runNavTransition.js";
 
 const CAP = {
   sales: 40,
@@ -225,7 +226,7 @@ export function SearchScreen({
     <OverlayScreen className="overlay-screen--search">
       <div className="search-overlay-shell">
         <div className="search-overlay-bar">
-          <button type="button" className="icon-btn search-overlay-back" onClick={onClose} aria-label="Back">
+          <button type="button" className="icon-btn back-btn search-overlay-back" onClick={() => runNavTransition(onClose)} aria-label="Back">
             <IcBack />
           </button>
           <input

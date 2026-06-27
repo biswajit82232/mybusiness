@@ -25,6 +25,10 @@ assert.equal(
   false,
 );
 assert.equal(
+  remoteWinsLocalRow({ updatedAt: "2026-01-01T00:00:00Z" }, "2026-01-02T00:00:00Z", true),
+  false,
+);
+assert.equal(
   remoteWinsLocalRow({ updatedAt: "2026-01-01T00:00:00Z" }, "2026-01-02T00:00:00Z", false),
   true,
 );

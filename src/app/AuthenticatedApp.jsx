@@ -175,6 +175,7 @@ export default function AuthenticatedApp() {
   const persistRunIdRef = useRef(0);
   const persistWarnedRef = useRef(false);
   const pendingWritesRef = useRef(0);
+  const flushPendingLocalPersistRef = useRef(null);
   /** Where expense detail / new-expense should return: main list vs category drill-down */
   const expenseNavRef = useRef({ from: "expenses", category: null });
   const saleNavRef = useRef({ from: "default" });
@@ -316,6 +317,7 @@ export default function AuthenticatedApp() {
     suppressPersistRef,
     lastPersistedStateRef,
     pendingWritesRef,
+    flushPendingLocalPersistRef,
   });
   useEffect(() => {
     if (authState !== "ready") return;
@@ -329,7 +331,7 @@ export default function AuthenticatedApp() {
   usePersistBusinessMonth(businessMonth);
   useRecurringExpensesOnTimer(setState, authState === "ready");
   useServiceWorkerUpdateReady(setSwUpdateReady);
-  useBeforeUnloadWhenPendingWrites(pendingWritesRef);
+  useBeforeUnloadWhenPendingWrites(pendingWritesRef, persistTimerRef);
   useGlobalShortcuts({
     onOpenSearch: useCallback(() => {
       if (authState !== "ready") return;
@@ -453,11 +455,14 @@ export default function AuthenticatedApp() {
     authState,
     state,
     currentUserIdRef,
+    latestStateRef,
     persistTimerRef,
     persistRunIdRef,
     persistWarnedRef,
     suppressPersistRef,
     lastPersistedStateRef,
+    flushPendingLocalPersistRef,
+    pendingWritesRef,
     setToast,
   });
 
@@ -1279,6 +1284,15 @@ export default function AuthenticatedApp() {
     });
   }, [resetRootNavigationRefs]);
 
+  const openSidebar = useCallback(() => setSidebarOpen(true), []);
+  const closeSidebar = useCallback(() => setSidebarOpen(false), []);
+  const openSearchScreen = useCallback(() => setScreen("search"), [setScreen]);
+  const toggleAccountingBasis = useCallback(() => {
+    saveSettingsPartial({
+      accountingBasis: state.settings?.accountingBasis === "accrual" ? "cash" : "accrual",
+    });
+  }, [saveSettingsPartial, state.settings?.accountingBasis]);
+
   const dismissBootLoading = useCallback(() => setBootVisible(false), []);
 
   /* Safety: never keep splash over the app if finish animation does not fire. */
@@ -1594,7 +1608,7 @@ export default function AuthenticatedApp() {
         sidebar={
           <AppSidebarColumn
             open={sidebarOpen}
-            onClose={() => setSidebarOpen(false)}
+            onClose={closeSidebar}
             page={page}
             screen={screen}
             alertCount={notifications.length}
@@ -1609,8 +1623,8 @@ export default function AuthenticatedApp() {
         <AuthenticatedMainColumn
           mobileBar={
             <MobileAppBar
-              onOpenMenu={() => setSidebarOpen(true)}
-              onOpenSearch={() => setScreen("search")}
+              onOpenMenu={openSidebar}
+              onOpenSearch={openSearchScreen}
               screen={screen}
               page={page}
               inventoryItemDetailName={invItemDetail?.displayName}
@@ -1638,11 +1652,7 @@ export default function AuthenticatedApp() {
               onDismissAllAlerts={dismissAllAlerts}
               onNotificationClick={onNotificationClick}
               accountingBasis={state.settings?.accountingBasis === "accrual" ? "accrual" : "cash"}
-              onToggleAccountingBasis={() =>
-                saveSettingsPartial({
-                  accountingBasis: state.settings?.accountingBasis === "accrual" ? "cash" : "accrual",
-                })
-              }
+              onToggleAccountingBasis={toggleAccountingBasis}
             />
           }
         >

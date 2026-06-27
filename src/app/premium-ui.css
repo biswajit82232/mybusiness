@@ -11,17 +11,19 @@ html, body {
   font-feature-settings: "tnum" 1, "lnum" 1, "ss01" 1, "ss03" 1, "cv11" 1;
 }
 
-/* Smooth scrolling on every scrollport (touch momentum + anchor/focus scroll) */
+/* Smooth scrolling on scrollports — skip sidebar (menu should snap) */
 .main-stage,
 .overlay-scroll,
 .detail-scroll,
-.sidebar,
 .notif-panel-body,
 .tab-page-scroll,
 .overlay-screen > .list-area {
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-y: contain;
+}
+.sidebar {
+  scroll-behavior: auto;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -812,9 +814,8 @@ textarea:focus-visible,
    MOBILE POLISH
 ══════════════════════════════════════════════════════════════ */
 @media (max-width: 899px) {
-  /* Overlay screens: flat bg, no slide animation */
+  /* Overlay screens: subtle slide-in (see App.css overlaySlideIn) */
   .overlay-screen {
-    animation: none;
     background: var(--bg);
   }
   .page-hdr { min-height: var(--hdr-h); }
@@ -1278,6 +1279,17 @@ kbd {
   letter-spacing: 0.1em;
   opacity: 1;
   color: color-mix(in srgb, var(--sidebar-text-soft) 90%, var(--primary));
+}
+.sidebar-group-summary {
+  padding: 7px 14px 3px;
+}
+.sidebar-group-label {
+  font-size: 0.6rem;
+  letter-spacing: 0.1em;
+}
+.sidebar-item {
+  min-height: 36px;
+  font-size: 0.84rem;
 }
 .sidebar-item.active {
   background: color-mix(in srgb, var(--primary) 18%, var(--sidebar-bg));
@@ -2336,6 +2348,27 @@ kbd {
   line-height: 1.15;
 }
 
+/* Cash flow totals — never squeeze three large currency values into one row on phones */
+.app-md3 .tab-page--cash-flow > .cashflow-kpi-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(6px, 1.6vw, 10px);
+  margin: 8px var(--page-pad) 0;
+  padding: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+.app-md3 .tab-page--cash-flow > .cashflow-kpi-strip .recv-kpi {
+  min-width: 0;
+  border-right: none;
+}
+.app-md3 .tab-page--cash-flow > .cashflow-kpi-strip .recv-kpi-val {
+  font-size: clamp(0.72rem, 2.8vw, 1.05rem);
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
 /* Filter bars — flat, pill controls */
 .app-md3 .seg-bar,
 .app-md3 .sort-bar,
@@ -3078,6 +3111,19 @@ kbd {
   .app-md3 .banking-sum-meta {
     font-size: 0.64rem;
     line-height: 1.3;
+  }
+
+  /* Cash flow: one KPI per row on phones — large in/out totals never overlap */
+  .app-md3 .tab-page--cash-flow > .cashflow-kpi-strip {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .app-md3 .tab-page--cash-flow > .cashflow-kpi-strip .recv-kpi:nth-child(3) {
+    grid-column: auto;
+  }
+  .app-md3 .tab-page--cash-flow > .cashflow-kpi-strip .recv-kpi-val {
+    font-size: clamp(0.82rem, 4vw, 1.05rem);
   }
 
   .app-md3 .banking-sum-val,
