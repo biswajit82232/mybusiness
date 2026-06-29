@@ -1,5 +1,6 @@
 import { useCallback } from "react";
 import { APP_VERSION } from "@/appVersion.js";
+import { checkImportSafety, migratePayloadIfNeeded } from "@/data/appData.js";
 import { clearLocalAuthCredentials } from "@/data/auth/localAuth.js";
 import { clearAllLocalData } from "@/data/local/indexedDbStore.js";
 import {
@@ -56,7 +57,22 @@ export function useBackupActions({
             showToast(backupImportErrorMessage(check.error, check.schemaVersion));
             return;
           }
-          const next = mergePersistedPayload(check.data);
+          const importSafety = checkImportSafety(
+            { ...check.data, schemaVersion: check.data?.schemaVersion || 1 },
+            { ...state, schemaVersion: state.schemaVersion || 2 },
+          );
+          if (!importSafety.safe) {
+            showToast(importSafety.reason);
+            return;
+          }
+          if (importSafety.reason) {
+            const confirmed = window.confirm(`${importSafety.reason}\n\nDo you want to continue?`);
+            if (!confirmed) return;
+          }
+          const payload = importSafety.needsMigration
+            ? migratePayloadIfNeeded(check.data)
+            : check.data;
+          const next = mergePersistedPayload(payload);
           if (!next) {
             showToast("Invalid backup file");
             return;

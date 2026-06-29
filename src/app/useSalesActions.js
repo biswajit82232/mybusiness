@@ -19,6 +19,7 @@ import {
   normalizePaymentEntries,
   num,
   roundMoney2,
+  toPaise,
   saleDocPrefix,
   saleToEntry,
   sumSaleLineItems,
@@ -160,8 +161,8 @@ export function useSalesActions({
           id: String(li?.id || makeId()),
           item: String(li?.item || "").trim(),
           qty: num(li?.qty),
-          salePrice: num(li?.salePrice),
-          costPrice: num(li?.costPrice),
+          salePrice: toPaise(num(li?.salePrice)),
+          costPrice: toPaise(num(li?.costPrice)),
           hsn: String(li?.hsn || "").trim(),
           gstRate: num(li?.gstRate),
           chassisNo: String(li?.chassisNo || "").trim(),
@@ -183,8 +184,8 @@ export function useSalesActions({
       }
 
       const lineTotals = sumSaleLineItems(lineItemsCoerced);
-      const discount = roundMoney2(Math.max(0, num(saleEntry.discount)));
-      const additionalCharges = roundMoney2(Math.max(0, num(saleEntry.additionalCharges)));
+      const discount = roundMoney2(Math.max(0, toPaise(num(saleEntry.discount))));
+      const additionalCharges = roundMoney2(Math.max(0, toPaise(num(saleEntry.additionalCharges))));
       const totalSale = roundMoney2(
         Math.max(0, lineTotals.totalSale - discount + additionalCharges),
       );

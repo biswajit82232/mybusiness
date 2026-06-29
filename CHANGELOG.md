@@ -2,12 +2,28 @@
 
 All notable changes are tracked here. The Settings screen shows **Version** from `package.json`.
 
+## [8.5.0] — 2026-06-30
+
+### Improvements
+- **Money** — All financial amounts stored and calculated as integer paise (no float GST/P&amp;L errors); `formatINR` display throughout.
+- **Data** — Schema v2 with automatic v1→v2 migration on load (rupee floats → paise integers).
+- **Design** — `src/tokens.js` design token system; CSS variables injected at app root.
+- **Backup** — Import safety checks before restore (`checkImportSafety`).
+
+### Fixes
+- **GST** — Invoice GST model uses integer paise arithmetic (`calcGST`, `splitGST`, `calcTaxableFromInclusive`).
+
+App version **8.5.0**; service worker cache **v133**.
+
+---
+
 ## [8.4.2] — 2026-06-29
 
 ### Fixes
 - **Inventory** — Credit/debit notes no longer trigger automatic stock-out or stock sufficiency checks when cloned from an invoice.
 
 App version **8.4.2**; service worker cache **v132**.
+
 
 ---
 

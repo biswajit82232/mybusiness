@@ -42,48 +42,48 @@ import {
 } from "@/domain/cashflow.js";
 
 describe("roundMoney2", () => {
-  it("rounds to 2 decimal places", () => {
-    expect(roundMoney2(10.666666)).toBe(10.67);
-    expect(roundMoney2("99.994")).toBe(99.99);
+  it("rounds to integer paise", () => {
+    expect(roundMoney2(1067)).toBe(1067);
+    expect(roundMoney2(1066.6)).toBe(1067);
     expect(roundMoney2(0)).toBe(0);
   });
 });
 
 describe("splitInclusiveGst / buildInvoiceGstModel", () => {
   it("splits 18% inclusive GST correctly", () => {
-    const split = splitInclusiveGst(1180, 18);
-    expect(split.taxable).toBe(1000);
-    expect(split.tax).toBe(180);
-    expect(split.total).toBe(1180);
+    const split = splitInclusiveGst(118000, 18);
+    expect(split.taxable).toBe(100000);
+    expect(split.tax).toBe(18000);
+    expect(split.total).toBe(118000);
   });
 
   it("builds invoice GST totals for a single line", () => {
     const model = buildInvoiceGstModel({
-      lineItems: [{ item: "Battery", qty: 1, salePrice: 1180, gstRate: 18, hsn: "8507" }],
+      lineItems: [{ item: "Battery", qty: 1, salePrice: 118000, gstRate: 18, hsn: "8507" }],
       settings: { defaultProductGstRate: 18, defaultProductHsn: "8507" },
       businessState: "West Bengal",
       customerState: "West Bengal",
     });
-    expect(model.totalTax).toBe(180);
-    expect(model.grandTotal).toBe(1180);
+    expect(model.totalTax).toBe(18000);
+    expect(model.grandTotal).toBe(118000);
   });
 
   it("adds additional charges on top of GST grand total", () => {
     const model = buildInvoiceGstModel({
-      lineItems: [{ item: "Battery", qty: 1, salePrice: 1180, gstRate: 18, hsn: "8507" }],
-      additionalCharges: 200,
+      lineItems: [{ item: "Battery", qty: 1, salePrice: 118000, gstRate: 18, hsn: "8507" }],
+      additionalCharges: 20000,
       settings: { defaultProductGstRate: 18, defaultProductHsn: "8507" },
       businessState: "West Bengal",
       customerState: "West Bengal",
     });
-    expect(model.grandTotal).toBe(1380);
-    expect(model.additionalCharges).toBe(200);
+    expect(model.grandTotal).toBe(138000);
+    expect(model.additionalCharges).toBe(20000);
   });
 
   it("collapses invoice bundle groups for print with same tax as separate lines", () => {
     const lines = [
-      { id: "a", item: "Scooter", qty: 1, salePrice: 118000, gstRate: 5, hsn: "8711", invoiceGroupId: "g1" },
-      { id: "b", item: "Battery", qty: 1, salePrice: 5900, gstRate: 5, hsn: "8711", invoiceGroupId: "g1" },
+      { id: "a", item: "Scooter", qty: 1, salePrice: 11800000, gstRate: 5, hsn: "8711", invoiceGroupId: "g1" },
+      { id: "b", item: "Battery", qty: 1, salePrice: 590000, gstRate: 5, hsn: "8711", invoiceGroupId: "g1" },
     ];
     const separate = buildInvoiceGstModel({
       lineItems: lines,
@@ -94,7 +94,7 @@ describe("splitInclusiveGst / buildInvoiceGstModel", () => {
     const collapsed = collapseInvoiceLinesForPrint(lines);
     expect(collapsed).toHaveLength(1);
     expect(collapsed[0].qty).toBe(1);
-    expect(collapsed[0].salePrice).toBe(123900);
+    expect(collapsed[0].salePrice).toBe(12390000);
     const merged = buildInvoiceGstModel({
       lineItems: collapsed,
       settings: { defaultProductGstRate: 5, defaultProductHsn: "8711" },
@@ -112,32 +112,32 @@ describe("bankingActivityForMonth", () => {
       {
         id: "s1",
         date: "2026-06-10",
-        paymentEntries: [{ id: "p1", date: "2026-06-15", amount: 5000, bankAccountId: "b1" }],
+        paymentEntries: [{ id: "p1", date: "2026-06-15", amount: 500000, bankAccountId: "b1" }],
       },
     ];
     const { cashIn } = bankingActivityForMonth([], sales, [], [], "2026-06");
-    expect(cashIn).toBe(5000);
+    expect(cashIn).toBe(500000);
   });
 });
 
 describe("fixed asset depreciation", () => {
   it("straight-line reduces net book over time", () => {
     const asset = {
-      amount: 100000,
+      amount: 10000000,
       purchaseDate: "2024-01-01",
       depreciationRatePct: 10,
       accumulatedDepreciation: 0,
     };
     const early = computeFixedAssetDepreciation(asset, "2024-07-01");
     const later = computeFixedAssetDepreciation(asset, "2026-01-01");
-    expect(early.netBook).toBeLessThan(100000);
+    expect(early.netBook).toBeLessThan(10000000);
     expect(later.netBook).toBeLessThan(early.netBook);
     expect(later.accumulated).toBeGreaterThan(early.accumulated);
   });
 
   it("sums net book for register", () => {
-    const accounts = [{ amount: 50000, purchaseDate: "2025-01-01", depreciationRatePct: 20 }];
-    expect(sumFixedAssetsNetBook(accounts, "2026-01-01")).toBeLessThan(50000);
+    const accounts = [{ amount: 5000000, purchaseDate: "2025-01-01", depreciationRatePct: 20 }];
+    expect(sumFixedAssetsNetBook(accounts, "2026-01-01")).toBeLessThan(5000000);
   });
 });
 
@@ -145,11 +145,11 @@ describe("receivables as-of", () => {
   it("uses payments on or before date", () => {
     const sale = {
       date: "2026-06-01",
-      totalSale: 10000,
-      paymentEntries: [{ id: "p1", date: "2026-06-15", amount: 4000, bankAccountId: "b1" }],
+      totalSale: 1000000,
+      paymentEntries: [{ id: "p1", date: "2026-06-15", amount: 400000, bankAccountId: "b1" }],
     };
-    expect(saleOutstandingAsOf(sale, "2026-06-10")).toBe(10000);
-    expect(saleOutstandingAsOf(sale, "2026-06-20")).toBe(6000);
+    expect(saleOutstandingAsOf(sale, "2026-06-10")).toBe(1000000);
+    expect(saleOutstandingAsOf(sale, "2026-06-20")).toBe(600000);
   });
 });
 
@@ -181,11 +181,11 @@ describe("GST liability", () => {
     const sales = [
       {
         docType: "taxInvoice",
-        lineItems: [{ item: "Scooter", qty: 1, salePrice: 118000, gstRate: 18 }],
+        lineItems: [{ item: "Scooter", qty: 1, salePrice: 11800000, gstRate: 18 }],
       },
     ];
     const out = computeOutputGstCollected(sales, { gstEnabled: true, defaultProductGstRate: 18 });
-    expect(out).toBe(18000);
+    expect(out).toBe(1800000);
   });
 
   it("net liability is non-negative", () => {

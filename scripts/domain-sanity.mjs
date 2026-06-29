@@ -374,7 +374,7 @@ ok("normSalesList: legacy received + default bank synthesizes one payment line",
 });
 
 ok("sumAccounts sums amount fields", () => {
-  assert.equal(roundMoney2(sumAccounts([{ amount: 1.1 }, { amount: 2.2 }])), 3.3);
+  assert.equal(roundMoney2(sumAccounts([{ amount: 110 }, { amount: 220 }])), 330);
 });
 
 ok("bank account exclude flags filter balance totals", () => {
@@ -596,24 +596,25 @@ ok("sumPurchasePaymentsOnDay", () => {
   assert.equal(sumPurchasePaymentsOnDay(purchases, "2026-04-06"), 7);
 });
 
-ok("roundMoney2 handles float noise", () => {
-  assert.equal(roundMoney2(0.1 + 0.2), 0.3);
+ok("roundMoney2 handles integer paise", () => {
+  assert.equal(roundMoney2(1067), 1067);
+  assert.equal(roundMoney2(10 + 20), 30);
 });
 
 ok("moneyInputStr: clean form values", () => {
   assert.equal(moneyInputStr(""), "");
   assert.equal(moneyInputStr(null), "");
-  assert.equal(moneyInputStr(10.666666666666666), "10.67");
+  assert.equal(moneyInputStr(1067), "10.67");
   assert.equal(moneyInputStr(0), "0");
 });
 
-ok("computeInvRowsAggregated: weighted avg cost rounds to 2 dp", () => {
+ok("computeInvRowsAggregated: weighted avg cost in paise", () => {
   const rows = computeInvRowsAggregated([
-    { item: "Mix", type: "in", qty: 1, costPerUnit: 10 },
-    { item: "Mix", type: "in", qty: 2, costPerUnit: 11 },
+    { item: "Mix", type: "in", qty: 1, costPerUnit: 1000 },
+    { item: "Mix", type: "in", qty: 2, costPerUnit: 1100 },
   ]);
   assert.equal(rows.length, 1);
-  assert.equal(rows[0].avgCost, 10.67);
+  assert.equal(rows[0].avgCost, 1067);
   assert.equal(rows[0].stockValue, roundMoney2(rows[0].currentQty * rows[0].avgCost));
 });
 
@@ -1064,7 +1065,7 @@ ok("isIncomeTaxExpense", () => {
 });
 
 ok("money: INR formatting", () => {
-  assert.match(money(1000), /1[,.]?000|₹/);
+  assert.match(money(100000), /1[,.]?000|₹/);
 });
 
 ok("sumExpenseCashOutOnDay / sumStockInCashOutOnDay / sumSalePaymentsOnDay", () => {
@@ -1194,7 +1195,7 @@ ok("normBalance: empty snapshot yields default bank accounts", () => {
 });
 
 ok("moneyFull: two decimal places", () => {
-  assert.match(moneyFull(12.5), /\.(50|5)/);
+  assert.match(moneyFull(1250), /\.50/);
 });
 
 ok("getOtherIncomeCategoriesList", () => {
@@ -1261,13 +1262,13 @@ ok("mergePersistedPayload: legacy loans without partners stay intact", () => {
   assert.equal(m.loansGiven.length, 2);
   const open = m.loansGiven.find((l) => l.id === "lg-old-1");
   assert.equal(open.borrowerName, "Ravi");
-  assert.equal(open.principal, 50000);
-  assert.equal(open.principalOutstanding, 45000);
+  assert.equal(open.principal, 5000000);
+  assert.equal(open.principalOutstanding, 4500000);
   assert.equal(open.interestRateMonthlyPct, 2);
   assert.deepEqual(open.partners, []);
   assert.equal(open.partnersInterestBasis, "principalMonthly");
   assert.equal(open.repaymentEntries.length, 1);
-  assert.equal(open.repaymentEntries[0].amount, 1000);
+  assert.equal(open.repaymentEntries[0].amount, 100000);
   const closed = m.loansGiven.find((l) => l.id === "lg-old-2");
   assert.equal(closed.closed, true);
   assert.equal(closed.principalOutstanding, 0);
@@ -1277,41 +1278,41 @@ ok("mergePersistedPayload: legacy loans without partners stay intact", () => {
 ok("normLoanGivenPartners: legacy shareKind percent → amount given", () => {
   const partners = normLoanGivenPartners(
     [{ id: "p1", name: "A", shareKind: "percent", sharePercent: 50 }],
-    100000,
+    10000000,
   );
   assert.equal(partners.length, 1);
-  assert.equal(partners[0].amountGiven, 50000);
+  assert.equal(partners[0].amountGiven, 5000000);
 });
 
 ok("inferLoanGivenPartnersInterestBasis: legacy pool split vs monthly rates", () => {
   const pool = normLoanGivenPartners(
     [
-      { id: "a", name: "A", amountGiven: 40000, interestSharePct: 60 },
-      { id: "b", name: "B", amountGiven: 25000, interestSharePct: 40 },
+      { id: "a", name: "A", amountGiven: 4000000, interestSharePct: 60 },
+      { id: "b", name: "B", amountGiven: 2500000, interestSharePct: 40 },
     ],
-    100000,
+    10000000,
   );
   assert.equal(inferLoanGivenPartnersInterestBasis(pool), "legacyPool");
   const monthly = normLoanGivenPartners(
     [
-      { id: "a", name: "Sumon", amountGiven: 100000, interestSharePct: 2 },
+      { id: "a", name: "Sumon", amountGiven: 10000000, interestSharePct: 2 },
       { id: "b", name: "Baba", amountGiven: 0, interestSharePct: 6 },
     ],
-    100000,
+    10000000,
   );
   assert.equal(inferLoanGivenPartnersInterestBasis(monthly), "principalMonthly");
 });
 
 ok("normLoansGivenList + balance sheet book value", () => {
   const [a, b] = normLoansGivenList([
-    { id: "1", borrowerName: "Ada", principal: 10000, principalRepaid: 2500, interestOutstanding: 100 },
-    { id: "2", borrowerName: "Bob", principal: 5000, closed: true },
+    { id: "1", borrowerName: "Ada", principal: 1000000, principalRepaid: 250000, interestOutstanding: 10000 },
+    { id: "2", borrowerName: "Bob", principal: 500000, closed: true },
   ]);
-  assert.equal(a.principalOutstanding, 7500);
+  assert.equal(a.principalOutstanding, 750000);
   assert.equal(a.trackOnBalanceSheet, true);
-  assert.equal(loanGivenBookValue(a), 7500);
+  assert.equal(loanGivenBookValue(a), 750000);
   assert.equal(loanGivenBookValue(b), 0);
-  assert.equal(sumLoansGivenBookValue([a, b]), 7500);
+  assert.equal(sumLoansGivenBookValue([a, b]), 750000);
 });
 
 ok("loanGiven detail helpers: days, interest estimate, due offset", () => {
@@ -1319,15 +1320,15 @@ ok("loanGiven detail helpers: days, interest estimate, due offset", () => {
   assert.equal(daysBetweenDateStrings("2026-01-01", "2026-01-01"), 0);
   const rowMonthly = {
     dateGiven: "2026-01-01",
-    principal: 10000,
+    principal: 1000000,
     principalRepaid: 0,
-    principalOutstanding: 10000,
+    principalOutstanding: 1000000,
     interestRateMonthlyPct: 1,
     closed: false,
   };
   assert.equal(loanGivenDaysOnBook(rowMonthly, "2026-01-11"), 10);
   const est = loanGivenEstimatedSimpleInterest(rowMonthly, "2026-01-11");
-  assert.ok(est > 33 && est < 33.34);
+  assert.ok(est > 3330 && est < 3340);
   assert.equal(loanGivenMonthlyRatePct({ interestRateMonthlyPct: 7 }), 7);
   assert.equal(loanGivenMonthlyRatePct({ interestRateAnnualPct: 12 }), 12);
   assert.equal(loanGivenDueDaysRemaining({ dueDate: "2026-01-15" }, "2026-01-10"), 5);
@@ -1342,16 +1343,16 @@ ok("loanGiven detail helpers: days, interest estimate, due offset", () => {
 ok("applyLoanGivenTypedPayment: interest vs principal", () => {
   const loan = {
     id: "lg1",
-    principal: 10000,
+    principal: 1000000,
     principalRepaid: 0,
-    interestOutstanding: 500,
+    interestOutstanding: 50000,
     repaymentEntries: [],
   };
-  const afterInt = applyLoanGivenTypedPayment(loan, { amount: 200, date: "2026-05-27", kind: "interest" });
-  assert.equal(afterInt.interestOutstanding, 300);
+  const afterInt = applyLoanGivenTypedPayment(loan, { amount: 20000, date: "2026-05-27", kind: "interest" });
+  assert.equal(afterInt.interestOutstanding, 30000);
   assert.equal(afterInt.principalRepaid, 0);
-  const afterPrin = applyLoanGivenTypedPayment(afterInt, { amount: 100, date: "2026-05-28", kind: "principal" });
-  assert.equal(afterPrin.principalRepaid, 100);
+  const afterPrin = applyLoanGivenTypedPayment(afterInt, { amount: 10000, date: "2026-05-28", kind: "principal" });
+  assert.equal(afterPrin.principalRepaid, 10000);
   assert.equal(afterPrin.closed, false);
 });
 
@@ -1937,7 +1938,7 @@ ok("isInterStateSale: explicit override when customer state blank", () => {
 
 ok("buildInvoiceGstModel: interStateOverride applies IGST when customer state missing", () => {
   const model = buildInvoiceGstModel({
-    lineItems: [{ item: "Widget", qty: 1, salePrice: 1180, gstRate: 18 }],
+    lineItems: [{ item: "Widget", qty: 1, salePrice: 118000, gstRate: 18 }],
     discount: 0,
     businessState: "Karnataka",
     customerState: "",
@@ -1964,11 +1965,11 @@ ok("effectiveLineGstRate: explicit 0% is zero, not default", () => {
 
 ok("buildInvoiceGstModel: explicit 0% line has no tax", () => {
   const model = buildInvoiceGstModel({
-    lineItems: [{ item: "Exempt", qty: 1, salePrice: 1000, gstRate: 0 }],
+    lineItems: [{ item: "Exempt", qty: 1, salePrice: 100000, gstRate: 0 }],
     settings: { defaultProductGstRate: 18 },
   });
   assert.equal(model.totalTax, 0);
-  assert.equal(model.grandTotal, 1000);
+  assert.equal(model.grandTotal, 100000);
 });
 
 ok("paymentsPeriodTotals: skips advance-applied sale rows", () => {
@@ -1979,16 +1980,16 @@ ok("paymentsPeriodTotals: skips advance-applied sale rows", () => {
         customerName: "A",
         invoiceNo: "INV-1",
         paymentEntries: [
-          { id: "p1", date: "2026-01-01", amount: 5000, bankAccountId: "b1", sourceAdvanceId: "adv1" },
+          { id: "p1", date: "2026-01-01", amount: 500000, bankAccountId: "b1", sourceAdvanceId: "adv1" },
         ],
       },
     ],
     customerAdvancePayments: [
-      { id: "adv1", date: "2026-01-01", amount: 5000, bankAccountId: "b1", customerName: "A", receiptNo: "ADV-1" },
+      { id: "adv1", date: "2026-01-01", amount: 500000, bankAccountId: "b1", customerName: "A", receiptNo: "ADV-1" },
     ],
   });
   const totals = paymentsPeriodTotals(rows);
-  assert.equal(totals.cashIn, 5000);
+  assert.equal(totals.cashIn, 500000);
   assert.equal(totals.count, 1);
 });
 
@@ -2000,10 +2001,10 @@ ok("computeBalanceSheetSummary: customer advance liability on unapplied balance"
     balance: { bankAccounts: [], bankTransfers: [] },
     settings: {},
     customerAdvancePayments: [
-      { id: "adv1", date: "2026-01-01", amount: 3000, bankAccountId: "b1", customerName: "A", receiptNo: "ADV-1" },
+      { id: "adv1", date: "2026-01-01", amount: 300000, bankAccountId: "b1", customerName: "A", receiptNo: "ADV-1" },
     ],
   });
-  assert.equal(bs.customerAdvanceLiability, 3000);
+  assert.equal(bs.customerAdvanceLiability, 300000);
 });
 
 ok("sumSalePaymentsInMonth: skips advance-applied payment lines", () => {
@@ -2012,19 +2013,19 @@ ok("sumSalePaymentsInMonth: skips advance-applied payment lines", () => {
       id: "x",
       date: "2026-04-01",
       paymentEntries: [
-        { id: "p1", date: "2026-04-15", amount: 40, bankAccountId: "b" },
-        { id: "p2", date: "2026-04-20", amount: 60, bankAccountId: "b", sourceAdvanceId: "adv1" },
+        { id: "p1", date: "2026-04-15", amount: 4000, bankAccountId: "b" },
+        { id: "p2", date: "2026-04-20", amount: 6000, bankAccountId: "b", sourceAdvanceId: "adv1" },
       ],
     },
   ];
-  assert.equal(sumSalePaymentsInMonth(sales, "2026-04"), 40);
+  assert.equal(sumSalePaymentsInMonth(sales, "2026-04"), 4000);
 });
 
 ok("sumCustomerAdvanceReceiptsInMonth: advance receipt by date", () => {
   const advances = [
-    { id: "adv1", date: "2026-04-05", amount: 500, bankAccountId: "b1", customerName: "A", receiptNo: "ADV-1" },
+    { id: "adv1", date: "2026-04-05", amount: 50000, bankAccountId: "b1", customerName: "A", receiptNo: "ADV-1" },
   ];
-  assert.equal(sumCustomerAdvanceReceiptsInMonth(advances, "2026-04"), 500);
+  assert.equal(sumCustomerAdvanceReceiptsInMonth(advances, "2026-04"), 50000);
 });
 
 ok("computeCashflowBreakdownForMonth: advance in operating in, not on apply", () => {
@@ -2032,12 +2033,12 @@ ok("computeCashflowBreakdownForMonth: advance in operating in, not on apply", ()
     {
       id: "s1",
       paymentEntries: [
-        { id: "p1", date: "2026-05-10", amount: 500, bankAccountId: "b1", sourceAdvanceId: "adv1" },
+        { id: "p1", date: "2026-05-10", amount: 50000, bankAccountId: "b1", sourceAdvanceId: "adv1" },
       ],
     },
   ];
   const advances = [
-    { id: "adv1", date: "2026-04-05", amount: 500, bankAccountId: "b1", customerName: "A", receiptNo: "ADV-1" },
+    { id: "adv1", date: "2026-04-05", amount: 50000, bankAccountId: "b1", customerName: "A", receiptNo: "ADV-1" },
   ];
   const apr = computeCashflowBreakdownForMonth({
     sales,
@@ -2061,29 +2062,29 @@ ok("computeCashflowBreakdownForMonth: advance in operating in, not on apply", ()
     customerAdvancePayments: advances,
     monthKey: "2026-05",
   });
-  assert.equal(apr.operatingIn, 500);
+  assert.equal(apr.operatingIn, 50000);
   assert.equal(may.operatingIn, 0);
 });
 
 ok("amountInWordsInr: includes paise", () => {
-  assert.equal(amountInWordsInr(1234.56), "ONE THOUSAND TWO HUNDRED THIRTY FOUR RUPEES AND FIFTY SIX PAISE ONLY");
-  assert.equal(amountInWordsInr(0.75), "SEVENTY FIVE PAISE ONLY");
+  assert.equal(amountInWordsInr(123456), "ONE THOUSAND TWO HUNDRED THIRTY FOUR RUPEES AND FIFTY SIX PAISE ONLY");
+  assert.equal(amountInWordsInr(75), "SEVENTY FIVE PAISE ONLY");
 });
 
 ok("buildInvoiceGstModel: reverse charge excludes tax from grand total", () => {
   const model = buildInvoiceGstModel({
-    lineItems: [{ item: "Svc", qty: 1, salePrice: 1180, gstRate: 18 }],
+    lineItems: [{ item: "Svc", qty: 1, salePrice: 118000, gstRate: 18 }],
     reverseCharge: true,
     settings: { defaultProductGstRate: 18 },
   });
   assert.ok(model.totalTax > 0);
-  assert.equal(model.grandTotal, 1000);
+  assert.equal(model.grandTotal, 100000);
   assert.equal(model.reverseCharge, true);
 });
 
 ok("saleDocuments: credit note reduces signed sale amount", () => {
   assert.equal(saleRevenueSign("creditNote"), -1);
-  assert.equal(signedSaleAmount({ docType: "creditNote", totalSale: 1000 }), -1000);
+  assert.equal(signedSaleAmount({ docType: "creditNote", totalSale: 100000 }), -100000);
   assert.equal(normalizeDocType("credit_note"), "creditNote");
   assert.equal(saleDocPrefix({ creditNotePrefix: "CN" }, "creditNote"), "CN");
   assert.equal(saleDocUsesAutoStockOut("invoice"), true);
@@ -2103,10 +2104,10 @@ ok("gstr1: aggregates B2B row", () => {
         customerName: "Acme",
         customerGstin: "22AAAAA0000A1Z5",
         customerState: "West Bengal",
-        lineItems: [{ item: "X", qty: 1, salePrice: 1180, gstRate: 18, hsn: "8711" }],
-        totalSale: 1180,
+        lineItems: [{ item: "X", qty: 1, salePrice: 118000, gstRate: 18, hsn: "8711" }],
+        totalSale: 118000,
         received: 0,
-        outstanding: 1180,
+        outstanding: 118000,
       },
     ],
     { gstEnabled: true, businessState: "West Bengal", businessGstin: "19AAAAA0000A1Z5" },
@@ -2125,17 +2126,17 @@ ok("partyStatement: customer debit and receipt", () => {
         date: "2026-04-01",
         invoiceNo: "MB-1",
         docType: "invoice",
-        totalSale: 1000,
-        received: 400,
-        outstanding: 600,
-        paymentEntries: [{ id: "p1", date: "2026-04-05", amount: 400, bankAccountId: "b1" }],
+        totalSale: 100000,
+        received: 40000,
+        outstanding: 60000,
+        paymentEntries: [{ id: "p1", date: "2026-04-05", amount: 40000, bankAccountId: "b1" }],
       },
     ],
     "Ravi",
     { range: "all" },
   );
   assert.equal(stmt.rows.length, 2);
-  assert.equal(stmt.closingBalance, 600);
+  assert.equal(stmt.closingBalance, 60000);
 });
 
 ok("reportPeriod: custom from-to filter", () => {
@@ -2154,8 +2155,8 @@ ok("businessReports: sales report totals", () => {
         docType: "invoice",
         customerName: "A",
         invoiceNo: "MB-1",
-        totalSale: 500,
-        received: 500,
+        totalSale: 50000,
+        received: 50000,
         outstanding: 0,
       },
     ],
@@ -2164,12 +2165,12 @@ ok("businessReports: sales report totals", () => {
     2026,
   );
   assert.equal(r.count, 1);
-  assert.equal(r.totals.amount, 500);
+  assert.equal(r.totals.amount, 50000);
 });
 
 ok("gstr2b: purchase row count", () => {
   const s = buildGstr2bSummary(
-    [{ id: "p1", date: "2026-04-02", supplierName: "S", totalAmount: 1180, lines: [{ item: "X", qty: 1, costPerUnit: 1180 }] }],
+    [{ id: "p1", date: "2026-04-02", supplierName: "S", totalAmount: 118000, lines: [{ item: "X", qty: 1, costPerUnit: 118000 }] }],
     { gstEnabled: true, defaultProductGstRate: 18 },
     { mode: "month", reportMonth: "2026-04", fsm: 4, fyYear: 2026 },
   );
@@ -2179,9 +2180,9 @@ ok("gstr2b: purchase row count", () => {
   ok("businessReports: sales party report", () => {
     const r = buildSalesPartyReport(
       [
-        { id: "s1", date: "2026-04-01", docType: "invoice", customerName: "A", invoiceNo: "1", totalSale: 100, received: 100, outstanding: 0 },
-        { id: "s2", date: "2026-04-02", docType: "invoice", customerName: "A", invoiceNo: "2", totalSale: 200, received: 50, outstanding: 150 },
-        { id: "s3", date: "2026-04-03", docType: "invoice", customerName: "B", invoiceNo: "3", totalSale: 300, received: 300, outstanding: 0 },
+        { id: "s1", date: "2026-04-01", docType: "invoice", customerName: "A", invoiceNo: "1", totalSale: 10000, received: 10000, outstanding: 0 },
+        { id: "s2", date: "2026-04-02", docType: "invoice", customerName: "A", invoiceNo: "2", totalSale: 20000, received: 5000, outstanding: 15000 },
+        { id: "s3", date: "2026-04-03", docType: "invoice", customerName: "B", invoiceNo: "3", totalSale: 30000, received: 30000, outstanding: 0 },
       ],
       { mode: "month", reportMonth: "2026-04", fsm: 4, fyYear: 2026 },
       4,
@@ -2189,7 +2190,7 @@ ok("gstr2b: purchase row count", () => {
     );
     assert.equal(r.view, "party");
     assert.equal(r.count, 2);
-    assert.equal(r.totals.amount, 600);
+    assert.equal(r.totals.amount, 60000);
   });
 
   ok("gstr3b: net payable", () => {
@@ -2203,10 +2204,10 @@ ok("gstr2b: purchase row count", () => {
           customerName: "B2B",
           customerGstin: "19AAAAA0000A1Z5",
           invoiceNo: "MB-1",
-          lineItems: [{ item: "G", qty: 1, salePrice: 1180, costPrice: 800, gstRate: 18, hsn: "8714" }],
-          totalSale: 1180,
-          totalCost: 800,
-          received: 1180,
+          lineItems: [{ item: "G", qty: 1, salePrice: 118000, costPrice: 80000, gstRate: 18, hsn: "8714" }],
+          totalSale: 118000,
+          totalCost: 80000,
+          received: 118000,
           outstanding: 0,
         },
       ],

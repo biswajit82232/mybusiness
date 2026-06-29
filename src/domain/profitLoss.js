@@ -4,6 +4,7 @@
 import {
   isIncomeTaxExpense,
   num,
+  roundMoney2,
   recognizedCogsForSales,
   recognizedCogsForPaymentsAll,
   recognizedCogsForPaymentsInFy,
@@ -84,7 +85,7 @@ export function computePlSnapshot({
         revenue += num(s.received);
       }
     }
-    revenue = Math.round(revenue * 100) / 100;
+    revenue = roundMoney2(revenue);
     for (const e of expenses || []) {
       if (isDateInReportPeriod(e.date, p, fsm, fyYear)) expenseTotal += num(e.amount);
     }

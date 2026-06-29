@@ -15,6 +15,11 @@ import {
   normalizeItemKey,
   num,
   roundMoney2,
+  toPaise,
+  addMoney,
+  subtractMoney,
+  multiplyMoney,
+  sumMoney,
   saleDocPrefix,
 } from "@/domain/index.js";
 import {
@@ -262,24 +267,24 @@ export function NewSaleScreen({
 
   // Totals — sum across all line items, then apply discount and additional charges.
   const subtotal = useMemo(
-    () => roundMoney2(lineItems.reduce((s, li) => s + num(li.qty) * num(li.salePrice), 0)),
-    [lineItems]
+    () => sumMoney(lineItems.map((li) => multiplyMoney(toPaise(num(li.salePrice)), num(li.qty)))),
+    [lineItems],
   );
-  const discountNum = num(entry.discount);
-  const additionalChargesNum = num(entry.additionalCharges);
-  const totalSale = roundMoney2(Math.max(0, subtotal - discountNum + additionalChargesNum));
+  const discountNum = toPaise(entry.discount);
+  const additionalChargesNum = toPaise(entry.additionalCharges);
+  const totalSale = roundMoney2(Math.max(0, subtractMoney(subtotal, discountNum) + additionalChargesNum));
   const totalCost = useMemo(
-    () => roundMoney2(lineItems.reduce((s, li) => s + num(li.qty) * num(li.costPrice), 0)),
-    [lineItems]
+    () => sumMoney(lineItems.map((li) => multiplyMoney(toPaise(num(li.costPrice)), num(li.qty)))),
+    [lineItems],
   );
-  const profit = roundMoney2(totalSale - totalCost);
+  const profit = roundMoney2(subtractMoney(totalSale, totalCost));
   const banks = bankAccounts.filter((b) => b && b.id);
   const paymentLines = useMemo(() => hydrateSalePaymentLines(entry, banks), [entry, banks]);
   const setPaymentLines = useCallback(
     (nextLines) => {
       const arr = nextLines.length > 0 ? nextLines : [defSalePaymentLine(getDefaultBankAccountId(banks))];
       upd("paymentLines", arr);
-      const sum = roundMoney2(arr.reduce((s, l) => s + num(l.amount), 0));
+      const sum = roundMoney2(sumMoney(arr.map((l) => toPaise(num(l.amount)))));
       upd("receivedAmount", sum > 0 ? String(sum) : "");
     },
     [upd, banks],
@@ -304,7 +309,7 @@ export function NewSaleScreen({
     [paymentLines, setPaymentLines],
   );
   const recvNum = useMemo(
-    () => roundMoney2(paymentLines.reduce((s, l) => s + num(l.amount), 0)),
+    () => roundMoney2(sumMoney(paymentLines.map((l) => toPaise(num(l.amount))))),
     [paymentLines],
   );
   const outstanding = Math.max(0, totalSale - recvNum);

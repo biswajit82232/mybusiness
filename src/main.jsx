@@ -5,6 +5,12 @@ import App from "./App.jsx";
 import { viteEnv } from "./config/env.js";
 import ErrorBoundary from "./components/ErrorBoundary.jsx";
 import { initTelemetry } from "./data/telemetry/telemetry.js";
+import { CSS_VARIABLES } from "./tokens.js";
+
+// Inject CSS custom properties into document root
+const tokenStyle = document.createElement("style");
+tokenStyle.textContent = CSS_VARIABLES;
+document.head.appendChild(tokenStyle);
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
