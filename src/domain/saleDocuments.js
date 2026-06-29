@@ -51,6 +51,12 @@ export function saleRevenueSign(docType) {
   return normalizeDocType(docType) === "creditNote" ? -1 : 1;
 }
 
+/** Only sale documents should consume inventory via the auto stock-out setting. */
+export function saleDocUsesAutoStockOut(docType) {
+  const d = normalizeDocType(docType);
+  return d === "invoice" || d === "billOfSupply";
+}
+
 export function signedSaleAmount(sale) {
   if (!sale || typeof sale !== "object") return 0;
   return roundMoney2(num(sale.totalSale) * saleRevenueSign(sale.docType));

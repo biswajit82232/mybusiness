@@ -29,6 +29,7 @@ import {
 import { isGstEnabled } from "@/domain/invoiceGst.js";
 import {
   normalizeDocType,
+  saleDocUsesAutoStockOut,
   saleDocNextNumberSettingKey,
 } from "@/domain/saleDocuments.js";
 
@@ -292,6 +293,7 @@ export function useSalesActions({
       /* ── stock helper ── */
       const checkStockBeforeSave = (inventoryEntries, linesToCheck) => {
         if (!state.settings?.autoStockOutOnSale) return true;
+        if (!saleDocUsesAutoStockOut(docType)) return true;
         const branches = normBranchesList(state.settings?.branches);
         const branchId = getDefaultBranchId(branches);
         const scoped = computeInvRowsForBranch(inventoryEntries, branchId, branches);
@@ -324,6 +326,7 @@ export function useSalesActions({
 
       const buildAutoStockOutEntries = (inventoryEntries, saleRecord, saleIdForEntries) => {
         if (!state.settings?.autoStockOutOnSale) return inventoryEntries;
+        if (!saleDocUsesAutoStockOut(saleRecord.docType)) return inventoryEntries;
         const branches = normBranchesList(state.settings?.branches);
         const branchId = getDefaultBranchId(branches);
         const scoped = computeInvRowsForBranch(inventoryEntries, branchId, branches);

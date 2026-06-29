@@ -17,7 +17,11 @@ import {
   roundMoney2,
   saleDocPrefix,
 } from "@/domain/index.js";
-import { normalizeDocType, saleDocNextNumberSettingKey } from "@/domain/saleDocuments.js";
+import {
+  normalizeDocType,
+  saleDocNextNumberSettingKey,
+  saleDocUsesAutoStockOut,
+} from "@/domain/saleDocuments.js";
 import { MenuSelect } from "@/shared/ui/inputs/MenuSelect.jsx";
 import { Field, OverlayScreen, PageHeader } from "@/shared/ui/layout/AppChrome.jsx";
 import { IcPlus } from "@/shared/ui/icons/AppIcons.jsx";
@@ -324,8 +328,9 @@ export function NewSaleScreen({
     []
   );
 
-  const showStockItemPick = autoStockOutOnSale && stockPickRows.length > 0;
   const currentDocType = normalizeDocType(entry.docType);
+  const showStockItemPick =
+    autoStockOutOnSale && saleDocUsesAutoStockOut(currentDocType) && stockPickRows.length > 0;
   const docSettings = useMemo(
     () => ({
       invoicePrefix,

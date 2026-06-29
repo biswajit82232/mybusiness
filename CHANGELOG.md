@@ -2,6 +2,15 @@
 
 All notable changes are tracked here. The Settings screen shows **Version** from `package.json`.
 
+## [8.4.2] — 2026-06-29
+
+### Fixes
+- **Inventory** — Credit/debit notes no longer trigger automatic stock-out or stock sufficiency checks when cloned from an invoice.
+
+App version **8.4.2**; service worker cache **v132**.
+
+---
+
 ## [8.4.1] — 2026-06-24
 
 ### Features

@@ -182,6 +182,7 @@ import { buildPaymentsLedger, paymentsPeriodTotals } from "../src/domain/payment
 import { normalizeInvoiceTemplate, INVOICE_TEMPLATE_MODERN } from "../src/domain/invoiceTemplates.js";
 import {
   normalizeDocType,
+  saleDocUsesAutoStockOut,
   signedSaleAmount,
   saleRevenueSign,
 } from "../src/domain/saleDocuments.js";
@@ -2085,6 +2086,10 @@ ok("saleDocuments: credit note reduces signed sale amount", () => {
   assert.equal(signedSaleAmount({ docType: "creditNote", totalSale: 1000 }), -1000);
   assert.equal(normalizeDocType("credit_note"), "creditNote");
   assert.equal(saleDocPrefix({ creditNotePrefix: "CN" }, "creditNote"), "CN");
+  assert.equal(saleDocUsesAutoStockOut("invoice"), true);
+  assert.equal(saleDocUsesAutoStockOut("billOfSupply"), true);
+  assert.equal(saleDocUsesAutoStockOut("creditNote"), false);
+  assert.equal(saleDocUsesAutoStockOut("debitNote"), false);
 });
 
 ok("gstr1: aggregates B2B row", () => {
