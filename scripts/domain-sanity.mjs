@@ -180,6 +180,18 @@ import { buildInvoiceGstModel, amountInWordsInr, effectiveLineGstRate, isInterSt
 import { computeCashflowBreakdownForMonth } from "../src/domain/cashflow.js";
 import { buildPaymentsLedger, paymentsPeriodTotals } from "../src/domain/payments.js";
 import { normalizeInvoiceTemplate, INVOICE_TEMPLATE_MODERN } from "../src/domain/invoiceTemplates.js";
+import {
+  normalizeDocType,
+  signedSaleAmount,
+  saleRevenueSign,
+} from "../src/domain/saleDocuments.js";
+import { saleDocPrefix } from "../src/domain/appModel.js";
+import { buildGstr1Summary } from "../src/domain/gstr1.js";
+import { buildCustomerStatement } from "../src/domain/partyStatement.js";
+import { isDateInReportPeriod, reportPeriodLabel } from "../src/domain/reportPeriod.js";
+import { buildSalesReport, buildSalesPartyReport } from "../src/domain/businessReports.js";
+import { buildGstr2bSummary } from "../src/domain/gstr2b.js";
+import { buildGstr3bSummary } from "../src/domain/gstr3b.js";
 
 function ok(name, fn) {
   try {
@@ -2063,6 +2075,139 @@ ok("buildInvoiceGstModel: reverse charge excludes tax from grand total", () => {
   assert.ok(model.totalTax > 0);
   assert.equal(model.grandTotal, 1000);
   assert.equal(model.reverseCharge, true);
+});
+
+ok("saleDocuments: credit note reduces signed sale amount", () => {
+  assert.equal(saleRevenueSign("creditNote"), -1);
+  assert.equal(signedSaleAmount({ docType: "creditNote", totalSale: 1000 }), -1000);
+  assert.equal(normalizeDocType("credit_note"), "creditNote");
+  assert.equal(saleDocPrefix({ creditNotePrefix: "CN" }, "creditNote"), "CN");
+});
+
+ok("gstr1: aggregates B2B row", () => {
+  const summary = buildGstr1Summary(
+    [
+      {
+        id: "s1",
+        docType: "invoice",
+        date: "2026-04-10",
+        invoiceNo: "MB-0001",
+        customerName: "Acme",
+        customerGstin: "22AAAAA0000A1Z5",
+        customerState: "West Bengal",
+        lineItems: [{ item: "X", qty: 1, salePrice: 1180, gstRate: 18, hsn: "8711" }],
+        totalSale: 1180,
+        received: 0,
+        outstanding: 1180,
+      },
+    ],
+    { gstEnabled: true, businessState: "West Bengal", businessGstin: "19AAAAA0000A1Z5" },
+    { range: "month", reportMonth: "2026-04" },
+  );
+  assert.equal(summary.b2b.length, 1);
+  assert.ok(summary.totals.taxableValue > 0);
+});
+
+ok("partyStatement: customer debit and receipt", () => {
+  const stmt = buildCustomerStatement(
+    [
+      {
+        id: "s1",
+        customerName: "Ravi",
+        date: "2026-04-01",
+        invoiceNo: "MB-1",
+        docType: "invoice",
+        totalSale: 1000,
+        received: 400,
+        outstanding: 600,
+        paymentEntries: [{ id: "p1", date: "2026-04-05", amount: 400, bankAccountId: "b1" }],
+      },
+    ],
+    "Ravi",
+    { range: "all" },
+  );
+  assert.equal(stmt.rows.length, 2);
+  assert.equal(stmt.closingBalance, 600);
+});
+
+ok("reportPeriod: custom from-to filter", () => {
+  const p = { mode: "custom", fromDate: "2026-04-01", toDate: "2026-04-30", fsm: 4, fyYear: 2026 };
+  assert.equal(isDateInReportPeriod("2026-04-15", p), true);
+  assert.equal(isDateInReportPeriod("2026-05-01", p), false);
+  assert.ok(reportPeriodLabel(p).includes("2026-04"));
+});
+
+ok("businessReports: sales report totals", () => {
+  const r = buildSalesReport(
+    [
+      {
+        id: "s1",
+        date: "2026-04-10",
+        docType: "invoice",
+        customerName: "A",
+        invoiceNo: "MB-1",
+        totalSale: 500,
+        received: 500,
+        outstanding: 0,
+      },
+    ],
+    { mode: "month", reportMonth: "2026-04", fromDate: "2026-04-01", toDate: "2026-04-30", fsm: 4, fyYear: 2026 },
+    4,
+    2026,
+  );
+  assert.equal(r.count, 1);
+  assert.equal(r.totals.amount, 500);
+});
+
+ok("gstr2b: purchase row count", () => {
+  const s = buildGstr2bSummary(
+    [{ id: "p1", date: "2026-04-02", supplierName: "S", totalAmount: 1180, lines: [{ item: "X", qty: 1, costPerUnit: 1180 }] }],
+    { gstEnabled: true, defaultProductGstRate: 18 },
+    { mode: "month", reportMonth: "2026-04", fsm: 4, fyYear: 2026 },
+  );
+  assert.equal(s.rowCount, 1);
+});
+
+  ok("businessReports: sales party report", () => {
+    const r = buildSalesPartyReport(
+      [
+        { id: "s1", date: "2026-04-01", docType: "invoice", customerName: "A", invoiceNo: "1", totalSale: 100, received: 100, outstanding: 0 },
+        { id: "s2", date: "2026-04-02", docType: "invoice", customerName: "A", invoiceNo: "2", totalSale: 200, received: 50, outstanding: 150 },
+        { id: "s3", date: "2026-04-03", docType: "invoice", customerName: "B", invoiceNo: "3", totalSale: 300, received: 300, outstanding: 0 },
+      ],
+      { mode: "month", reportMonth: "2026-04", fsm: 4, fyYear: 2026 },
+      4,
+      2026,
+    );
+    assert.equal(r.view, "party");
+    assert.equal(r.count, 2);
+    assert.equal(r.totals.amount, 600);
+  });
+
+  ok("gstr3b: net payable", () => {
+  const s = buildGstr3bSummary(
+    {
+      sales: [
+        {
+          id: "s1",
+          date: "2026-04-01",
+          docType: "invoice",
+          customerName: "B2B",
+          customerGstin: "19AAAAA0000A1Z5",
+          invoiceNo: "MB-1",
+          lineItems: [{ item: "G", qty: 1, salePrice: 1180, costPrice: 800, gstRate: 18, hsn: "8714" }],
+          totalSale: 1180,
+          totalCost: 800,
+          received: 1180,
+          outstanding: 0,
+        },
+      ],
+      purchases: [],
+    },
+    { gstEnabled: true, businessState: "West Bengal", businessGstin: "19AAAAA0000A1Z5" },
+    { range: "month", reportMonth: "2026-04" },
+  );
+  assert.ok(s.outward.taxTotal >= 0);
 });
 
 await runWithStableStringifyMemoAsync(async () => {

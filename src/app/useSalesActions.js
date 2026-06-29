@@ -5,6 +5,7 @@ import {
   bundleStockSufficient,
   computeInvRowsForBranch,
   defSale,
+  defSalePaymentLine,
   findBundleById,
   findInvRowByItemName,
   genInvoiceNo,
@@ -26,6 +27,10 @@ import {
   todayStr,
 } from "@/domain/index.js";
 import { isGstEnabled } from "@/domain/invoiceGst.js";
+import {
+  normalizeDocType,
+  saleDocNextNumberSettingKey,
+} from "@/domain/saleDocuments.js";
 
 /**
  * Save-sale handler (new + edit), including stock-out automation and EMI capture.
@@ -55,13 +60,10 @@ export function useSalesActions({
         const draft = normSaleDraft(state.settings?.saleDraft);
         if (draft?.entry) {
           const base = { ...defSale(), ...draft.entry };
-          const docType = base.docType === "billOfSupply" ? "billOfSupply" : "invoice";
+          const docType = normalizeDocType(base.docType);
           if (!String(base.invoiceNo || "").trim()) {
             const prefix = saleDocPrefix(state.settings, docType);
-            const nextNo =
-              docType === "billOfSupply"
-                ? state.settings?.billOfSupplyNextNumber
-                : state.settings?.invoiceNextNumber;
+            const nextNo = state.settings?.[saleDocNextNumberSettingKey(docType)];
             base.invoiceNo = genInvoiceNo(state.sales, prefix, nextNo);
           }
           if (!String(base.dueDate || "").trim()) {
@@ -82,12 +84,9 @@ export function useSalesActions({
         }));
       }
       const base = defSale();
-      const docType = base.docType === "billOfSupply" ? "billOfSupply" : "invoice";
+      const docType = normalizeDocType(base.docType);
       const prefix = saleDocPrefix(state.settings, docType);
-      const nextNo =
-        docType === "billOfSupply"
-          ? state.settings?.billOfSupplyNextNumber
-          : state.settings?.invoiceNextNumber;
+      const nextNo = state.settings?.[saleDocNextNumberSettingKey(docType)];
       setSaleEntry({
         ...base,
         docType,
@@ -212,16 +211,13 @@ export function useSalesActions({
         ? state.sales.find((s) => s && s.id === editingSaleId)
         : null;
 
-      const docType = saleEntry.docType === "billOfSupply" ? "billOfSupply" : "invoice";
+      const docType = normalizeDocType(saleEntry.docType);
       if (isGstEnabled(state.settings) && docType !== "billOfSupply" && !(saleEntry.customerState || "").trim()) {
         showToast("Customer state is required for GST tax invoices");
         return;
       }
       const docPrefix = saleDocPrefix(state.settings, docType);
-      const docNextSetting =
-        docType === "billOfSupply"
-          ? state.settings?.billOfSupplyNextNumber
-          : state.settings?.invoiceNextNumber;
+      const docNextSetting = state.settings?.[saleDocNextNumberSettingKey(docType)];
       const invoiceNo =
         (saleEntry.invoiceNo || "").trim() ||
         oldSale?.invoiceNo ||
@@ -229,11 +225,8 @@ export function useSalesActions({
       const usedSeq = invoiceSequenceForPrefix(invoiceNo, docPrefix);
       const advanceSettingsNext = (settingsObj) => {
         const s2 = { ...settingsObj };
-        if (docType === "billOfSupply") {
-          s2.billOfSupplyNextNumber = Math.max(1, num(s2.billOfSupplyNextNumber) || 1, usedSeq + 1);
-        } else {
-          s2.invoiceNextNumber = Math.max(1, num(s2.invoiceNextNumber) || 1, usedSeq + 1);
-        }
+        const key = saleDocNextNumberSettingKey(docType);
+        s2[key] = Math.max(1, num(s2[key]) || 1, usedSeq + 1);
         return s2;
       };
 
@@ -288,6 +281,8 @@ export function useSalesActions({
         received,
         outstanding,
         bundleId: String(saleEntry.bundleId || "").trim(),
+        linkedSaleId: String(saleEntry.linkedSaleId || "").trim(),
+        linkedInvoiceNo: String(saleEntry.linkedInvoiceNo || "").trim(),
       };
 
       const bundleList = normBundlesList(state.settings?.bundles);
@@ -395,7 +390,7 @@ export function useSalesActions({
         const nextInventoryEntries = buildAutoStockOutEntries(baseInv, updated, editingSaleId);
 
         let emiEntries = state.emiEntries.filter((e) => e.invoiceNo !== oldSale.invoiceNo);
-        if (saleEntry.financeCompany) {
+        if (saleEntry.financeCompany && docType === "invoice") {
           const prevEmi = state.emiEntries.find((e) => e.invoiceNo === oldSale.invoiceNo);
           const newDueDates = [saleEntry.dueDate1, emi2, emi3, emi4].filter(Boolean);
           const paidDueDates =
@@ -465,7 +460,7 @@ export function useSalesActions({
         inventoryEntries: buildAutoStockOutEntries(next.inventoryEntries || [], sale, sale.id),
       };
 
-      if (saleEntry.financeCompany) {
+      if (saleEntry.financeCompany && docType === "invoice") {
         next.emiEntries = [
           {
             id: makeId(),
@@ -516,5 +511,82 @@ export function useSalesActions({
     ],
   );
 
-  return { onSaveSale, openNewSale, openEditSale, closeNewSale, discardSaleDraft };
+  const prepClonedSaleEntry = useCallback(
+    (sale, { docType, linkOriginal = false } = {}) => {
+      const entry = saleToEntry(sale, null);
+      const dt = normalizeDocType(docType || entry.docType);
+      const safeType =
+        dt === "creditNote" || dt === "debitNote"
+          ? dt
+          : dt === "billOfSupply"
+            ? "billOfSupply"
+            : "invoice";
+      const prefix = saleDocPrefix(state.settings, safeType);
+      const nextNo = state.settings?.[saleDocNextNumberSettingKey(safeType)];
+      const defaultBank = "";
+      return {
+        ...entry,
+        docType: safeType,
+        invoiceNo: genInvoiceNo(state.sales, prefix, nextNo),
+        date: todayStr(),
+        dueDate: addDaysStr(todayStr(), num(state.settings?.defaultDueDays) || 30),
+        receivedAmount: "",
+        receivedBankAccountId: "",
+        paymentLines: [defSalePaymentLine(defaultBank)],
+        financeCompany: "",
+        doNo: "",
+        loanAmount: "",
+        downPayment: "",
+        emiAmount: "",
+        dueDate1: "",
+        linkedSaleId: linkOriginal ? String(sale.id || "") : "",
+        linkedInvoiceNo: linkOriginal ? String(sale.invoiceNo || "") : "",
+      };
+    },
+    [state.sales, state.settings],
+  );
+
+  const openDuplicateSale = useCallback(
+    (sale) => {
+      if (!sale) return;
+      const src = normalizeDocType(sale.docType);
+      const dupType =
+        src === "creditNote" || src === "debitNote" ? "invoice" : src;
+      setEditingSaleId(null);
+      setSaleEntry(prepClonedSaleEntry(sale, { docType: dupType }));
+      setScreen("newSale");
+    },
+    [prepClonedSaleEntry, setEditingSaleId, setSaleEntry, setScreen],
+  );
+
+  const openCreditNoteFromSale = useCallback(
+    (sale) => {
+      if (!sale) return;
+      setEditingSaleId(null);
+      setSaleEntry(prepClonedSaleEntry(sale, { docType: "creditNote", linkOriginal: true }));
+      setScreen("newSale");
+    },
+    [prepClonedSaleEntry, setEditingSaleId, setSaleEntry, setScreen],
+  );
+
+  const openDebitNoteFromSale = useCallback(
+    (sale) => {
+      if (!sale) return;
+      setEditingSaleId(null);
+      setSaleEntry(prepClonedSaleEntry(sale, { docType: "debitNote", linkOriginal: true }));
+      setScreen("newSale");
+    },
+    [prepClonedSaleEntry, setEditingSaleId, setSaleEntry, setScreen],
+  );
+
+  return {
+    onSaveSale,
+    openNewSale,
+    openEditSale,
+    closeNewSale,
+    discardSaleDraft,
+    openDuplicateSale,
+    openCreditNoteFromSale,
+    openDebitNoteFromSale,
+  };
 }

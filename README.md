@@ -1,6 +1,6 @@
 # MyBusiness (React + Vite)
 
-**Current version: 8.1.12** (shown in **Settings → Version**; service worker cache **v122**.)
+**Current version: 8.4.0** (shown in **Settings → Version**; service worker cache **v130**.)
 
 Offline-first business management for small shops and traders: sales invoices, inventory, purchases, banking, expenses, GST-aware reporting, and optional Supabase cloud sync. Works as a installable **PWA** on phone and desktop.
 
@@ -134,8 +134,11 @@ Open the **☰ menu** (sidebar). Groups:
 **Invoice detail:**
 - View totals, payments, outstanding, share/print
 - **Record payment**, **Edit**, **Delete**
+- **Duplicate invoice** — copy lines and customer into a new sale
+- **Credit note** / **Debit note** — linked to the original invoice (adjusts receivables and GST reports)
+- Print/share includes **UPI QR** when UPI ID is set in Settings
 
-**What to expect:** Duplicate invoice numbers warn but do not block save. Draft clears on successful save.
+**What to expect:** Duplicate invoice numbers warn but do not block save. Draft clears on successful save. Credit notes reduce outstanding on receivables and dashboard KPIs.
 
 ---
 
@@ -145,6 +148,7 @@ Open the **☰ menu** (sidebar). Groups:
 
 - Search and A–Z browse
 - Tap for detail: contact, address, purchase history, outstanding
+- **Account statement** — PDF or CSV export for the selected period
 - **New customer** overlay for manual add/edit
 
 ---
@@ -153,7 +157,7 @@ Open the **☰ menu** (sidebar). Groups:
 
 **Purpose:** Outstanding customer balances.
 
-- Lists invoices with amount due, due date, overdue status
+- Lists invoices with amount due, due date, overdue status (credit notes reduce balance)
 - Month filter; tap through to invoice detail or record payment
 
 ---
@@ -204,6 +208,7 @@ Open the **☰ menu** (sidebar). Groups:
 **Purpose:** Supplier directory (mirror of Customers for purchases).
 
 - Search, detail, purchase history, payables context
+- **Account statement** — PDF or CSV export for the selected period
 
 ---
 
@@ -324,12 +329,23 @@ Open the **☰ menu** (sidebar). Groups:
 
 ### Reports
 
-**Purpose:** P&L-style summary for a period.
+**Purpose:** Business reports hub with executive snapshot and 22 detail reports.
 
-- Month or FY view
-- Revenue, COGS, gross profit, expenses, other income, net profit
-- **Month-over-month delta** vs previous month when viewing a single month
-- Respects cash vs accrual basis from Settings
+**Hub:**
+- **Executive snapshot** — net profit, margins, collection rate, period purchases (respects cash vs accrual)
+- Download snapshot as **PDF**
+- Categories: **Sales**, **Purchase**, **Other**, **GST**
+
+**Each report page:**
+- Period bar: **FY**, **month**, **custom from–to**, or **all time**
+- **Bill wise / Party wise** toggle on sales, purchase, and payment reports
+- Top toolbar: **PDF**, **CSV**, **JSON** (where applicable), **Tally XML** (ledger export)
+
+**GST reports:** GSTR-1 summary, GSTR-2B (purchase ITC), GSTR-3B net payable — export for filing prep.
+
+**Other reports include:** sales register, outstanding, product-wise sales, inward payments, purchase register, payables, ledger, P&amp;L, stock, daybook, cash flow summary, and more.
+
+**What to expect:** GSTR exports are summaries for reconciliation — validate against your CA before portal upload. Product reports are bill-wise only.
 
 ---
 
@@ -359,8 +375,8 @@ Hub with search. Sub-screens:
 | **Appearance** | Light / dark theme |
 | **Data backup** | Export JSON backup, import with validation |
 | **Cloud sync** | Sync now, outbox, conflict queue, errors |
-| **Business info** | Name, address, city, state, pincode, GSTIN, PAN, logo |
-| **Invoice settings** | Prefixes, next numbers, due days, sales target, GST defaults, invoice notes/terms |
+| **Business info** | Name, address, city, state, pincode, GSTIN, PAN, logo, **UPI ID** and payee name (for invoice QR) |
+| **Invoice settings** | Prefixes, next numbers, due days, sales target, GST defaults, invoice notes/terms, **credit/debit note** prefixes and counters |
 | **Accounting & inventory** | Cash vs accrual default, auto stock-out on sale |
 | **Financial year** | FY year, start month (e.g. April) |
 | **Year-end close** | Checklist, FY-labelled backup download, saved FY snapshots |

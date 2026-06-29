@@ -219,6 +219,9 @@ export function MainStage(props) {
     openEmiDetail,
     closeEmiDetailNav,
     openEditSale,
+    openDuplicateSale,
+    openCreditNoteFromSale,
+    openDebitNoteFromSale,
     openPayModal,
     openPayPurchaseModal,
     onStockProductPick,
@@ -544,7 +547,7 @@ export function MainStage(props) {
             expenses={state.expenses}
             otherIncomes={state.otherIncomes || []}
             purchases={state.purchases || []}
-            emiEntries={state.emiEntries}
+            inventoryEntries={state.inventoryEntries || []}
             invRows={invRows}
             balSum={balSum}
             balance={state.balance}
@@ -554,6 +557,7 @@ export function MainStage(props) {
             businessName={state.settings.businessName}
             accountingBasis={state.settings?.accountingBasis ?? "cash"}
             defaultDueDays={state.settings?.defaultDueDays}
+            settings={state.settings}
             onOpenSidebar={() => setSidebarOpen(true)}
           />
         )}
@@ -642,6 +646,10 @@ export function MainStage(props) {
           billOfSupplyPrefix={state.settings?.billOfSupplyPrefix}
           invoiceNextNumber={state.settings?.invoiceNextNumber}
           billOfSupplyNextNumber={state.settings?.billOfSupplyNextNumber}
+          creditNotePrefix={state.settings?.creditNotePrefix}
+          debitNotePrefix={state.settings?.debitNotePrefix}
+          creditNoteNextNumber={state.settings?.creditNoteNextNumber}
+          debitNoteNextNumber={state.settings?.debitNoteNextNumber}
           defaultProductHsn={state.settings?.defaultProductHsn}
           defaultProductGstRate={state.settings?.defaultProductGstRate}
           gstEnabled={state.settings?.gstEnabled}
@@ -693,6 +701,9 @@ export function MainStage(props) {
           businessName={state.settings?.businessName || ""}
           onClose={closeSaleDetailNav}
           onEdit={() => openEditSale(selSale, selEmi)}
+          onDuplicate={() => openDuplicateSale(selSale)}
+          onCreditNote={() => openCreditNoteFromSale(selSale)}
+          onDebitNote={() => openDebitNoteFromSale(selSale)}
           onPayment={() => openPayModal(selSale.id)}
           onDelete={() => setDelConfirm({ type: "sale", id: selSale.id })}
           onOpenServicing={() => {
@@ -872,6 +883,7 @@ export function MainStage(props) {
           sales={safeSales}
           defaultDueDays={state.settings?.defaultDueDays}
           customerDirectory={state.customerDirectory || []}
+          company={state.settings}
           onClose={closeCustomerDetailNav}
           onOpenSale={openSaleDetail}
           onEditDirectoryCustomer={(rec) => {
@@ -887,6 +899,7 @@ export function MainStage(props) {
           vendorName={selVendorName}
           purchases={state.purchases || []}
           vendorDirectory={state.vendorDirectory || []}
+          company={state.settings}
           onClose={closeVendorDetailNav}
           onOpenPurchase={openPurchaseDetail}
           onEditDirectoryVendor={(rec) => {

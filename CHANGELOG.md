@@ -2,6 +2,82 @@
 
 All notable changes are tracked here. The Settings screen shows **Version** from `package.json`.
 
+## [8.4.0] — 2026-06-24
+
+Production release — accounts, invoicing, and reports.
+
+### Features
+- **Invoices** — Duplicate sale; credit/debit notes linked to original invoice; UPI QR on print (Settings → Business).
+- **Reports** — Hub with 22 reports (Sales, Purchase, Other, GST); FY / month / custom date range; executive snapshot on hub.
+- **Reports** — PDF & CSV export; bill-wise / party-wise toggle; GSTR-1, GSTR-2B, GSTR-3B; Tally XML export.
+- **Customers & vendors** — Account statement PDF and CSV from detail screens.
+
+### Improvements
+- **Dashboard & receivables** — Credit notes reduce receivables via signed amounts; accrual revenue uses signed sale totals.
+- **Credit/debit note print** — Shows linked original invoice number on printed documents.
+- **Settings** — Credit/debit note prefixes and counters; UPI payee name for QR.
+
+App version **8.4.0**; service worker cache **v130**.
+
+---
+
+## [8.3.3] — 2026-06-24
+
+### Features
+- **Reports** — Export buttons (PDF, CSV) moved to the top toolbar on every report page.
+- **Reports** — **Bill wise / Party wise** toggle on sales, purchase, and payment reports (group by customer or supplier).
+
+App version **8.3.3**; service worker cache **v129**.
+
+---
+
+## [8.3.2] — 2026-06-24
+
+### Features
+- **Reports** — Download PDF on every report detail page and on the hub snapshot (A4 layout via print sheet).
+
+App version **8.3.2**; service worker cache **v128**.
+
+---
+
+## [8.3.1] — 2026-06-24
+
+### Improvements
+- **Reports** — Executive snapshot (net profit, margins, collection rate, period purchases) restored at the top of the reports hub.
+
+App version **8.3.1**; service worker cache **v127**.
+
+---
+
+## [8.3.0] — 2026-06-24
+
+### Features
+- **Reports** — Hub with separate pages: Sales Reports (sales, outstanding, product, inward payment), Purchase Reports, Other Reports (ledger, P&amp;L, stock, daybook, etc.), and GST Reports (GSTR-1, GSTR-2B, GSTR-3B).
+- **Reports** — Smart period bar: FY, month, custom from–to range, and all time on every report page; CSV export on tabular reports.
+
+### Improvements
+- **Vendors** — Statement PDF and CSV export on vendor detail (mirrors customer).
+- **Domain** — Shared `reportPeriod`, `businessReports`, `profitLoss`, `gstr2b`, and `gstr3b` modules.
+
+App version **8.3.0**; service worker cache **v124**.
+
+---
+
+## [8.2.0] — 2026-06-29
+
+### Features
+- **Invoices** — Duplicate sale; credit note and debit note linked to original invoice; UPI QR on printed invoices (Settings → Business → UPI ID).
+- **Reports** — GSTR-1 summary with CSV/JSON export; Tally XML export for sales, receipts, purchases, and expenses.
+- **Customers** — Account statement PDF and CSV export from customer detail.
+
+### Improvements
+- **P&amp;L / reports** — Credit notes reduce revenue and receivables via signed amounts.
+- **Settings** — Credit/debit note prefixes and next numbers; UPI payee name for QR.
+
+App version **8.2.0**; service worker cache **v123**.
+
+---
+
 ## [8.1.12] — 2026-06-29
 
 ### Fixes

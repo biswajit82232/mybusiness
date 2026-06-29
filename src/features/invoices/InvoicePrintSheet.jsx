@@ -14,6 +14,8 @@ import {
   placeOfSupplyLabel,
   saleAddressLines,
 } from "@/domain/index.js";
+import { normalizeDocType, saleDocLabel } from "@/domain/saleDocuments.js";
+import { UpiQrBlock } from "./UpiQrBlock.jsx";
 import "./invoice-sheet-base.css";
 import "./invoice-template-styles.css";
 
@@ -297,7 +299,17 @@ function DocTitleBanner({ title, copyLabel }) {
   );
 }
 
-/** Signature + E&OE footer row. */
+/** Signature + UPI QR + E&OE footer row. */
+function PrintFooter({ sigProps, settings, outstanding, sale }) {
+  return (
+    <>
+      <div className="ips-foot-row">
+        <UpiQrBlock settings={settings} amount={outstanding} note={sale?.invoiceNo} />
+      </div>
+      <SigFooter {...sigProps} />
+    </>
+  );
+}
 function SigFooter({ signatory, signatureImage }) {
   const sigImg = String(signatureImage || "").trim();
   return (
@@ -320,7 +332,10 @@ function SigFooter({ signatory, signatureImage }) {
 }
 
 export function InvoicePrintSheet({ sale, settings = {} }) {
-  const isBos = sale?.docType === "billOfSupply";
+  const docType = normalizeDocType(sale?.docType);
+  const isBos = docType === "billOfSupply";
+  const docTitle = saleDocLabel(docType).toUpperCase();
+  const linkedInvoiceNo = String(sale?.linkedInvoiceNo || "").trim();
   const coName = String(settings.businessName || "").trim() || "Invoice";
   const coGstin = String(settings.businessGstin || "").trim();
   const coPhone = String(settings.businessPhone || "").trim();
@@ -383,6 +398,7 @@ export function InvoicePrintSheet({ sale, settings = {} }) {
 
   const headerProps = { coName, coGstin, logo, addrLines, coPhone, coWa, settings };
   const sigProps = { signatory, signatureImage };
+  const footProps = { sigProps, settings, outstanding, sale };
   const tpl = invoiceTemplateClass(settings);
   const sheetCls = (doc) => `invoice-print-sheet invoice-print-sheet--${doc} invoice-print-sheet--tpl-${tpl}`;
 
@@ -480,7 +496,7 @@ export function InvoicePrintSheet({ sale, settings = {} }) {
           </div>
         </div>
 
-        <SigFooter {...sigProps} />
+        <PrintFooter {...footProps} />
       </div>
     );
   }
@@ -491,7 +507,7 @@ export function InvoicePrintSheet({ sale, settings = {} }) {
       <div className={sheetCls("gst")}>
         <InvoiceHeader {...headerProps} docTitle="" copyLabel="" />
         <div className="ips-divider" />
-        <DocTitleBanner title="TAX INVOICE" copyLabel={copyLabel} />
+        <DocTitleBanner title={docType === "invoice" ? "TAX INVOICE" : docTitle} copyLabel={copyLabel} />
 
         {/* Customer block + Invoice meta (two-column) */}
         <div className="ips-meta-2col">
@@ -521,6 +537,12 @@ export function InvoicePrintSheet({ sale, settings = {} }) {
                   <th>Invoice Date</th>
                   <td>{dateSlash(sale?.date)}</td>
                 </tr>
+                {linkedInvoiceNo ? (
+                  <tr>
+                    <th>Against Invoice</th>
+                    <td>{linkedInvoiceNo}</td>
+                  </tr>
+                ) : null}
                 {sale?.dueDate ? (
                   <tr>
                     <th>Due Date</th>
@@ -774,7 +796,7 @@ export function InvoicePrintSheet({ sale, settings = {} }) {
           </div>
         </div>
 
-        <SigFooter {...sigProps} />
+        <PrintFooter {...footProps} />
       </div>
     );
   }
@@ -785,7 +807,7 @@ export function InvoicePrintSheet({ sale, settings = {} }) {
       <div className={sheetCls("simple")}>
         <InvoiceHeader {...headerProps} docTitle="" copyLabel="" />
         <div className="ips-divider" />
-        <DocTitleBanner title="TAX INVOICE" copyLabel={copyLabel} />
+        <DocTitleBanner title={docType === "invoice" ? "TAX INVOICE" : docTitle} copyLabel={copyLabel} />
 
         <div className="ips-meta-2col">
           <div className="ips-billto">
@@ -878,7 +900,7 @@ export function InvoicePrintSheet({ sale, settings = {} }) {
           </div>
         </div>
 
-        <SigFooter {...sigProps} />
+        <PrintFooter {...footProps} />
       </div>
     );
   }
@@ -975,7 +997,7 @@ export function InvoicePrintSheet({ sale, settings = {} }) {
         </div>
       </div>
 
-      <SigFooter {...sigProps} />
+      <PrintFooter {...footProps} />
     </div>
   );
 }

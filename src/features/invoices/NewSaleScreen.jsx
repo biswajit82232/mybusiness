@@ -17,6 +17,7 @@ import {
   roundMoney2,
   saleDocPrefix,
 } from "@/domain/index.js";
+import { normalizeDocType, saleDocNextNumberSettingKey } from "@/domain/saleDocuments.js";
 import { MenuSelect } from "@/shared/ui/inputs/MenuSelect.jsx";
 import { Field, OverlayScreen, PageHeader } from "@/shared/ui/layout/AppChrome.jsx";
 import { IcPlus } from "@/shared/ui/icons/AppIcons.jsx";
@@ -104,6 +105,10 @@ export function NewSaleScreen({
   billOfSupplyPrefix = "BOS",
   invoiceNextNumber = 1,
   billOfSupplyNextNumber = 1,
+  creditNotePrefix = "CN",
+  debitNotePrefix = "DN",
+  creditNoteNextNumber = 1,
+  debitNoteNextNumber = 1,
   defaultProductHsn = "8711",
   defaultProductGstRate = 5,
   gstEnabled = true,
@@ -317,22 +322,34 @@ export function NewSaleScreen({
   );
 
   const showStockItemPick = autoStockOutOnSale && stockPickRows.length > 0;
-  const currentDocType = entry.docType === "billOfSupply" ? "billOfSupply" : "invoice";
+  const currentDocType = normalizeDocType(entry.docType);
   const docSettings = useMemo(
     () => ({
       invoicePrefix,
       billOfSupplyPrefix,
+      creditNotePrefix,
+      debitNotePrefix,
       invoiceNextNumber,
       billOfSupplyNextNumber,
+      creditNoteNextNumber,
+      debitNoteNextNumber,
     }),
-    [invoicePrefix, billOfSupplyPrefix, invoiceNextNumber, billOfSupplyNextNumber],
+    [
+      invoicePrefix,
+      billOfSupplyPrefix,
+      creditNotePrefix,
+      debitNotePrefix,
+      invoiceNextNumber,
+      billOfSupplyNextNumber,
+      creditNoteNextNumber,
+      debitNoteNextNumber,
+    ],
   );
   const suggestedInvoiceNo = useMemo(() => {
     const prefix = saleDocPrefix(docSettings, currentDocType);
-    const nextNo =
-      currentDocType === "billOfSupply" ? billOfSupplyNextNumber : invoiceNextNumber;
+    const nextNo = docSettings[saleDocNextNumberSettingKey(currentDocType)];
     return genInvoiceNo(sales, prefix, nextNo);
-  }, [billOfSupplyNextNumber, currentDocType, docSettings, invoiceNextNumber, sales]);
+  }, [currentDocType, docSettings, sales]);
 
   const invoiceDuplicate = useMemo(() => {
     const no = String(entry.invoiceNo || "").trim();
@@ -392,21 +409,27 @@ export function NewSaleScreen({
                 <MenuSelect
                   value={currentDocType}
                   onChange={(v) => {
-                    const nextType = v === "billOfSupply" ? "billOfSupply" : "invoice";
+                    const nextType = normalizeDocType(v);
                     upd("docType", nextType);
                     if (!isEdit && !invoiceManualRef.current) {
                       const prefix = saleDocPrefix(docSettings, nextType);
-                      const nextNo =
-                        nextType === "billOfSupply" ? billOfSupplyNextNumber : invoiceNextNumber;
+                      const nextNo = docSettings[saleDocNextNumberSettingKey(nextType)];
                       upd("invoiceNo", genInvoiceNo(sales, prefix, nextNo));
                     }
                   }}
                   options={[
-                    { value: "invoice", label: "Invoice" },
+                    { value: "invoice", label: "Tax Invoice" },
                     { value: "billOfSupply", label: "Bill of Supply" },
+                    { value: "creditNote", label: "Credit Note" },
+                    { value: "debitNote", label: "Debit Note" },
                   ]}
                 />
               </Field>
+              {entry.linkedInvoiceNo ? (
+                <p className="form-hint" role="status">
+                  Linked to invoice {entry.linkedInvoiceNo}
+                </p>
+              ) : null}
               <Field label="Due Date">
                 <input
                   type="date"
@@ -414,7 +437,7 @@ export function NewSaleScreen({
                   onChange={(e) => upd("dueDate", e.target.value)}
                 />
               </Field>
-              {gstOn && currentDocType === "invoice" ? (
+              {gstOn && currentDocType !== "billOfSupply" ? (
                 <>
                   <Field label="Customer GSTIN (optional)">
                     <input

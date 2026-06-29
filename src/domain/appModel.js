@@ -933,18 +933,28 @@ export function genInvoiceNo(sales, prefixRaw, nextSeqRaw) {
   return `${prefix}-${String(nextSeq).padStart(4, "0")}`;
 }
 
-/** Prefix for invoice vs bill-of-supply document types. */
+/** Prefix for invoice vs bill-of-supply / credit / debit document types. */
 export function saleDocPrefix(settings, docType) {
   const s = settings || {};
-  return docType === "billOfSupply"
-    ? sanitizePrefix(s.billOfSupplyPrefix ?? "BOS")
-    : sanitizePrefix(s.invoicePrefix ?? "MB");
+  const d = String(docType || "invoice");
+  if (d === "billOfSupply") return sanitizePrefix(s.billOfSupplyPrefix ?? "BOS");
+  if (d === "creditNote") return sanitizePrefix(s.creditNotePrefix ?? "CN");
+  if (d === "debitNote") return sanitizePrefix(s.debitNotePrefix ?? "DN");
+  return sanitizePrefix(s.invoicePrefix ?? "MB");
+}
+
+function normalizeSaleDocType(raw) {
+  const d = String(raw || "").trim();
+  if (d === "billOfSupply") return "billOfSupply";
+  if (d === "creditNote") return "creditNote";
+  if (d === "debitNote") return "debitNote";
+  return "invoice";
 }
 
 /** Newest invoice number first (sequence desc, then date/id). */
 export function compareSalesByInvoiceNo(a, b, settings) {
-  const docA = a?.docType === "billOfSupply" ? "billOfSupply" : "invoice";
-  const docB = b?.docType === "billOfSupply" ? "billOfSupply" : "invoice";
+  const docA = normalizeSaleDocType(a?.docType);
+  const docB = normalizeSaleDocType(b?.docType);
   const seqA = invoiceSequenceForPrefix(a?.invoiceNo, saleDocPrefix(settings, docA));
   const seqB = invoiceSequenceForPrefix(b?.invoiceNo, saleDocPrefix(settings, docB));
   if (seqA !== seqB) return seqB - seqA;
@@ -1428,6 +1438,9 @@ export function defSale() {
     customerGstin: "",
     reverseCharge: false,
     invoiceCopyType: "original",
+    /** When credit/debit note — links to original sale. */
+    linkedSaleId: "",
+    linkedInvoiceNo: "",
     /** Legacy single-line mirror fields; the source of truth is `lineItems[0]`. */
     item: "",
     /** Set when selling a defined bundle; invoice line uses bundle name, stock-out uses component lines. */
@@ -1521,7 +1534,7 @@ export function saleToEntry(sale, emi) {
   }));
   const first = lineItems[0];
   return {
-    docType: sale.docType === "billOfSupply" ? "billOfSupply" : "invoice",
+    docType: normalizeSaleDocType(sale.docType),
     date: sale.date,
     invoiceNo: sale.invoiceNo || "",
     dueDate: sale.dueDate || "",
@@ -1567,6 +1580,8 @@ export function saleToEntry(sale, emi) {
     emiAmount: emi != null ? String(emi.emiAmount ?? "") : "",
     dueDate1: emi?.dueDates?.[0] || "",
     bundleId: String(sale.bundleId || "").trim(),
+    linkedSaleId: String(sale.linkedSaleId || "").trim(),
+    linkedInvoiceNo: String(sale.linkedInvoiceNo || "").trim(),
   };
 }
 
@@ -3227,11 +3242,13 @@ export function normSalesList(raw, bankAccountsForDefault = null) {
       const outstanding = roundMoney2(Math.max(0, totalSale - received));
       return {
         ...x,
-        docType: x.docType === "billOfSupply" ? "billOfSupply" : "invoice",
+        docType: normalizeSaleDocType(x.docType),
         id: String(x.id || makeId()),
         date: String(x.date || todayStr()).slice(0, 10),
         dueDate: x.dueDate ? String(x.dueDate).slice(0, 10) : "",
         invoiceNo: String(x.invoiceNo || ""),
+        linkedSaleId: String(x.linkedSaleId || "").trim(),
+        linkedInvoiceNo: String(x.linkedInvoiceNo || "").trim(),
         customerName: String(x.customerName || ""),
         customerAddress: String(x.customerAddress || ""),
         customerCity: String(x.customerCity || ""),
@@ -4790,10 +4807,17 @@ export const defaultState = applyComputedBankBalances({
     additionalChargesLabel: "Additional Charges",
     invoicePrefix:"MB",
     billOfSupplyPrefix:"BOS",
+    creditNotePrefix:"CN",
+    debitNotePrefix:"DN",
+    /** UPI VPA for QR on printed invoices (e.g. name@bank). */
+    businessUpiVpa: "",
+    businessUpiPayeeName: "",
     paymentReceiptPrefix:"RCPT",
     paymentReceiptNextNumber: 1,
     invoiceNextNumber: 1,
     billOfSupplyNextNumber: 1,
+    creditNoteNextNumber: 1,
+    debitNoteNextNumber: 1,
     financeCompanies:DEFAULT_FINANCE_COS,
     expenseCategories:[...DEFAULT_EXPENSE_CATEGORIES],
     otherIncomeCategories:[...DEFAULT_OTHER_INCOME_CATEGORIES],
@@ -4854,10 +4878,14 @@ export function mergePersistedPayload(p) {
         monthlySalesTarget: Math.max(0, Math.floor(num(settingsIn?.monthlySalesTarget) || 0)),
         invoicePrefix: sanitizePrefix(settingsIn?.invoicePrefix??"MB"),
         billOfSupplyPrefix: sanitizePrefix(settingsIn?.billOfSupplyPrefix ?? "BOS"),
+        creditNotePrefix: sanitizePrefix(settingsIn?.creditNotePrefix ?? "CN"),
+        debitNotePrefix: sanitizePrefix(settingsIn?.debitNotePrefix ?? "DN"),
         paymentReceiptPrefix: sanitizePrefix(settingsIn?.paymentReceiptPrefix ?? "RCPT"),
         paymentReceiptNextNumber: Math.max(1, num(settingsIn?.paymentReceiptNextNumber) || 1),
         invoiceNextNumber: Math.max(1, num(settingsIn?.invoiceNextNumber) || 1),
         billOfSupplyNextNumber: Math.max(1, num(settingsIn?.billOfSupplyNextNumber) || 1),
+        creditNoteNextNumber: Math.max(1, num(settingsIn?.creditNoteNextNumber) || 1),
+        debitNoteNextNumber: Math.max(1, num(settingsIn?.debitNoteNextNumber) || 1),
         financeCompanies: Array.isArray(settingsIn?.financeCompanies)&&settingsIn.financeCompanies.length ? settingsIn.financeCompanies : DEFAULT_FINANCE_COS,
         expenseCategories: normalizeExpenseCategoriesFromPersist(settingsIn?.expenseCategories),
         otherIncomeCategories: normalizeOtherIncomeCategoriesFromPersist(settingsIn?.otherIncomeCategories),
@@ -4894,6 +4922,8 @@ export function mergePersistedPayload(p) {
         businessPincode: String(settingsIn?.businessPincode ?? "").trim(),
         businessGstin: String(settingsIn?.businessGstin ?? "").trim().toUpperCase(),
         businessPan: String(settingsIn?.businessPan ?? "").trim().toUpperCase(),
+        businessUpiVpa: String(settingsIn?.businessUpiVpa ?? "").trim().toLowerCase(),
+        businessUpiPayeeName: String(settingsIn?.businessUpiPayeeName ?? "").trim(),
         businessLogo: String(settingsIn?.businessLogo ?? "").trim(),
         invoiceNotes: String(settingsIn?.invoiceNotes ?? "").trim(),
         invoiceTerms: String(settingsIn?.invoiceTerms ?? "").trim(),

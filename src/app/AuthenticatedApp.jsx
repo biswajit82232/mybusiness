@@ -1020,7 +1020,7 @@ export default function AuthenticatedApp() {
     persistWholeStateImmediate,
   });
 
-  const { onSaveSale, openNewSale, openEditSale, closeNewSale, discardSaleDraft } = useSalesActions({
+  const { onSaveSale, openNewSale, openEditSale, closeNewSale, discardSaleDraft, openDuplicateSale, openCreditNoteFromSale, openDebitNoteFromSale } = useSalesActions({
     state,
     saleEntry,
     editingSaleId,
@@ -1488,6 +1488,9 @@ export default function AuthenticatedApp() {
     openEmiDetail,
     closeEmiDetailNav,
     openEditSale,
+    openDuplicateSale,
+    openCreditNoteFromSale,
+    openDebitNoteFromSale,
     openPayModal,
     openPayPurchaseModal,
     onStockProductPick,

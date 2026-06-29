@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Virtuoso } from "react-virtuoso";
-import { compareYmdAsc, dateHuman, money, num, resolveSaleDueDate, todayStr } from "@/domain/index.js";
+import { compareYmdAsc, dateHuman, money, resolveSaleDueDate, todayStr } from "@/domain/index.js";
+import { signedOutstanding } from "@/domain/saleDocuments.js";
 import { useMainStageScrollParent } from "@/features/main-stage/MainStageScrollContext.jsx";
 import { IcReceivable } from "@/shared/ui/icons/AppIcons.jsx";
 import { EmptyState, TabPageChrome } from "@/shared/ui/layout/AppChrome.jsx";
@@ -13,7 +14,7 @@ export function ReceivablesScreen({ sales, onOpenSale, onOpenSidebar, defaultDue
   const allUnpaid = useMemo(
     () =>
       sales
-        .filter((s) => num(s.outstanding) > 0)
+        .filter((s) => signedOutstanding(s) > 0.01)
         .sort((a, b) => {
           const da = resolveSaleDueDate(a, defaultDueDays) || "";
           const db = resolveSaleDueDate(b, defaultDueDays) || "";
@@ -44,7 +45,7 @@ export function ReceivablesScreen({ sales, onOpenSale, onOpenSidebar, defaultDue
     if (sortBy === "amount") {
       arr.sort(
         (a, b) =>
-          num(b.outstanding) - num(a.outstanding) ||
+          signedOutstanding(b) - signedOutstanding(a) ||
           resolveSaleDueDate(a, defaultDueDays).localeCompare(resolveSaleDueDate(b, defaultDueDays)),
       );
     } else {
@@ -55,8 +56,8 @@ export function ReceivablesScreen({ sales, onOpenSale, onOpenSidebar, defaultDue
     return arr;
   }, [baseDisplayed, defaultDueDays, sortBy]);
 
-  const totalDue = useMemo(() => allUnpaid.reduce((s, x) => s + num(x.outstanding), 0), [allUnpaid]);
-  const totalOverdue = useMemo(() => overdue.reduce((s, x) => s + num(x.outstanding), 0), [overdue]);
+  const totalDue = useMemo(() => allUnpaid.reduce((s, x) => s + signedOutstanding(x), 0), [allUnpaid]);
+  const totalOverdue = useMemo(() => overdue.reduce((s, x) => s + signedOutstanding(x), 0), [overdue]);
   const scrollParent = useMainStageScrollParent();
 
   return (
@@ -120,7 +121,7 @@ export function ReceivablesScreen({ sales, onOpenSale, onOpenSidebar, defaultDue
                     <span className="sr-sub">Due {dateHuman(dueDate)}</span>
                   </div>
                   <div className="sr-right">
-                    <span className={`sr-amount${isOverdue ? " sr-amount--overdue" : " sr-amount--due"}`}>{money(s.outstanding)}</span>
+                    <span className={`sr-amount${isOverdue ? " sr-amount--overdue" : " sr-amount--due"}`}>{money(signedOutstanding(s))}</span>
                     <span className={`status-badge ${isOverdue ? "s-overdue" : "s-unpaid"}`}>{isOverdue ? "Overdue" : "Due"}</span>
                   </div>
                 </button>

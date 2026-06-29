@@ -419,3 +419,133 @@
 }
 .ips-sig-line  { border-top: 1pt solid #000; margin-bottom: 3pt; }
 .ips-sig-label { font-size: 7.5pt; color: #444; }
+
+.ips-foot-row {
+  display: flex;
+  justify-content: flex-end;
+  margin: 8pt 0 4pt;
+}
+.ips-upi-qr {
+  display: flex;
+  align-items: center;
+  gap: 8pt;
+  padding: 6pt;
+  border: 0.5pt solid #ccc;
+  border-radius: 4pt;
+}
+.ips-upi-qr-caption {
+  display: flex;
+  flex-direction: column;
+  font-size: 7.5pt;
+  color: #333;
+  gap: 2pt;
+}
+.invoice-print-sheet--statement .ips-stmt-tbl { width: 100%; margin-top: 8pt; }
+.invoice-print-sheet--statement .ips-stmt-tbl th,
+.invoice-print-sheet--statement .ips-stmt-tbl td { font-size: 8pt; padding: 3pt 4pt; }
+
+.invoice-print-sheet--report .rep-print-body { margin-top: 10pt; }
+.invoice-print-sheet--report .rep-print-kpi-tbl {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 10pt;
+}
+.invoice-print-sheet--report .rep-print-kpi-tbl td {
+  border: 1px solid #ddd;
+  padding: 6pt 8pt;
+  vertical-align: top;
+  width: 25%;
+}
+.invoice-print-sheet--report .rep-print-kpi-l {
+  display: block;
+  font-size: 7pt;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #666;
+  margin-bottom: 2pt;
+}
+.invoice-print-sheet--report .rep-print-kpi-v {
+  display: block;
+  font-size: 10pt;
+  font-weight: 700;
+  color: #111;
+}
+.invoice-print-sheet--report .rep-st {
+  font-size: 8pt;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #444;
+  margin: 10pt 0 6pt;
+}
+.invoice-print-sheet--report .rep-lines--print .rep-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 8pt;
+  padding: 4pt 0;
+  border-bottom: 1px solid #eee;
+  font-size: 9pt;
+}
+.invoice-print-sheet--report .rep-note--print {
+  font-size: 8pt;
+  color: #555;
+  margin: 0 0 8pt;
+}
+.invoice-print-sheet--report .rep-snap-hero {
+  border: 1px solid #ddd;
+  border-radius: 4pt;
+  padding: 10pt 12pt;
+  margin-bottom: 10pt;
+  background: #f8fafc;
+}
+.invoice-print-sheet--report .rep-snap-lbl {
+  font-size: 8pt;
+  text-transform: uppercase;
+  color: #666;
+}
+.invoice-print-sheet--report .rep-snap-val {
+  display: block;
+  font-size: 16pt;
+  font-weight: 800;
+  margin-top: 4pt;
+}
+.invoice-print-sheet--report .rep-snap-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8pt;
+}
+.invoice-print-sheet--report .rep-snap-grid li {
+  border: 1px solid #eee;
+  padding: 6pt 8pt;
+  border-radius: 3pt;
+}
+.invoice-print-sheet--report .rep-snap-k {
+  display: block;
+  font-size: 7pt;
+  color: #666;
+  text-transform: uppercase;
+}
+.invoice-print-sheet--report .rep-snap-v {
+  display: block;
+  font-size: 10pt;
+  font-weight: 700;
+  margin-top: 2pt;
+}
+.invoice-print-sheet--report .rep-snap-extra {
+  margin-top: 8pt;
+  font-size: 8pt;
+  color: #444;
+  display: flex;
+  flex-direction: column;
+  gap: 4pt;
+}
+
+.rep-export-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}

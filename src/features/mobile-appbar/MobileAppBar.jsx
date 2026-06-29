@@ -90,7 +90,7 @@ function resolveMobileSubtitle({ screen, page }) {
     ledger: "Journal lines",
     expenses: "Operating spend",
     otherIncome: "Non-sales income",
-    reports: "P&L · activity",
+    reports: "Sales · GST · ledger",
     capitalGrowth: "Equity over time",
     netWorth: "Snapshot & goals",
     purchases: "Supplier buys & stock-in",

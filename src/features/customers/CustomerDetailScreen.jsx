@@ -1,6 +1,16 @@
-import { useMemo, useState } from "react";
-import { compareYmdDesc, hasSaleAddress, money, num, saleAddressLines, saleStatus, dateHuman } from "@/domain/index.js";
-import { IcEdit, IcSales, IcTrash } from "@/shared/ui/icons/AppIcons.jsx";
+import { useMemo, useRef, useState } from "react";
+import { compareYmdDesc, hasSaleAddress, money, saleAddressLines, saleStatus, dateHuman } from "@/domain/index.js";
+import {
+  buildCustomerStatement,
+  customerOutstandingTotal,
+  customerReceivedTotal,
+  customerRevenueTotal,
+  downloadPartyStatementCsv,
+} from "@/domain/partyStatement.js";
+import { saleDocLabel } from "@/domain/saleDocuments.js";
+import { PartyStatementPrintSheet } from "@/features/reports/PartyStatementPrintSheet.jsx";
+import { downloadStatementPdf } from "@/features/reports/downloadStatementPdf.js";
+import { IcEdit, IcPrint, IcSales, IcTrash } from "@/shared/ui/icons/AppIcons.jsx";
 import { ContactIcons, EmptyState, OverlayScreen, PageHeader } from "@/shared/ui/layout/AppChrome.jsx";
 import { avatarColor, avatarInitials } from "./avatarUtils.js";
 
@@ -9,12 +19,15 @@ export function CustomerDetailScreen({
   sales = [],
   defaultDueDays = 30,
   customerDirectory = [],
+  company = {},
   onClose,
   onOpenSale,
   onEditDirectoryCustomer,
   onDeleteDirectoryCustomer,
 }) {
   const [activeTab, setActiveTab] = useState("transactions");
+  const [exportBusy, setExportBusy] = useState(false);
+  const stmtRef = useRef(null);
   const normalizedCustomerName = (customerName || "").trim().toLowerCase();
   const customerSales = useMemo(
     () =>
@@ -23,13 +36,17 @@ export function CustomerDetailScreen({
         .sort((a, b) => compareYmdDesc(a?.date, b?.date)),
     [sales, normalizedCustomerName],
   );
+  const statement = useMemo(
+    () => buildCustomerStatement(sales, customerName, { range: "all" }),
+    [sales, customerName],
+  );
   const dirMatch = useMemo(
     () => (customerDirectory || []).find((d) => (d.name || "").trim().toLowerCase() === normalizedCustomerName) ?? null,
     [customerDirectory, normalizedCustomerName],
   );
-  const totalRevenue = useMemo(() => customerSales.reduce((s, x) => s + num(x.totalSale), 0), [customerSales]);
-  const totalOutstanding = useMemo(() => customerSales.reduce((s, x) => s + num(x.outstanding), 0), [customerSales]);
-  const totalPaid = useMemo(() => customerSales.reduce((s, x) => s + num(x.received), 0), [customerSales]);
+  const totalRevenue = useMemo(() => customerRevenueTotal(sales, customerName), [sales, customerName]);
+  const totalOutstanding = useMemo(() => customerOutstandingTotal(sales, customerName), [sales, customerName]);
+  const totalPaid = useMemo(() => customerReceivedTotal(sales, customerName), [sales, customerName]);
   const avgOrder = useMemo(
     () => (customerSales.length ? totalRevenue / customerSales.length : 0),
     [customerSales.length, totalRevenue],
@@ -38,6 +55,17 @@ export function CustomerDetailScreen({
   const phone1 = sample.customerNo1 || dirMatch?.customerNo1 || "";
   const phone2 = sample.customerNo2 || dirMatch?.customerNo2 || "";
   const addrSource = sample && hasSaleAddress(sample) ? sample : dirMatch && hasSaleAddress(dirMatch) ? dirMatch : null;
+
+  const exportPdf = async () => {
+    const el = stmtRef.current?.querySelector(".invoice-print-sheet");
+    if (!el) return;
+    setExportBusy(true);
+    try {
+      await downloadStatementPdf(el, { partyName: customerName, partyKind: "customer" });
+    } finally {
+      setExportBusy(false);
+    }
+  };
 
   return (
     <OverlayScreen>
@@ -57,6 +85,9 @@ export function CustomerDetailScreen({
           ) : undefined
         }
       />
+      <div className="invoice-print-only" aria-hidden="true" ref={stmtRef}>
+        <PartyStatementPrintSheet statement={statement} company={company} />
+      </div>
       <div className="overlay-scroll overlay-scroll--flush">
         <div className="customer-detail-hero">
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
@@ -88,6 +119,15 @@ export function CustomerDetailScreen({
               {dirMatch.note.trim()}
             </p>
           )}
+          <div className="detail-actions detail-actions-v2">
+            <button type="button" className="edit-entry-btn" disabled={exportBusy} onClick={exportPdf}>
+              <IcPrint />
+              Statement PDF
+            </button>
+            <button type="button" className="edit-entry-btn" onClick={() => downloadPartyStatementCsv(statement)}>
+              Export CSV
+            </button>
+          </div>
           <div className="customer-detail-kpis">
             <div className="customer-kpi-card">
               <div className="customer-kpi-card-lbl">Total Revenue</div>
@@ -130,7 +170,7 @@ export function CustomerDetailScreen({
                   <button key={s.id} type="button" className="sale-row" onClick={() => onOpenSale(s.id)}>
                     <div className="sr-left">
                       <span className="sr-name">{s.invoiceNo}</span>
-                      <span className="sr-item">{s.item}</span>
+                      <span className="sr-item">{saleDocLabel(s.docType)} · {s.item}</span>
                       <span className="sr-sub">{dateHuman(s.date)}</span>
                     </div>
                     <div className="sr-right">

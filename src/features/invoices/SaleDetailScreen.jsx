@@ -17,6 +17,7 @@ import {
   servicingVisitStatusLabel,
   waMessageHref,
 } from "@/domain/index.js";
+import { normalizeDocType, saleDocLabel } from "@/domain/saleDocuments.js";
 import { IcEdit, IcEye, IcPrint, IcServicing, IcTrash, IcWhatsApp } from "@/shared/ui/icons/AppIcons.jsx";
 import { ContactIcons, OverlayScreen, PageHeader } from "@/shared/ui/layout/AppChrome.jsx";
 import { InvoicePreviewModal } from "./InvoicePreviewModal.jsx";
@@ -36,14 +37,19 @@ export function SaleDetailScreen({
   businessName = "",
   onClose,
   onEdit,
+  onDuplicate,
+  onCreditNote,
+  onDebitNote,
   onPayment,
   onDelete,
   onOpenServicing,
   onMarkServicingComplete,
   onUndoServicingComplete,
 }) {
-  const isBos = sale?.docType === "billOfSupply";
-  const docLabel = isBos ? "Bill of Supply" : "Invoice";
+  const docType = normalizeDocType(sale?.docType);
+  const isBos = docType === "billOfSupply";
+  const docLabel = saleDocLabel(docType);
+  const linkedRef = String(sale?.linkedInvoiceNo || "").trim();
   const st = saleStatus(sale, defaultDueDays);
   const dueDate = sale.dueDate || addDaysStr(sale.date, defaultDueDays);
   const payRows = useMemo(() => normalizePaymentEntries(sale), [sale]);
@@ -171,9 +177,33 @@ export function SaleDetailScreen({
           ) : null}
         </section>
 
+        <section className="detail-actions detail-actions-v2 hdr-print-hide">
+          {typeof onDuplicate === "function" ? (
+            <button type="button" className="edit-entry-btn" onClick={onDuplicate}>
+              Duplicate
+            </button>
+          ) : null}
+          {typeof onCreditNote === "function" && docType === "invoice" ? (
+            <button type="button" className="edit-entry-btn" onClick={onCreditNote}>
+              Credit note
+            </button>
+          ) : null}
+          {typeof onDebitNote === "function" && docType === "invoice" ? (
+            <button type="button" className="edit-entry-btn" onClick={onDebitNote}>
+              Debit note
+            </button>
+          ) : null}
+        </section>
+
         <section className="detail-card detail-card-v2">
           <div className="dc-title">Invoice details</div>
           <dl className="dc-dl dc-dl-grid">
+            {linkedRef ? (
+              <div>
+                <dt>Against invoice</dt>
+                <dd>{linkedRef}</dd>
+              </div>
+            ) : null}
             <div>
               <dt>Date</dt>
               <dd>{dateHuman(sale.date)}</dd>

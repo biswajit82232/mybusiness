@@ -1185,8 +1185,12 @@ function InvoiceSettingsForm({ settings, onSavePartial }) {
           onSavePartial({
             invoicePrefix: d.get("invoicePrefix"),
             billOfSupplyPrefix: d.get("billOfSupplyPrefix"),
+            creditNotePrefix: d.get("creditNotePrefix"),
+            debitNotePrefix: d.get("debitNotePrefix"),
             invoiceNextNumber: num(d.get("invoiceNextNumber")),
             billOfSupplyNextNumber: num(d.get("billOfSupplyNextNumber")),
+            creditNoteNextNumber: num(d.get("creditNoteNextNumber")),
+            debitNoteNextNumber: num(d.get("debitNoteNextNumber")),
             defaultDueDays: num(d.get("defaultDueDays")),
             monthlySalesTarget: num(d.get("monthlySalesTarget")),
             ...(gstOn
@@ -1237,6 +1241,18 @@ function InvoiceSettingsForm({ settings, onSavePartial }) {
                 key={`bsnn-${settings.billOfSupplyNextNumber || 1}`}
                 defaultValue={settings.billOfSupplyNextNumber || 1}
               />
+            </Field>
+            <Field label="Credit note prefix">
+              <input name="creditNotePrefix" type="text" key={`cnp-${settings.creditNotePrefix || "CN"}`} defaultValue={settings.creditNotePrefix || "CN"} autoComplete="off" />
+            </Field>
+            <Field label="Debit note prefix">
+              <input name="debitNotePrefix" type="text" key={`dnp-${settings.debitNotePrefix || "DN"}`} defaultValue={settings.debitNotePrefix || "DN"} autoComplete="off" />
+            </Field>
+            <Field label="Credit note next number">
+              <input name="creditNoteNextNumber" type="number" min="1" step="1" key={`cnn-${settings.creditNoteNextNumber || 1}`} defaultValue={settings.creditNoteNextNumber || 1} />
+            </Field>
+            <Field label="Debit note next number">
+              <input name="debitNoteNextNumber" type="number" min="1" step="1" key={`dnn-${settings.debitNoteNextNumber || 1}`} defaultValue={settings.debitNoteNextNumber || 1} />
             </Field>
             <Field label="Default due days">
               <input name="defaultDueDays" type="number" min="1" max="365" key={`dd-${settings.defaultDueDays}`} defaultValue={settings.defaultDueDays} />
@@ -1368,6 +1384,8 @@ function BusinessSettingsForm({ settings, onSavePartial }) {
           businessName: d.get("businessName"),
           businessPhone: d.get("businessPhone"),
           businessWhatsapp: d.get("businessWhatsapp"),
+          businessUpiVpa: d.get("businessUpiVpa"),
+          businessUpiPayeeName: d.get("businessUpiPayeeName"),
           businessAddress: d.get("businessAddress"),
           businessCity: d.get("businessCity"),
           businessState: d.get("businessState"),
@@ -1394,6 +1412,12 @@ function BusinessSettingsForm({ settings, onSavePartial }) {
           </Field>
           <Field label="WhatsApp (optional)">
             <input name="businessWhatsapp" type="tel" key={`bw-${settings.businessWhatsapp}`} defaultValue={settings.businessWhatsapp} />
+          </Field>
+          <Field label="UPI ID (for invoice QR)">
+            <input name="businessUpiVpa" type="text" key={`uv-${settings.businessUpiVpa}`} defaultValue={settings.businessUpiVpa} placeholder="yourname@bank" autoComplete="off" />
+          </Field>
+          <Field label="UPI payee name (optional)">
+            <input name="businessUpiPayeeName" type="text" key={`upn-${settings.businessUpiPayeeName}`} defaultValue={settings.businessUpiPayeeName} placeholder="Shown in UPI apps" autoComplete="off" />
           </Field>
         </div>
       </div>

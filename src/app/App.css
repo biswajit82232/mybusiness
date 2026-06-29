@@ -8010,6 +8010,214 @@ input[readonly] { background: var(--line2); color: var(--muted); }
   padding-top: 8px;
   padding-bottom: 8px;
 }
+.rep-period-bar--hub {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--card);
+}
+.cg-toggle-row-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+.rep-range-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.rep-range-row--custom {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.rep-range-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.rep-hub-snapshot {
+  margin: 8px var(--page-pad) 16px;
+}
+.rep-snapshot-hdr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+.rep-snapshot-hdr .rep-st {
+  margin: 0;
+}
+.rep-hub-snapshot .rep-snap-basis {
+  display: none;
+}
+.rep-page--hub {
+  padding: 0 0 32px;
+}
+.rep-hub-cat {
+  margin: 0 var(--page-pad) 20px;
+}
+.rep-hub-cat-title {
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--primary);
+  margin: 0 0 8px;
+  padding: 0 2px;
+}
+.rep-hub-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--card);
+}
+.rep-hub-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 14px;
+  border: none;
+  border-bottom: 1px solid var(--line);
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+}
+.rep-hub-item:last-child {
+  border-bottom: none;
+}
+.rep-hub-item:active {
+  background: var(--line2);
+}
+.rep-hub-item-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.rep-hub-item-title {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--text);
+}
+.rep-hub-item-desc {
+  font-size: 0.72rem;
+  color: var(--muted);
+  line-height: 1.35;
+}
+.rep-hub-item svg {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  color: var(--muted);
+}
+.rep-detail-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px var(--page-pad) 10px;
+  border-bottom: 1px solid var(--line);
+  background: var(--card);
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+.rep-detail-toolbar-spacer {
+  flex: 1;
+  min-width: 0;
+}
+.rep-view-toggle {
+  flex: 1;
+  min-width: 0;
+  max-width: 280px;
+}
+.rep-export-actions--toolbar {
+  margin-top: 0;
+  flex-shrink: 0;
+  justify-content: flex-end;
+}
+@media (max-width: 480px) {
+  .rep-detail-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .rep-view-toggle {
+    max-width: none;
+  }
+  .rep-export-actions--toolbar {
+    justify-content: flex-start;
+  }
+}
+.rep-detail-hdr {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px var(--page-pad) 8px;
+  border-bottom: 1px solid var(--line);
+  background: var(--card);
+}
+.rep-back-btn {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--line2);
+  color: var(--text);
+  cursor: pointer;
+}
+.rep-detail-hdr-text {
+  min-width: 0;
+  flex: 1;
+}
+.rep-detail-cat {
+  margin: 0;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--primary);
+}
+.rep-detail-title {
+  margin: 2px 0 0;
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.rep-detail-meta {
+  margin: 4px 0 0;
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+.rep-page--detail {
+  padding: 12px var(--page-pad) 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.rep-kpi-grid--detail {
+  margin-bottom: 4px;
+}
+.rep-table--detail {
+  margin-top: 0;
+}
+.rep-kpi-v--danger {
+  color: var(--danger);
+}
+.rep-note {
+  margin: 0 0 10px;
+}
 .rep-toggle { margin: 0; }
 .rep-section { margin: 8px var(--page-pad) 0; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius-md); padding: 14px 14px 16px; box-shadow: var(--shadow-card); }
 .rep-section--minimal {

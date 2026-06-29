@@ -18,6 +18,7 @@ import {
   buildDailyCashNetProfitMap,
   buildPeriodDailySparklineSeries,
 } from "@/domain/index.js";
+import { signedOutstanding, signedSaleAmount } from "@/domain/saleDocuments.js";
 
 /**
  * Derive the FY/period-scoped slices and KPI summary the authenticated app
@@ -149,7 +150,7 @@ export function useAuthenticatedDerivedMetrics({
 
   const kpis = useMemo(() => {
     const accountingBasis = accountingBasisSetting === "accrual" ? "accrual" : "cash";
-    const revenueInvoiced = dashSales.reduce((s, x) => s + num(x.totalSale), 0);
+    const revenueInvoiced = dashSales.reduce((s, x) => s + signedSaleAmount(x), 0);
     /* Cash collected on invoice-dated sales in the period (informational; differs from payment-date cash below). */
     const revenueCashOnInvoicesInPeriod = dashSales.reduce((s, x) => s + num(x.received), 0);
     const accrual = accountingBasis === "accrual";
@@ -179,7 +180,7 @@ export function useAuthenticatedDerivedMetrics({
         : sumOtherIncomeCashInInFy(safeOtherIncomes, fsm, fyYear);
     }
     const revenue = accrual ? revenueInvoiced : revenueCash;
-    const outstanding = safeSales.reduce((s, x) => s + num(x.outstanding), 0);
+    const outstanding = safeSales.reduce((s, x) => s + signedOutstanding(x), 0);
     const totalLiquid = computeTotalLiquid({
       bankAccounts: state.balance?.bankAccounts,
       transfers: state.balance?.bankTransfers,

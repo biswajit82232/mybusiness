@@ -8,6 +8,7 @@ import {
   num,
   saleStatus,
 } from "@/domain/index.js";
+import { signedOutstanding } from "@/domain/saleDocuments.js";
 import {
   IcBell,
   IcBook,
@@ -252,7 +253,7 @@ export function HomeTab({
   const recentReceivables = useMemo(
     () =>
       [...safeSales]
-        .filter((s) => num(s?.outstanding) > 0.01)
+        .filter((s) => signedOutstanding(s) > 0.01)
         .sort(compareRecordsByRecency)
         .slice(0, RECENT_LIMIT),
     [safeSales],
@@ -543,7 +544,7 @@ export function HomeTab({
                     avatarName={sale.customerName}
                     title={sale.customerName}
                     subtitle={[dateHuman(sale.date), sale.invoiceNo].filter(Boolean).join(" · ")}
-                    amount={money(sale.outstanding)}
+                    amount={money(signedOutstanding(sale))}
                     badge={st.text}
                     badgeCls={st.cls}
                     onClick={() => openSaleDetail(sale.id)}

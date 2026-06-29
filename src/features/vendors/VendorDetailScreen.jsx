@@ -1,6 +1,9 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { compareYmdDesc, dateHuman, money, num } from "@/domain/index.js";
-import { IcEdit, IcTrash, IcUpload } from "@/shared/ui/icons/AppIcons.jsx";
+import { buildVendorStatement, downloadPartyStatementCsv } from "@/domain/partyStatement.js";
+import { PartyStatementPrintSheet } from "@/features/reports/PartyStatementPrintSheet.jsx";
+import { downloadStatementPdf } from "@/features/reports/downloadStatementPdf.js";
+import { IcEdit, IcPrint, IcTrash, IcUpload } from "@/shared/ui/icons/AppIcons.jsx";
 import { ContactIcons, EmptyState, OverlayScreen, PageHeader } from "@/shared/ui/layout/AppChrome.jsx";
 import { avatarColor, avatarInitials } from "@/features/customers/avatarUtils.js";
 
@@ -14,12 +17,15 @@ export function VendorDetailScreen({
   vendorName,
   purchases,
   vendorDirectory = [],
+  company = {},
   onClose,
   onOpenPurchase,
   onEditDirectoryVendor,
   onDeleteDirectoryVendor,
 }) {
   const [activeTab, setActiveTab] = useState("transactions");
+  const [exportBusy, setExportBusy] = useState(false);
+  const stmtRef = useRef(null);
   const normalizedName = (vendorName || "").trim().toLowerCase();
   const vendorPurchases = useMemo(
     () =>
@@ -27,6 +33,10 @@ export function VendorDetailScreen({
         .filter((p) => (p?.supplierName || "").trim().toLowerCase() === normalizedName)
         .sort((a, b) => compareYmdDesc(a?.date, b?.date)),
     [purchases, normalizedName],
+  );
+  const statement = useMemo(
+    () => buildVendorStatement(purchases, vendorName, { range: "all" }),
+    [purchases, vendorName],
   );
   const dirMatch = useMemo(
     () => (vendorDirectory || []).find((d) => (d.name || "").trim().toLowerCase() === normalizedName) ?? null,
@@ -41,6 +51,17 @@ export function VendorDetailScreen({
   );
   const phone1 = dirMatch?.phone1 || "";
   const phone2 = dirMatch?.phone2 || "";
+
+  const exportPdf = async () => {
+    const el = stmtRef.current?.querySelector(".invoice-print-sheet");
+    if (!el) return;
+    setExportBusy(true);
+    try {
+      await downloadStatementPdf(el, { partyName: vendorName, partyKind: "vendor" });
+    } finally {
+      setExportBusy(false);
+    }
+  };
 
   return (
     <OverlayScreen>
@@ -60,6 +81,9 @@ export function VendorDetailScreen({
           ) : undefined
         }
       />
+      <div className="invoice-print-only" aria-hidden="true" ref={stmtRef}>
+        <PartyStatementPrintSheet statement={statement} company={company} />
+      </div>
       <div className="overlay-scroll overlay-scroll--flush">
         <div className="customer-detail-hero">
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
@@ -90,6 +114,15 @@ export function VendorDetailScreen({
               {dirMatch.note.trim()}
             </p>
           )}
+          <div className="detail-actions detail-actions-v2">
+            <button type="button" className="edit-entry-btn" disabled={exportBusy} onClick={exportPdf}>
+              <IcPrint />
+              Statement PDF
+            </button>
+            <button type="button" className="edit-entry-btn" onClick={() => downloadPartyStatementCsv(statement)}>
+              Export CSV
+            </button>
+          </div>
           <div className="customer-detail-kpis">
             <div className="customer-kpi-card">
               <div className="customer-kpi-card-lbl">Total purchases</div>
