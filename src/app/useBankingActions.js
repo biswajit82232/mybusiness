@@ -142,9 +142,13 @@ export function useBankingActions({
         }
       }
       const __p = await persistWholeStateImmediate(next);
-      if (__p) setState(__p);
-      showToast("Transfer saved");
-      return true;
+      if (__p) {
+        setState(__p);
+        showToast("Transfer saved");
+        return true;
+      }
+      showToast("Could not save transfer — try again");
+      return false;
     },
     [persistWholeStateImmediate, setState, showToast, state],
   );

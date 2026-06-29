@@ -12,6 +12,7 @@ const ENTITY_TYPES_WITH_OBJECT_ID = new Set([
   "emiEntries",
   "loansGiven",
   "customerDirectory",
+  "customerAdvancePayments",
   "vendorDirectory",
   "auditEvents",
   "syncConflictQueue",
@@ -32,6 +33,7 @@ export function isPayloadEffectivelyEmpty(p) {
     !(Array.isArray(p.loansGiven) && p.loansGiven.length) &&
     !(Array.isArray(p.purchases) && p.purchases.length) &&
     !(Array.isArray(p.customerDirectory) && p.customerDirectory.length) &&
+    !(Array.isArray(p.customerAdvancePayments) && p.customerAdvancePayments.length) &&
     !(Array.isArray(p.vendorDirectory) && p.vendorDirectory.length) &&
     !(Array.isArray(p.dismissedAlertIds) && p.dismissedAlertIds.length) &&
     !(Array.isArray(p.auditEvents) && p.auditEvents.length) &&
@@ -112,6 +114,7 @@ export function entityRowsToLocalPayload(rows) {
   const emiEntries = new Map();
   const loansGiven = new Map();
   const customerDirectory = new Map();
+  const customerAdvancePayments = new Map();
   const vendorDirectory = new Map();
   const dismissedAlertIds = [];
   const auditEvents = new Map();
@@ -148,6 +151,7 @@ export function entityRowsToLocalPayload(rows) {
     else if (t === "emiEntries") putById(emiEntries, t, r);
     else if (t === "loansGiven") putById(loansGiven, t, r);
     else if (t === "customerDirectory") putById(customerDirectory, t, r);
+    else if (t === "customerAdvancePayments") putById(customerAdvancePayments, t, r);
     else if (t === "vendorDirectory") putById(vendorDirectory, t, r);
     else if (t === "auditEvents") putById(auditEvents, t, r);
     else if (t === "syncConflictQueue") putById(syncConflictQueue, t, r);
@@ -171,6 +175,7 @@ export function entityRowsToLocalPayload(rows) {
     emiEntries: [...emiEntries.values()],
     loansGiven: [...loansGiven.values()],
     customerDirectory: [...customerDirectory.values()],
+    customerAdvancePayments: [...customerAdvancePayments.values()],
     vendorDirectory: [...vendorDirectory.values()],
     dismissedAlertIds,
     auditEvents: [...auditEvents.values()],

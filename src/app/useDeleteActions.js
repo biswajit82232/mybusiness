@@ -1,12 +1,15 @@
 import { useCallback } from "react";
 import {
   effectiveEntryBranchId,
+  advanceAppliedAmount,
   normBankTransfers,
   normBranchesList,
   normCustomerDirectory,
+  normCustomerAdvancePayments,
   normPurchasesList,
   normSalesList,
   normVendorDirectory,
+  num,
   stripBankAccountReferences,
 } from "@/domain/index.js";
 
@@ -264,6 +267,9 @@ export function useDeleteActions({
         setDelConfirm(null);
         return;
       }
+      const removedPe = (sale.paymentEntries || []).find(
+        (p) => p && String(p.id) === String(paymentEntryId),
+      );
       const pes = (sale.paymentEntries || []).filter(
         (p) => String(p.id) !== String(paymentEntryId),
       );
@@ -275,9 +281,30 @@ export function useDeleteActions({
         return;
       }
       const normalized = normalizedList[0];
+      let customerAdvancePayments = state.customerAdvancePayments || [];
+      const advanceId = String(removedPe?.sourceAdvanceId || "").trim();
+      if (advanceId && removedPe) {
+        customerAdvancePayments = normCustomerAdvancePayments(
+          customerAdvancePayments.map((a) => {
+            if (!a || a.id !== advanceId) return a;
+            return {
+              ...a,
+              applications: (a.applications || []).filter(
+                (app) =>
+                  !(
+                    String(app.saleId) === String(saleId) &&
+                    num(app.amount) === num(removedPe.amount) &&
+                    String(app.date || "") === String(removedPe.date || "")
+                  ),
+              ),
+            };
+          }),
+        );
+      }
       const next = {
         ...state,
         sales: (state.sales || []).map((s) => (s && s.id === saleId ? normalized : s)),
+        customerAdvancePayments,
       };
       const __p = await persistWholeStateImmediate(next);
       if (__p) setState(__p);
@@ -312,6 +339,29 @@ export function useDeleteActions({
       const __p = await persistWholeStateImmediate(next);
       if (__p) setState(__p);
       showToast("Supplier payment removed");
+
+    } else if (type === "customerAdvance") {
+      const advanceId = String(id || "").trim();
+      const advance = (state.customerAdvancePayments || []).find((a) => a && a.id === advanceId);
+      if (!advance) {
+        showToast("Advance payment not found");
+        setDelConfirm(null);
+        return;
+      }
+      if (advanceAppliedAmount(advance) > 0.01) {
+        showToast("Cannot delete — advance already applied to invoices");
+        setDelConfirm(null);
+        return;
+      }
+      const next = {
+        ...state,
+        customerAdvancePayments: normCustomerAdvancePayments(
+          (state.customerAdvancePayments || []).filter((a) => a && a.id !== advanceId),
+        ),
+      };
+      const __p = await persistWholeStateImmediate(next);
+      if (__p) setState(__p);
+      showToast("Advance payment removed");
 
     } else if (type === "bankAccount") {
       const next = stripBankAccountReferences(state, id);

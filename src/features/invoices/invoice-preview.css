@@ -1,0 +1,75 @@
+/* Invoice preview modal chrome only — sheet layout lives in invoice-sheet-base.css */
+.invoice-preview-overlay {
+  z-index: 270;
+  align-items: stretch;
+  justify-items: center;
+  padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+}
+.invoice-preview-panel {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: min(220mm, 100%);
+  max-height: min(92dvh, calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 24px));
+  background: #fff;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  animation: modalIn var(--dur-slow) var(--ease-out);
+}
+.invoice-preview-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--line);
+  background: var(--card);
+  flex-shrink: 0;
+}
+.invoice-preview-title {
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  font-weight: var(--fw-bold);
+  color: var(--text);
+}
+.invoice-preview-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.invoice-preview-print {
+  min-height: 36px;
+  padding: 0 12px;
+  font-size: 0.82rem;
+}
+.invoice-preview-print:disabled {
+  opacity: 0.65;
+  pointer-events: none;
+}
+.invoice-preview-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 16px 12px 20px;
+  background: #f1f5f9;
+}
+@media (max-width: 480px) {
+  .invoice-preview-scroll { padding: 10px 6px 16px; }
+}
+/* White paper card inside grey scroll area */
+.invoice-preview-scroll .invoice-print-sheet {
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.08);
+  padding: 12px 10px 16px;
+}
+.invoice-preview-error {
+  margin: 0;
+  padding: 8px 14px;
+  font-size: 0.8125rem;
+  color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 8%, transparent);
+  border-bottom: 1px solid var(--line);
+}

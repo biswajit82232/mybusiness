@@ -3,6 +3,7 @@
  * Split from App.jsx — keep in sync when editing persisted state shape.
  */
 import { normSaleDraft } from "./saleDraft.js";
+import { normalizeInvoiceTemplate } from "./invoiceTemplates.js";
 
 export const MAX_DISMISSED_ALERTS = 500;
 /** Chunk size for long scrolling lists (sales, ledger, etc.). */
@@ -48,6 +49,7 @@ export function aggregateCashflowDaysInMonth(
   purchases = [],
   loansGiven = [],
   bankTransfers = [],
+  customerAdvancePayments = [],
 ) {
   const mk = String(monthKey || "").slice(0, 7);
   if (mk.length < 7) return [];
@@ -69,11 +71,15 @@ export function aggregateCashflowDaysInMonth(
     const pes = normalizePaymentEntries(s);
     if (pes.length > 0) {
       for (const pe of pes) {
+        if (String(pe.sourceAdvanceId || "").trim()) continue;
         bumpIn(String(pe.date || "").slice(0, 10), num(pe.amount));
       }
     } else if (num(s.received) > 0) {
       bumpIn(String(s.date || "").slice(0, 10), num(s.received));
     }
+  }
+  for (const adv of normCustomerAdvancePayments(customerAdvancePayments)) {
+    bumpIn(String(adv.date || "").slice(0, 10), num(adv.amount));
   }
   for (const oi of otherIncomes || []) {
     if (!oi || typeof oi !== "object") continue;
@@ -306,6 +312,7 @@ export const NAV_PAGE_IDS = new Set([
   "netWorth",
   "purchases",
   "vendors",
+  "payments",
   "settings",
 ]);
 export const LEGACY_TAB_TO_PAGE = {
@@ -856,6 +863,7 @@ export function computeTotalLiquid({
   otherIncomes = [],
   purchases = [],
   loansGiven = [],
+  customerAdvancePayments = [],
 } = {}) {
   const accounts = Array.isArray(bankAccounts) ? bankAccounts : [];
   return roundMoney2(
@@ -873,6 +881,8 @@ export function computeTotalLiquid({
             otherIncomes,
             purchases,
             loansGiven,
+            null,
+            customerAdvancePayments,
           ),
         0,
       ),
@@ -1396,6 +1406,8 @@ export function defSaleLineItem() {
     batterySerialNo: "",
     /** "__custom__" | lowercase item key — UI only for stock picker when auto stock-out is on */
     itemProductPick: "__custom__",
+    /** Shared id → print as one invoice row; inventory still uses each line separately. */
+    invoiceGroupId: "",
   };
 }
 
@@ -1430,6 +1442,8 @@ export function defSale() {
     lineItems: [defSaleLineItem()],
     /** Flat discount (₹) subtracted from line subtotal to get totalSale. */
     discount: "",
+    /** Flat extra charge (₹) added after discount; label from settings.additionalChargesLabel. */
+    additionalCharges: "",
     receivedAmount: "",
     receivedBankAccountId: "",
     /** Split payment rows: `{ id, amount, bankAccountId }[]` (form-only; persisted as paymentEntries). */
@@ -1503,6 +1517,7 @@ export function saleToEntry(sale, emi) {
     motorNo: String(li?.motorNo || ""),
     batterySerialNo: String(li?.batterySerialNo || ""),
     itemProductPick: String(li?.itemProductPick || "__custom__"),
+    invoiceGroupId: String(li?.invoiceGroupId || ""),
   }));
   const first = lineItems[0];
   return {
@@ -1530,6 +1545,10 @@ export function saleToEntry(sale, emi) {
     costPrice: first.costPrice,
     lineItems,
     discount: sale.discount != null && sale.discount !== "" ? String(sale.discount) : "",
+    additionalCharges:
+      sale.additionalCharges != null && sale.additionalCharges !== ""
+        ? String(sale.additionalCharges)
+        : "",
     receivedAmount: String(sale.received ?? 0),
     receivedBankAccountId: (() => {
       const pe = normalizePaymentEntries(sale);
@@ -1733,6 +1752,7 @@ export function normalizePaymentEntries(sale) {
       date: String(p.date || sale?.date || todayStr()).slice(0, 10),
       amount: num(p.amount),
       bankAccountId: String(p.bankAccountId || "").trim(),
+      ...(String(p.sourceAdvanceId || "").trim() ? { sourceAdvanceId: String(p.sourceAdvanceId).trim() } : {}),
     }))
     .filter((p) => p.amount > 0 && p.bankAccountId);
 }
@@ -1927,8 +1947,91 @@ export function normPurchasesList(raw, bankAccountsForDefault = null) {
     .filter((x) => x.lines.length > 0);
 }
 
+function receiptSequenceForPrefix(receiptNo, prefix) {
+  const p = sanitizePrefix(prefix);
+  const s = String(receiptNo || "").trim();
+  const m = s.match(new RegExp(`^${p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}-(\\d+)$`, "i"));
+  if (m) return parseInt(m[1], 10) || 0;
+  return 0;
+}
+
+/** Next payment receipt number: PREFIX-0001, PREFIX-0002, … */
+export function genPaymentReceiptNo(advances, prefixRaw, nextSeqRaw) {
+  const prefix = sanitizePrefix(prefixRaw || "RCPT");
+  let maxSeq = 0;
+  for (const a of Array.isArray(advances) ? advances : []) {
+    if (!a || typeof a !== "object") continue;
+    maxSeq = Math.max(maxSeq, receiptSequenceForPrefix(a.receiptNo, prefix));
+  }
+  const configuredNext = Math.max(1, num(nextSeqRaw) || 1);
+  const nextSeq = Math.max(maxSeq + 1, configuredNext);
+  return `${prefix}-${String(nextSeq).padStart(4, "0")}`;
+}
+
+export function paymentReceiptPrefix(settings) {
+  return sanitizePrefix(settings?.paymentReceiptPrefix ?? "RCPT");
+}
+
+export function normAdvanceApplications(raw, advanceId) {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter((x) => x && typeof x === "object")
+    .map((x) => ({
+      id: String(x.id || makeId()),
+      saleId: String(x.saleId || "").trim(),
+      amount: roundMoney2(num(x.amount)),
+      date: String(x.date || todayStr()).slice(0, 10),
+      advanceId: String(advanceId || x.advanceId || "").trim(),
+    }))
+    .filter((x) => x.saleId && x.amount > 0);
+}
+
+export function normCustomerAdvancePayments(raw) {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter((x) => x && typeof x === "object")
+    .map((x) => {
+      const id = String(x.id || makeId());
+      const amount = roundMoney2(num(x.amount));
+      const applications = normAdvanceApplications(x.applications, id);
+      return {
+        id,
+        date: String(x.date || todayStr()).slice(0, 10),
+        amount,
+        bankAccountId: String(x.bankAccountId || "").trim(),
+        customerName: String(x.customerName || "").trim(),
+        receiptNo: String(x.receiptNo || "").trim(),
+        note: String(x.note || "").trim(),
+        applications,
+      };
+    })
+    .filter((x) => x.amount > 0 && x.bankAccountId && x.customerName);
+}
+
+export function advanceAppliedAmount(advance) {
+  const apps = Array.isArray(advance?.applications) ? advance.applications : [];
+  return roundMoney2(apps.reduce((s, a) => s + num(a.amount), 0));
+}
+
+export function advanceUnappliedAmount(advance) {
+  return roundMoney2(Math.max(0, num(advance?.amount) - advanceAppliedAmount(advance)));
+}
+
+/** Total unapplied advance balance for one customer (case-insensitive name match). */
+export function customerAdvanceBalance(customerName, advances) {
+  const key = String(customerName || "").trim().toLowerCase();
+  if (!key) return 0;
+  let s = 0;
+  for (const a of Array.isArray(advances) ? advances : []) {
+    if (!a || typeof a !== "object") continue;
+    if (String(a.customerName || "").trim().toLowerCase() !== key) continue;
+    s += advanceUnappliedAmount(a);
+  }
+  return roundMoney2(s);
+}
+
 /** Linked expenses, other income, invoice payments, supplier payments (Purchases module), internal transfers, stock-in, and loans given / repayments for one account, newest first. */
-export function buildBankAccountTransactions(accountId, expenses, sales, transfers, inventoryEntries, otherIncomes, allAccounts, purchases = [], loansGiven = []) {
+export function buildBankAccountTransactions(accountId, expenses, sales, transfers, inventoryEntries, otherIncomes, allAccounts, purchases = [], loansGiven = [], customerAdvancePayments = []) {
   const id = String(accountId || "");
   const banks = allAccounts || [];
   const rows = [];
@@ -1966,6 +2069,7 @@ export function buildBankAccountTransactions(accountId, expenses, sales, transfe
     if (!s || typeof s !== "object") continue;
     for (const pe of normalizePaymentEntries(s)) {
       if (!pe || String(pe.bankAccountId || "") !== id) continue;
+      if (String(pe.sourceAdvanceId || "").trim()) continue;
       rows.push({
         key: `p-${s.id}-${pe.id}`,
         linkKind: "payment",
@@ -2000,6 +2104,20 @@ export function buildBankAccountTransactions(accountId, expenses, sales, transfe
         sortMs: Math.max(entityTimeMsFromId(pe.id), entityTimeMsFromId(p.id)),
       });
     }
+  }
+  for (const adv of normCustomerAdvancePayments(customerAdvancePayments)) {
+    if (String(adv.bankAccountId || "") !== id) continue;
+    rows.push({
+      key: `adv-${adv.id}`,
+      linkKind: "advancePayment",
+      advancePaymentId: adv.id,
+      date: adv.date,
+      dir: "in",
+      amount: num(adv.amount),
+      title: adv.customerName || "Customer",
+      sub: adv.receiptNo ? `Advance · ${adv.receiptNo}` : "Advance payment",
+      sortMs: entityTimeMsFromId(adv.id),
+    });
   }
   for (const inv of inventoryEntries || []) {
     if (!inv || inv.type === "out") continue;
@@ -2120,7 +2238,7 @@ export function bankTxRowsWithRunningAfter(rowsNewestFirst, bookAmount) {
 }
 
 /** Sum of linked money in/out in a calendar month (YYYY-MM) across all accounts. */
-export function bankingActivityForMonth(expenses, sales, inventoryEntries, otherIncomes, monthKey, purchases = [], transfers = [], loansGiven = []) {
+export function bankingActivityForMonth(expenses, sales, inventoryEntries, otherIncomes, monthKey, purchases = [], transfers = [], loansGiven = [], customerAdvancePayments = []) {
   const mk = String(monthKey || "").slice(0, 7);
   if (mk.length < 7) return { cashIn: 0, cashOut: 0 };
   let cashIn = 0;
@@ -2138,6 +2256,7 @@ export function bankingActivityForMonth(expenses, sales, inventoryEntries, other
     const pes = normalizePaymentEntries(s);
     if (pes.length > 0) {
       for (const pe of pes) {
+        if (String(pe.sourceAdvanceId || "").trim()) continue;
         if (!pe || String(pe.date || "").slice(0, 7) !== mk) continue;
         cashIn += num(pe.amount);
       }
@@ -2180,6 +2299,10 @@ export function bankingActivityForMonth(expenses, sales, inventoryEntries, other
       cashIn += num(rep.amount);
     }
   }
+  for (const adv of normCustomerAdvancePayments(customerAdvancePayments)) {
+    if (String(adv.date || "").slice(0, 7) !== mk) continue;
+    cashIn += num(adv.amount);
+  }
   return { cashIn: roundMoney2(cashIn), cashOut: roundMoney2(cashOut) };
 }
 
@@ -2193,12 +2316,37 @@ export function sumSalePaymentsInMonth(sales, monthKey) {
     const pes = normalizePaymentEntries(s);
     if (pes.length > 0) {
       for (const pe of pes) {
+        if (String(pe.sourceAdvanceId || "").trim()) continue;
         if (String(pe.date || "").slice(0, 7) !== mk) continue;
         t += num(pe.amount);
       }
     } else if (num(s.received) > 0 && String(s.date || "").slice(0, 7) === mk) {
       t += num(s.received);
     }
+  }
+  return roundMoney2(t);
+}
+
+/** Customer advance receipts in a calendar month (by advance date — matches banking). */
+export function sumCustomerAdvanceReceiptsInMonth(customerAdvancePayments, monthKey) {
+  const mk = String(monthKey || "").slice(0, 7);
+  if (mk.length < 7) return 0;
+  let t = 0;
+  for (const adv of normCustomerAdvancePayments(customerAdvancePayments)) {
+    if (String(adv.date || "").slice(0, 7) !== mk) continue;
+    t += num(adv.amount);
+  }
+  return roundMoney2(t);
+}
+
+/** Customer advance receipts on a specific calendar day. */
+export function sumCustomerAdvanceReceiptsOnDay(customerAdvancePayments, dayStr) {
+  const d = String(dayStr || "").slice(0, 10);
+  if (d.length < 10) return 0;
+  let t = 0;
+  for (const adv of normCustomerAdvancePayments(customerAdvancePayments)) {
+    if (String(adv.date || "").slice(0, 10) !== d) continue;
+    t += num(adv.amount);
   }
   return roundMoney2(t);
 }
@@ -2213,6 +2361,7 @@ export function sumSalePaymentsOnDay(sales, dayStr) {
     const pes = normalizePaymentEntries(s);
     if (pes.length > 0) {
       for (const pe of pes) {
+        if (String(pe.sourceAdvanceId || "").trim()) continue;
         if (String(pe.date || "").slice(0, 10) !== d) continue;
         t += num(pe.amount);
       }
@@ -2535,7 +2684,7 @@ export function recognizedCogsForPaymentsAll(sales) {
 }
 
 /** Per-account money in/out in a calendar month (expenses, payments, transfers, stock-in, supplier payments, other income). */
-export function bankingActivityForAccountInMonth(expenses, sales, transfers, inventoryEntries, otherIncomes, accountId, monthKey, purchases = [], loansGiven = []) {
+export function bankingActivityForAccountInMonth(expenses, sales, transfers, inventoryEntries, otherIncomes, accountId, monthKey, purchases = [], loansGiven = [], customerAdvancePayments = []) {
   const mk = String(monthKey || "").slice(0, 7);
   const id = String(accountId || "");
   if (mk.length < 7 || !id) return { inn: 0, out: 0 };
@@ -2553,6 +2702,7 @@ export function bankingActivityForAccountInMonth(expenses, sales, transfers, inv
   }
   for (const s of sales || []) {
     for (const pe of normalizePaymentEntries(s)) {
+      if (String(pe.sourceAdvanceId || "").trim()) continue;
       if (String(pe.bankAccountId || "").trim() !== id) continue;
       if (String(pe.date || "").slice(0, 7) !== mk) continue;
       inn += num(pe.amount);
@@ -2592,6 +2742,11 @@ export function bankingActivityForAccountInMonth(expenses, sales, transfers, inv
       if (d.length < 10 || d.slice(0, 7) !== mk) continue;
       inn += num(rep.amount);
     }
+  }
+  for (const adv of normCustomerAdvancePayments(customerAdvancePayments)) {
+    if (String(adv.bankAccountId || "").trim() !== id) continue;
+    if (String(adv.date || "").slice(0, 7) !== mk) continue;
+    inn += num(adv.amount);
   }
   return { inn: roundMoney2(inn), out: roundMoney2(out) };
 }
@@ -2689,6 +2844,7 @@ export function computeAccountActivityNet(
   otherIncomes,
   purchases = [],
   loansGiven = [],
+  customerAdvancePayments = [],
   asOfDate = null,
 ) {
   const id = String(accountId || "");
@@ -2708,6 +2864,7 @@ export function computeAccountActivityNet(
     const pes = normalizePaymentEntries(s);
     if (pes.length) {
       for (const pe of pes) {
+        if (String(pe.sourceAdvanceId || "").trim()) continue;
         if (String(pe.bankAccountId || "").trim() !== id) continue;
         if (!activityDateOnOrBefore(pe.date, s.date, asOf)) continue;
         net += num(pe.amount);
@@ -2735,6 +2892,11 @@ export function computeAccountActivityNet(
       if (!activityDateOnOrBefore(pe.date, p.date, asOf)) continue;
       net -= num(pe.amount);
     }
+  }
+  for (const adv of normCustomerAdvancePayments(customerAdvancePayments)) {
+    if (String(adv.bankAccountId || "").trim() !== id) continue;
+    if (!activityDateOnOrBefore(adv.date, null, asOf)) continue;
+    net += num(adv.amount);
   }
   for (const lg of loansGiven || []) {
     if (!lg || typeof lg !== "object") continue;
@@ -2765,6 +2927,7 @@ export function computeBankAccountBookBalance(
   purchases = [],
   loansGiven = [],
   asOfDate = null,
+  customerAdvancePayments = [],
 ) {
   if (!account?.id) return 0;
   const opening = roundMoney2(account.openingBalance);
@@ -2778,6 +2941,7 @@ export function computeBankAccountBookBalance(
       otherIncomes,
       purchases,
       loansGiven,
+      customerAdvancePayments,
       asOfDate,
     ),
   );
@@ -2804,6 +2968,7 @@ export function sumBankAccountBalancesAsOf({
   otherIncomes = [],
   purchases = [],
   loansGiven = [],
+  customerAdvancePayments = [],
   asOfDate,
   predicate = () => true,
 } = {}) {
@@ -2825,6 +2990,7 @@ export function sumBankAccountBalancesAsOf({
             purchases,
             loansGiven,
             asOf,
+            customerAdvancePayments,
           ),
         0,
       ),
@@ -2843,6 +3009,7 @@ export function applyComputedBankBalances(state) {
   const inventoryEntries = state.inventoryEntries || [];
   const purchases = state.purchases || [];
   const loansGiven = state.loansGiven || [];
+  const customerAdvancePayments = state.customerAdvancePayments || [];
   const transfers = normBankTransfers(state.balance.bankTransfers);
   const bankAccounts = (state.balance.bankAccounts || []).map((a) => {
     if (!a || !a.id) return a;
@@ -2856,9 +3023,21 @@ export function applyComputedBankBalances(state) {
       otherIncomes,
       purchases,
       loansGiven,
+      null,
+      customerAdvancePayments,
     );
     const activity = roundMoney2(
-      computeAccountActivityNet(a.id, expenses, sales, transfers, inventoryEntries, otherIncomes, purchases, loansGiven),
+      computeAccountActivityNet(
+        a.id,
+        expenses,
+        sales,
+        transfers,
+        inventoryEntries,
+        otherIncomes,
+        purchases,
+        loansGiven,
+        customerAdvancePayments,
+      ),
     );
     const adjRaw = a.balanceAdjustment;
     let adj;
@@ -2959,6 +3138,7 @@ export function normSaleLineItems(raw, legacyFallback) {
       chassisNo: String(x.chassisNo || "").trim(),
       motorNo: String(x.motorNo || "").trim(),
       batterySerialNo: String(x.batterySerialNo || "").trim(),
+      invoiceGroupId: String(x.invoiceGroupId || "").trim(),
     }));
   if (clean.length > 0) return clean;
   const fb = legacyFallback || {};
@@ -3036,8 +3216,11 @@ export function normSalesList(raw, bankAccountsForDefault = null) {
        * imports without explicit totals still net-out correctly. */
       const totalsFromLines = sumSaleLineItems(lineItems);
       const discount = roundMoney2(Math.max(0, num(x.discount)));
-      const fromLines = roundMoney2(Math.max(0, totalsFromLines.totalSale - discount));
-      const fromStored = roundMoney2(Math.max(0, num(x.totalSale) - discount));
+      const additionalCharges = roundMoney2(Math.max(0, num(x.additionalCharges)));
+      const fromLines = roundMoney2(
+        Math.max(0, totalsFromLines.totalSale - discount + additionalCharges),
+      );
+      const fromStored = roundMoney2(Math.max(0, num(x.totalSale) - discount + additionalCharges));
       const totalSale = totalsFromLines.totalSale > 0 ? fromLines : fromStored > 0 ? fromStored : fromLines;
       const totalCost = totalsFromLines.totalCost > 0 ? totalsFromLines.totalCost : num(x.totalCost);
       const grossProfit = roundMoney2(totalSale - totalCost);
@@ -3065,6 +3248,7 @@ export function normSalesList(raw, bankAccountsForDefault = null) {
         costPrice: legacyCostPrice,
         lineItems,
         discount,
+        additionalCharges,
         totalSale,
         totalCost,
         grossProfit,
@@ -4332,6 +4516,7 @@ const SYNC_CONFLICT_LIST_KEYS = {
   emiEntries: "emiEntries",
   loansGiven: "loansGiven",
   customerDirectory: "customerDirectory",
+  customerAdvancePayments: "customerAdvancePayments",
   vendorDirectory: "vendorDirectory",
 };
 
@@ -4389,11 +4574,14 @@ export function applySyncConflictPreview(state, conflict) {
     emiEntries: () => normEmiList(arr),
     loansGiven: () => normLoansGivenList(arr),
     customerDirectory: () => normCustomerDirectory(arr),
+    customerAdvancePayments: () => normCustomerAdvancePayments(arr),
     vendorDirectory: () => normVendorDirectory(arr),
   };
   const normFn = normalized[listKey];
   const next = { ...state, [listKey]: normFn ? normFn() : arr };
-  return listKey === "sales" || listKey === "purchases" ? applyComputedBankBalances(next) : next;
+  return listKey === "sales" || listKey === "purchases" || listKey === "customerAdvancePayments"
+    ? applyComputedBankBalances(next)
+    : next;
 }
 
 export function normSyncConflictQueue(raw) {
@@ -4589,6 +4777,8 @@ export const defaultState = applyComputedBankBalances({
     invoiceTerms: "",
     invoiceSignatory: "",
     invoiceSignature: "",
+    /** Visual print/preview layout: premium | classic | modern | minimal */
+    invoiceTemplate: "premium",
     /** When false, HSN/GST fields and tax-invoice print are hidden app-wide. */
     gstEnabled: true,
     defaultProductHsn: "8711",
@@ -4596,8 +4786,12 @@ export const defaultState = applyComputedBankBalances({
     defaultDueDays:30,
     /** Monthly sales count goal. 0 = not set; shown on dashboard. */
     monthlySalesTarget: 0,
+    /** Label for the optional extra charge field on new invoices (e.g. Registration, Freight). */
+    additionalChargesLabel: "Additional Charges",
     invoicePrefix:"MB",
     billOfSupplyPrefix:"BOS",
+    paymentReceiptPrefix:"RCPT",
+    paymentReceiptNextNumber: 1,
     invoiceNextNumber: 1,
     billOfSupplyNextNumber: 1,
     financeCompanies:DEFAULT_FINANCE_COS,
@@ -4633,6 +4827,7 @@ export const defaultState = applyComputedBankBalances({
   servicingCompletions: [],
   servicingWaSent: [],
   customerDirectory: [],
+  customerAdvancePayments: [],
   vendorDirectory: [],
   dismissedAlertIds: [],
   auditEvents: [],
@@ -4659,6 +4854,8 @@ export function mergePersistedPayload(p) {
         monthlySalesTarget: Math.max(0, Math.floor(num(settingsIn?.monthlySalesTarget) || 0)),
         invoicePrefix: sanitizePrefix(settingsIn?.invoicePrefix??"MB"),
         billOfSupplyPrefix: sanitizePrefix(settingsIn?.billOfSupplyPrefix ?? "BOS"),
+        paymentReceiptPrefix: sanitizePrefix(settingsIn?.paymentReceiptPrefix ?? "RCPT"),
+        paymentReceiptNextNumber: Math.max(1, num(settingsIn?.paymentReceiptNextNumber) || 1),
         invoiceNextNumber: Math.max(1, num(settingsIn?.invoiceNextNumber) || 1),
         billOfSupplyNextNumber: Math.max(1, num(settingsIn?.billOfSupplyNextNumber) || 1),
         financeCompanies: Array.isArray(settingsIn?.financeCompanies)&&settingsIn.financeCompanies.length ? settingsIn.financeCompanies : DEFAULT_FINANCE_COS,
@@ -4702,9 +4899,13 @@ export function mergePersistedPayload(p) {
         invoiceTerms: String(settingsIn?.invoiceTerms ?? "").trim(),
         invoiceSignatory: String(settingsIn?.invoiceSignatory ?? "").trim(),
         invoiceSignature: String(settingsIn?.invoiceSignature ?? "").trim(),
+        invoiceTemplate: normalizeInvoiceTemplate(settingsIn?.invoiceTemplate),
         gstEnabled: settingsIn?.gstEnabled !== false,
         defaultProductHsn: String(settingsIn?.defaultProductHsn ?? "8711").trim() || "8711",
         defaultProductGstRate: Math.max(0, num(settingsIn?.defaultProductGstRate ?? 5)),
+        additionalChargesLabel:
+          String(settingsIn?.additionalChargesLabel ?? "Additional Charges").trim() ||
+          "Additional Charges",
         darkMode: settingsIn?.darkMode === true ? true : settingsIn?.darkMode === false ? false : undefined,
         fyCloseSnapshots: normFyCloseSnapshots(settingsIn?.fyCloseSnapshots),
         saleDraft: normSaleDraft(settingsIn?.saleDraft),
@@ -4721,6 +4922,7 @@ export function mergePersistedPayload(p) {
       servicingCompletions: normServicingCompletions(p.servicingCompletions),
       servicingWaSent: normServicingWaSent(p.servicingWaSent),
       customerDirectory: normCustomerDirectory(p.customerDirectory),
+      customerAdvancePayments: normCustomerAdvancePayments(p.customerAdvancePayments),
       vendorDirectory: normVendorDirectory(p.vendorDirectory),
       dismissedAlertIds: Array.isArray(p.dismissedAlertIds) ? p.dismissedAlertIds.filter(Boolean).map(String) : [],
       auditEvents: normAuditEvents(p.auditEvents),

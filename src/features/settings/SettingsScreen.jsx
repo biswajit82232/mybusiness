@@ -12,6 +12,9 @@ import {
   getExpenseCategoriesList,
   getFyYears,
   getOtherIncomeCategoriesList,
+  INVOICE_TEMPLATE_GROUPS,
+  INVOICE_TEMPLATE_OPTIONS,
+  normalizeInvoiceTemplate,
   num,
   waHref,
 } from "@/domain/index.js";
@@ -32,7 +35,7 @@ import {
   IcUpload,
   IcWhatsApp,
 } from "@/shared/ui/icons/AppIcons.jsx";
-import { Field, TabPageChrome } from "@/shared/ui/layout/AppChrome.jsx";
+import { Field, PageHeader, TabPageChrome } from "@/shared/ui/layout/AppChrome.jsx";
 import { MenuSelect } from "@/shared/ui/inputs/MenuSelect.jsx";
 import { SettingsHubRow } from "./SettingsHubRow.jsx";
 import { FyCloseWizard } from "./FyCloseWizard.jsx";
@@ -157,7 +160,7 @@ export function SettingsScreen({
           icon: <IcSales />,
           title: "Invoice settings",
           subtitle: "Prefix, due days, sales target",
-          keywords: ["invoice", "prefix", "due", "payment", "sale", "bill", "target", "goal", "monthly", "gst", "hsn", "tax"],
+          keywords: ["invoice", "prefix", "due", "payment", "sale", "bill", "target", "goal", "monthly", "gst", "hsn", "tax", "template", "print", "layout"],
         },
         {
           k: "accounting",
@@ -393,6 +396,9 @@ export function SettingsScreen({
 
   return (
     <TabPageChrome className="settings-overlay" title={titles[sub] || "Settings"} onBack={back} onOpenSidebar={onOpenSidebar}>
+      <div className="settings-mobile-back">
+        <PageHeader title={titles[sub] || "Settings"} onBack={back} />
+      </div>
       <div className="tab-page-scroll">
         {sub === "appearance" && (
           <ThemeAppearanceSection darkMode={darkMode} setDarkMode={setDarkMode} />
@@ -1079,6 +1085,58 @@ function ThemeAppearanceSection({ darkMode, setDarkMode }) {
   );
 }
 
+function InvoiceTemplatePicker({ value, onSavePartial }) {
+  const selected = normalizeInvoiceTemplate(value);
+
+  return (
+    <div className="form-card">
+      <div className="form-card-title">Invoice template</div>
+      <p className="invoice-tpl-compliance">
+        All templates include GST Rule 46 fields. Choose a standard style, a different layout placement, or a
+        colour theme — tax calculations stay the same.
+      </p>
+      {INVOICE_TEMPLATE_GROUPS.map((grp) => {
+        const opts = INVOICE_TEMPLATE_OPTIONS.filter((o) => o.group === grp.id);
+        if (!opts.length) return null;
+        return (
+          <div key={grp.id} className="invoice-tpl-group">
+            <div className="invoice-tpl-group-title">{grp.label}</div>
+            <div className="invoice-tpl-grid" role="radiogroup" aria-label={`Invoice template — ${grp.label}`}>
+              {opts.map((opt) => (
+                <button
+                  key={opt.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={selected === opt.id}
+                  className={`invoice-tpl-card${selected === opt.id ? " is-selected" : ""}`}
+                  onClick={() => onSavePartial({ invoiceTemplate: opt.id }, { silent: true })}
+                >
+                  <div
+                    className={`invoice-tpl-preview invoice-tpl-preview--${opt.preview || opt.id}`}
+                    aria-hidden="true"
+                  >
+                    <div className="invoice-tpl-preview-bar" />
+                    <div className="invoice-tpl-preview-lines">
+                      <div className="invoice-tpl-preview-line" />
+                      <div className="invoice-tpl-preview-line invoice-tpl-preview-line--short" />
+                      <div className="invoice-tpl-preview-line invoice-tpl-preview-line--dark" />
+                    </div>
+                  </div>
+                  <div className="invoice-tpl-body">
+                    <div className="invoice-tpl-label">{opt.label}</div>
+                    <div className="invoice-tpl-tag">{opt.tagline}</div>
+                    <div className="invoice-tpl-hint">{opt.hint}</div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function InvoiceSettingsForm({ settings, onSavePartial }) {
   const [signature, setSignature] = useState(String(settings.invoiceSignature || ""));
   const gstOn = settings.gstEnabled !== false;
@@ -1119,6 +1177,7 @@ function InvoiceSettingsForm({ settings, onSavePartial }) {
           </label>
         </div>
       </div>
+      <InvoiceTemplatePicker value={settings.invoiceTemplate} onSavePartial={onSavePartial} />
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -1140,6 +1199,7 @@ function InvoiceSettingsForm({ settings, onSavePartial }) {
             invoiceTerms: d.get("invoiceTerms"),
             invoiceSignatory: d.get("invoiceSignatory"),
             invoiceSignature: signature,
+            additionalChargesLabel: d.get("additionalChargesLabel"),
           });
         }}
       >
@@ -1190,6 +1250,16 @@ function InvoiceSettingsForm({ settings, onSavePartial }) {
                 key={`mst-${settings.monthlySalesTarget ?? 0}`}
                 defaultValue={settings.monthlySalesTarget ?? 0}
                 placeholder="e.g. 10"
+              />
+            </Field>
+            <Field label="Additional charges label">
+              <input
+                name="additionalChargesLabel"
+                type="text"
+                key={`acl-${settings.additionalChargesLabel || "Additional Charges"}`}
+                defaultValue={settings.additionalChargesLabel || "Additional Charges"}
+                placeholder="e.g. Registration, Freight"
+                autoComplete="off"
               />
             </Field>
           </div>

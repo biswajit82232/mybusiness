@@ -72,6 +72,7 @@ export const MAIN_STAGE_TAB_IMPORTS = {
   fixedAssets: () => import("@/features/fixed-assets/FixedAssetsTab.jsx"),
   cashFlow: () => import("@/features/cashflow/CashFlowScreen.jsx"),
   ledger: () => import("@/features/ledger/LedgerScreen.jsx"),
+  payments: () => import("@/features/payments/PaymentsScreen.jsx"),
   expenses: () => import("@/features/expenses/ExpensesScreen.jsx"),
   otherIncome: () => import("@/features/other-income/OtherIncomeScreen.jsx"),
   reports: () => import("@/features/reports/ReportsScreen.jsx"),
@@ -138,3 +139,4 @@ export const LazyVendorsScreen = L(() => MAIN_STAGE_TAB_IMPORTS.vendors().then((
 export const LazyVendorDetailScreen = L(() => import("@/features/vendors/VendorDetailScreen.jsx").then((m) => ({ default: m.VendorDetailScreen })));
 
 export const LazyPayablesScreen = L(() => MAIN_STAGE_TAB_IMPORTS.payables().then((m) => ({ default: m.PayablesScreen })));
+export const LazyPaymentsScreen = L(() => MAIN_STAGE_TAB_IMPORTS.payments().then((m) => ({ default: m.PaymentsScreen })));

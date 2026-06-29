@@ -54,6 +54,7 @@ function resolveMobileTitle({
   if (!screen && page === "products") return "Products";
   if (!screen && page === "accounts") return "Balance sheet";
   if (!screen && page === "banking") return "Banking";
+  if (!screen && page === "payments") return "Payments";
   if (!screen && page === "fixedAssets") return "Fixed Assets";
   if (!screen && page === "cashFlow") return "Cash flow";
   if (!screen && page === "ledger") return "Ledger";
@@ -83,6 +84,7 @@ function resolveMobileSubtitle({ screen, page }) {
     products: "Catalog & pricing",
     accounts: "Assets & liabilities",
     banking: "Accounts & transfers",
+    payments: "Receipts & disbursements",
     fixedAssets: "Depreciation",
     cashFlow: "Money in & out",
     ledger: "Journal lines",

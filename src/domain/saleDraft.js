@@ -10,13 +10,20 @@ export function saleEntryHasDraftContent(entry) {
     entry.customerNo1,
     entry.customerNo2,
     entry.customerAddress,
+    entry.customerCity,
+    entry.customerState,
+    entry.customerPincode,
+    entry.customerGstin,
     entry.invoiceNo,
     entry.description,
     entry.note,
     entry.financeCompany,
     entry.doNo,
+    entry.docType,
+    entry.invoiceCopyType,
   ];
   if (textFields.some((f) => String(f ?? "").trim())) return true;
+  if (entry.reverseCharge === true) return true;
   if (String(entry.bundleId || "").trim()) return true;
   const lines = Array.isArray(entry.lineItems) ? entry.lineItems : [];
   for (const li of lines) {
@@ -24,6 +31,7 @@ export function saleEntryHasDraftContent(entry) {
     if (Number(li?.qty) > 0 && Number(li?.salePrice) > 0) return true;
   }
   if (Number(entry.discount) > 0) return true;
+  if (Number(entry.additionalCharges) > 0) return true;
   const pays = Array.isArray(entry.paymentLines) ? entry.paymentLines : [];
   if (pays.some((p) => Number(p?.amount) > 0)) return true;
   if (Number(entry.receivedAmount) > 0) return true;

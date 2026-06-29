@@ -14,7 +14,7 @@ import {
   saleOutstandingAsOf,
   sumFixedAssetsNetBook,
 } from "@/domain/balanceSheet.js";
-import { splitInclusiveGst, buildInvoiceGstModel } from "@/domain/invoiceGst.js";
+import { splitInclusiveGst, buildInvoiceGstModel, collapseInvoiceLinesForPrint } from "@/domain/invoiceGst.js";
 import {
   buildDailySparkline,
   buildDailyRevenueMap,
@@ -66,6 +66,43 @@ describe("splitInclusiveGst / buildInvoiceGstModel", () => {
     });
     expect(model.totalTax).toBe(180);
     expect(model.grandTotal).toBe(1180);
+  });
+
+  it("adds additional charges on top of GST grand total", () => {
+    const model = buildInvoiceGstModel({
+      lineItems: [{ item: "Battery", qty: 1, salePrice: 1180, gstRate: 18, hsn: "8507" }],
+      additionalCharges: 200,
+      settings: { defaultProductGstRate: 18, defaultProductHsn: "8507" },
+      businessState: "West Bengal",
+      customerState: "West Bengal",
+    });
+    expect(model.grandTotal).toBe(1380);
+    expect(model.additionalCharges).toBe(200);
+  });
+
+  it("collapses invoice bundle groups for print with same tax as separate lines", () => {
+    const lines = [
+      { id: "a", item: "Scooter", qty: 1, salePrice: 118000, gstRate: 5, hsn: "8711", invoiceGroupId: "g1" },
+      { id: "b", item: "Battery", qty: 1, salePrice: 5900, gstRate: 5, hsn: "8711", invoiceGroupId: "g1" },
+    ];
+    const separate = buildInvoiceGstModel({
+      lineItems: lines,
+      settings: { defaultProductGstRate: 5, defaultProductHsn: "8711" },
+      businessState: "West Bengal",
+      customerState: "West Bengal",
+    });
+    const collapsed = collapseInvoiceLinesForPrint(lines);
+    expect(collapsed).toHaveLength(1);
+    expect(collapsed[0].qty).toBe(1);
+    expect(collapsed[0].salePrice).toBe(123900);
+    const merged = buildInvoiceGstModel({
+      lineItems: collapsed,
+      settings: { defaultProductGstRate: 5, defaultProductHsn: "8711" },
+      businessState: "West Bengal",
+      customerState: "West Bengal",
+    });
+    expect(merged.totalTax).toBe(separate.totalTax);
+    expect(merged.grandTotal).toBe(separate.grandTotal);
   });
 });
 
@@ -330,5 +367,44 @@ describe("shouldSkipSyncStateHydration", () => {
         persistedState: base,
       }),
     ).toBe(false);
+  });
+});
+
+describe("payments ledger", () => {
+  it("buildPaymentsLedger aggregates sale, purchase, and advance rows", async () => {
+    const { buildPaymentsLedger, PAYMENT_KIND, PAYMENT_DIR } = await import("@/domain/payments.js");
+    const rows = buildPaymentsLedger({
+      sales: [
+        {
+          id: "s1",
+          customerName: "Alice",
+          invoiceNo: "MB-0001",
+          paymentEntries: [{ id: "pe1", date: "2026-06-10", amount: 1000, bankAccountId: "b1" }],
+        },
+      ],
+      purchases: [
+        {
+          id: "p1",
+          supplierName: "Vendor X",
+          invoiceRef: "BILL-1",
+          paymentEntries: [{ id: "pp1", date: "2026-06-11", amount: 500, bankAccountId: "b1" }],
+        },
+      ],
+      customerAdvancePayments: [
+        {
+          id: "a1",
+          date: "2026-06-12",
+          amount: 2000,
+          bankAccountId: "b1",
+          customerName: "Bob",
+          receiptNo: "RCPT-0001",
+          applications: [],
+        },
+      ],
+    });
+    expect(rows).toHaveLength(3);
+    expect(rows.find((r) => r.kind === PAYMENT_KIND.SALE)?.dir).toBe(PAYMENT_DIR.IN);
+    expect(rows.find((r) => r.kind === PAYMENT_KIND.PURCHASE)?.dir).toBe(PAYMENT_DIR.OUT);
+    expect(rows.find((r) => r.kind === PAYMENT_KIND.ADVANCE)?.receiptNo).toBe("RCPT-0001");
   });
 });

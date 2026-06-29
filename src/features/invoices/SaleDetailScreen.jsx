@@ -1,6 +1,7 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
   addDaysStr,
+  additionalChargesLabel,
   buildSaleShareWhatsAppMessage,
   buildServicingWhatsAppMessage,
   dateHuman,
@@ -16,8 +17,9 @@ import {
   servicingVisitStatusLabel,
   waMessageHref,
 } from "@/domain/index.js";
-import { IcEdit, IcPrint, IcServicing, IcTrash, IcWhatsApp } from "@/shared/ui/icons/AppIcons.jsx";
+import { IcEdit, IcEye, IcPrint, IcServicing, IcTrash, IcWhatsApp } from "@/shared/ui/icons/AppIcons.jsx";
 import { ContactIcons, OverlayScreen, PageHeader } from "@/shared/ui/layout/AppChrome.jsx";
+import { InvoicePreviewModal } from "./InvoicePreviewModal.jsx";
 import { InvoicePrintSheet } from "./InvoicePrintSheet.jsx";
 
 /**
@@ -73,6 +75,7 @@ export function SaleDetailScreen({
     return (a?.name || "").trim() || "Account";
   };
   const waLink = waMessageHref(sale.customerNo1, buildSaleShareWhatsAppMessage(sale, { businessName }));
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   return (
     <OverlayScreen className="sale-detail-print">
@@ -81,6 +84,15 @@ export function SaleDetailScreen({
         onBack={onClose}
         right={
           <div className="detail-hdr-actions">
+            <button
+              type="button"
+              className="icon-btn icon-btn-sm hdr-print-hide"
+              onClick={() => setPreviewOpen(true)}
+              aria-label={`Preview ${docLabel.toLowerCase()}`}
+              title="Preview invoice"
+            >
+              <IcEye />
+            </button>
             <button
               type="button"
               className="icon-btn icon-btn-sm hdr-print-hide"
@@ -141,12 +153,16 @@ export function SaleDetailScreen({
           </div>
         </section>
 
-        <section className={`detail-actions detail-actions-v2 hdr-print-hide${sale.outstanding > 0 ? " detail-actions-v2--split" : ""}`}>
+        <section className={`detail-actions detail-actions-v2 hdr-print-hide${sale.outstanding > 0 || typeof onOpenServicing === "function" ? " detail-actions-v2--split" : ""}`}>
           {sale.outstanding > 0 ? (
             <button type="button" className="action-btn" onClick={onPayment}>
               Record payment
             </button>
           ) : null}
+          <button type="button" className="edit-entry-btn" onClick={() => setPreviewOpen(true)}>
+            <IcEye />
+            Preview {isBos ? "bill" : "invoice"}
+          </button>
           {typeof onOpenServicing === "function" ? (
             <button type="button" className="edit-entry-btn" onClick={onOpenServicing}>
               <IcServicing />
@@ -214,16 +230,24 @@ export function SaleDetailScreen({
             </div>
           ))}
           <div className="dc-totals">
-            {num(sale.discount) > 0 ? (
+            {num(sale.discount) > 0 || num(sale.additionalCharges) > 0 ? (
               <>
                 <div>
                   <span>Subtotal</span>
                   <span>{moneyFull(lineSubtotal)}</span>
                 </div>
-                <div>
-                  <span>Discount</span>
-                  <span>−{moneyFull(sale.discount)}</span>
-                </div>
+                {num(sale.discount) > 0 ? (
+                  <div>
+                    <span>Discount</span>
+                    <span>−{moneyFull(sale.discount)}</span>
+                  </div>
+                ) : null}
+                {num(sale.additionalCharges) > 0 ? (
+                  <div>
+                    <span>{additionalChargesLabel(invoiceCompany)}</span>
+                    <span>+{moneyFull(sale.additionalCharges)}</span>
+                  </div>
+                ) : null}
               </>
             ) : null}
             <div className="dc-total-line">
@@ -390,6 +414,15 @@ export function SaleDetailScreen({
           </section>
         )}
       </div>
+
+      {previewOpen ? (
+        <InvoicePreviewModal
+          sale={sale}
+          settings={invoiceCompany}
+          docLabel={docLabel}
+          onClose={() => setPreviewOpen(false)}
+        />
+      ) : null}
     </OverlayScreen>
   );
 }

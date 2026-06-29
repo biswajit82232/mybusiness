@@ -1,0 +1,915 @@
+/* ══════════════════════════════════════════════════════════════
+   INVOICE TEMPLATE STYLES
+   Modifier: .invoice-print-sheet--tpl-{premium|classic|modern|minimal}
+   Base layout = premium (defined in App.css @media print + invoice-preview.css)
+══════════════════════════════════════════════════════════════ */
+
+/* ── Classic — traditional Tally-style accounting document ───── */
+.invoice-print-sheet--tpl-classic {
+  font-family: "Times New Roman", Times, Georgia, serif;
+}
+.invoice-print-sheet--tpl-classic .ips-divider {
+  border-top: 2.5pt solid #1e3a8a;
+}
+.invoice-print-sheet--tpl-classic .ips-co-name-new {
+  color: #1e3a8a;
+  font-family: Georgia, "Times New Roman", serif;
+}
+.invoice-print-sheet--tpl-classic .ips-doc-type {
+  border-color: #1e3a8a;
+  color: #1e3a8a;
+  font-family: Georgia, "Times New Roman", serif;
+}
+.invoice-print-sheet--tpl-classic .ips-doc-banner {
+  border: none;
+  border-bottom: 2pt double #1e3a8a;
+  padding-bottom: 6pt;
+}
+.invoice-print-sheet--tpl-classic .ips-doc-banner-title {
+  color: #1e3a8a;
+  letter-spacing: 0.1em;
+}
+.invoice-print-sheet--tpl-classic .ips-meta-2col,
+.invoice-print-sheet--tpl-classic .ips-itm th,
+.invoice-print-sheet--tpl-classic .ips-itm td,
+.invoice-print-sheet--tpl-classic .ips-hsn th,
+.invoice-print-sheet--tpl-classic .ips-hsn td,
+.invoice-print-sheet--tpl-classic .ips-words,
+.invoice-print-sheet--tpl-classic .ips-notebox--nobordertop,
+.invoice-print-sheet--tpl-classic .ips-txpanel td,
+.invoice-print-sheet--tpl-classic .ips-simpletot td {
+  border-color: #94a3b8;
+}
+.invoice-print-sheet--tpl-classic .ips-itm thead th {
+  background: #eff6ff;
+  color: #1e3a8a;
+  border-color: #93c5fd;
+  font-family: Georgia, "Times New Roman", serif;
+}
+.invoice-print-sheet--tpl-classic .ips-itm tbody tr:nth-child(even) {
+  background: #f8fafc;
+}
+.invoice-print-sheet--tpl-classic .ips-itm-tot td {
+  background: #e0e7ff;
+}
+.invoice-print-sheet--tpl-classic .ips-det-tbl th {
+  background: #eff6ff;
+  color: #1e40af;
+}
+.invoice-print-sheet--tpl-classic .ips-hsn-title,
+.invoice-print-sheet--tpl-classic .ips-hsn thead tr:nth-child(2) th {
+  background: #dbeafe;
+  color: #1e3a8a;
+}
+.invoice-print-sheet--tpl-classic .ips-tp-grand td,
+.invoice-print-sheet--tpl-classic .ips-st-grand td {
+  background: #1e3a8a !important;
+  color: #fff !important;
+}
+.invoice-print-sheet--tpl-classic .ips-sig-row {
+  border-top-color: #1e3a8a;
+}
+
+/* ── Modern — Zoho Books inspired clean billing ─────────────── */
+.invoice-print-sheet--tpl-modern {
+  font-family: ui-sans-serif, system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  position: relative;
+}
+.invoice-print-sheet--tpl-modern::before {
+  content: "";
+  display: block;
+  height: 4pt;
+  background: linear-gradient(90deg, #2563eb 0%, #3b82f6 50%, #60a5fa 100%);
+  margin-bottom: 10pt;
+  border-radius: 2pt;
+}
+.invoice-print-sheet--tpl-modern .ips-divider {
+  border-top: 1pt solid #e2e8f0;
+}
+.invoice-print-sheet--tpl-modern .ips-co-name-new {
+  color: #0f172a;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.invoice-print-sheet--tpl-modern .ips-co-line-new,
+.invoice-print-sheet--tpl-modern .ips-co-gstin {
+  color: #475569;
+}
+.invoice-print-sheet--tpl-modern .ips-doc-type {
+  border: none;
+  background: #eff6ff;
+  color: #1d4ed8;
+  border-radius: 4pt;
+  font-size: 11pt;
+  letter-spacing: 0.06em;
+}
+.invoice-print-sheet--tpl-modern .ips-doc-banner {
+  border: 1pt solid #e2e8f0;
+  border-radius: 6pt;
+  background: #f8fafc;
+  margin-top: 6pt;
+}
+.invoice-print-sheet--tpl-modern .ips-doc-banner-title {
+  color: #1e40af;
+  letter-spacing: 0.12em;
+  font-size: 13pt;
+}
+.invoice-print-sheet--tpl-modern .ips-meta-2col {
+  border-color: #e2e8f0;
+  border-radius: 6pt;
+  overflow: hidden;
+  margin-top: 8pt;
+}
+.invoice-print-sheet--tpl-modern .ips-billto {
+  background: #fafbfc;
+}
+.invoice-print-sheet--tpl-modern .ips-section-lbl {
+  color: #64748b;
+}
+.invoice-print-sheet--tpl-modern .ips-cust-name {
+  color: #0f172a;
+}
+.invoice-print-sheet--tpl-modern .ips-det-tbl th {
+  background: #f1f5f9;
+  color: #475569;
+  font-weight: 600;
+}
+.invoice-print-sheet--tpl-modern .ips-det-tbl td {
+  color: #0f172a;
+}
+.invoice-print-sheet--tpl-modern .ips-itm {
+  margin-top: 8pt;
+  border-radius: 6pt;
+  overflow: hidden;
+}
+.invoice-print-sheet--tpl-modern .ips-itm th,
+.invoice-print-sheet--tpl-modern .ips-itm td {
+  border-color: #e2e8f0;
+}
+.invoice-print-sheet--tpl-modern .ips-itm thead th {
+  background: #f1f5f9;
+  color: #334155;
+  border-color: #e2e8f0;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+.invoice-print-sheet--tpl-modern .ips-itm tbody tr:nth-child(even) {
+  background: #fafbfc;
+}
+.invoice-print-sheet--tpl-modern .ips-itm-tot td {
+  background: #f1f5f9;
+  border-top: 2pt solid #2563eb !important;
+}
+.invoice-print-sheet--tpl-modern .ips-hsn th,
+.invoice-print-sheet--tpl-modern .ips-hsn td {
+  border-color: #e2e8f0;
+}
+.invoice-print-sheet--tpl-modern .ips-hsn-title {
+  background: #f1f5f9;
+  color: #334155;
+}
+.invoice-print-sheet--tpl-modern .ips-hsn thead tr:nth-child(2) th {
+  background: #e2e8f0;
+  color: #475569;
+}
+.invoice-print-sheet--tpl-modern .ips-hsn-tot td {
+  background: #f1f5f9;
+}
+.invoice-print-sheet--tpl-modern .ips-words,
+.invoice-print-sheet--tpl-modern .ips-notebox--nobordertop {
+  border-color: #e2e8f0;
+  border-radius: 4pt;
+}
+.invoice-print-sheet--tpl-modern .ips-txpanel td,
+.invoice-print-sheet--tpl-modern .ips-simpletot td {
+  border-color: #e2e8f0;
+}
+.invoice-print-sheet--tpl-modern .ips-tp-grand td,
+.invoice-print-sheet--tpl-modern .ips-st-grand td {
+  background: #2563eb !important;
+  color: #fff !important;
+  border-color: #2563eb !important;
+}
+.invoice-print-sheet--tpl-modern .ips-sig-row {
+  border-top: 1pt solid #e2e8f0;
+  margin-top: 16pt;
+}
+.invoice-print-sheet--tpl-modern .ips-sig-eoe {
+  color: #64748b;
+  font-style: normal;
+}
+
+/* ── Minimal — essential GST fields, light visual weight ─────── */
+.invoice-print-sheet--tpl-minimal {
+  font-family: ui-sans-serif, system-ui, "Segoe UI", Roboto, Arial, sans-serif;
+  font-size: 8.5pt;
+  line-height: 1.4;
+  color: #222;
+}
+.invoice-print-sheet--tpl-minimal .ips-hdr {
+  padding-bottom: 6pt;
+}
+.invoice-print-sheet--tpl-minimal .ips-co-name-new {
+  font-size: 14pt;
+  font-weight: 700;
+  color: #111;
+}
+.invoice-print-sheet--tpl-minimal .ips-co-line-new,
+.invoice-print-sheet--tpl-minimal .ips-co-gstin {
+  font-size: 7.5pt;
+  color: #555;
+}
+.invoice-print-sheet--tpl-minimal .ips-logo {
+  max-height: 48pt;
+  max-width: 64pt;
+}
+.invoice-print-sheet--tpl-minimal .ips-doc-type {
+  border: 1pt solid #bbb;
+  font-size: 10pt;
+  font-weight: 700;
+  padding: 3pt 8pt;
+  letter-spacing: 0.05em;
+}
+.invoice-print-sheet--tpl-minimal .ips-divider {
+  border-top: 0.5pt solid #ccc;
+}
+.invoice-print-sheet--tpl-minimal .ips-doc-banner {
+  border: none;
+  padding: 4pt 0;
+  text-align: left;
+}
+.invoice-print-sheet--tpl-minimal .ips-doc-banner-title {
+  font-size: 11pt;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border-bottom: 0.5pt solid #999;
+  display: inline-block;
+  padding-bottom: 2pt;
+}
+.invoice-print-sheet--tpl-minimal .ips-doc-banner-copy {
+  text-align: left;
+  margin-top: 2pt;
+}
+.invoice-print-sheet--tpl-minimal .ips-meta-2col {
+  border: 0.5pt solid #ccc;
+  min-height: 44pt;
+}
+.invoice-print-sheet--tpl-minimal .ips-billto {
+  border-right-color: #ccc;
+}
+.invoice-print-sheet--tpl-minimal .ips-section-lbl {
+  font-size: 6pt;
+  color: #888;
+  letter-spacing: 0.1em;
+}
+.invoice-print-sheet--tpl-minimal .ips-cust-name {
+  font-size: 9.5pt;
+}
+.invoice-print-sheet--tpl-minimal .ips-det-tbl th,
+.invoice-print-sheet--tpl-minimal .ips-det-tbl td {
+  font-size: 7.5pt;
+  padding: 4pt 6pt;
+  border-bottom-color: #e5e5e5;
+}
+.invoice-print-sheet--tpl-minimal .ips-det-tbl th {
+  background: #fafafa;
+  color: #666;
+  font-weight: 600;
+}
+.invoice-print-sheet--tpl-minimal .ips-itm {
+  font-size: 8pt;
+}
+.invoice-print-sheet--tpl-minimal .ips-itm th,
+.invoice-print-sheet--tpl-minimal .ips-itm td {
+  border: 0.5pt solid #ccc;
+  padding: 3pt 4pt;
+}
+.invoice-print-sheet--tpl-minimal .ips-itm thead th {
+  background: #fafafa;
+  color: #333;
+  border-color: #ccc;
+  font-size: 7pt;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.invoice-print-sheet--tpl-minimal .ips-itm tbody tr:nth-child(even) {
+  background: transparent;
+}
+.invoice-print-sheet--tpl-minimal .ips-itm-tot td {
+  background: #f5f5f5;
+  border-top: 1pt solid #999 !important;
+}
+.invoice-print-sheet--tpl-minimal .ips-hsn {
+  font-size: 7pt;
+}
+.invoice-print-sheet--tpl-minimal .ips-hsn th,
+.invoice-print-sheet--tpl-minimal .ips-hsn td {
+  border: 0.5pt solid #ccc;
+  padding: 2pt 3pt;
+}
+.invoice-print-sheet--tpl-minimal .ips-hsn-title {
+  background: #fafafa;
+  font-size: 7pt;
+  color: #444;
+}
+.invoice-print-sheet--tpl-minimal .ips-hsn thead tr:nth-child(2) th {
+  background: #f0f0f0;
+  font-size: 6.5pt;
+}
+.invoice-print-sheet--tpl-minimal .ips-hsn-tot td {
+  background: #f5f5f5;
+}
+.invoice-print-sheet--tpl-minimal .ips-words {
+  border: 0.5pt solid #ccc;
+  font-size: 8pt;
+  padding: 4pt 6pt;
+}
+.invoice-print-sheet--tpl-minimal .ips-notebox--nobordertop {
+  border: 0.5pt solid #ccc;
+  font-size: 7.5pt;
+}
+.invoice-print-sheet--tpl-minimal .ips-txpanel,
+.invoice-print-sheet--tpl-minimal .ips-simpletot {
+  font-size: 8pt;
+}
+.invoice-print-sheet--tpl-minimal .ips-txpanel td,
+.invoice-print-sheet--tpl-minimal .ips-simpletot td {
+  border: 0.5pt solid #ccc;
+  padding: 4pt 5pt;
+}
+.invoice-print-sheet--tpl-minimal .ips-tp-grand td,
+.invoice-print-sheet--tpl-minimal .ips-st-grand td {
+  background: #333 !important;
+  color: #fff !important;
+  font-weight: 700;
+}
+.invoice-print-sheet--tpl-minimal .ips-tp-amt,
+.invoice-print-sheet--tpl-minimal .ips-simpletot td:last-child,
+.invoice-print-sheet--tpl-minimal .tr {
+  font-variant-numeric: tabular-nums;
+}
+.invoice-print-sheet--tpl-minimal .ips-sig-row {
+  border-top: 0.5pt solid #ccc;
+  margin-top: 10pt;
+  font-size: 7pt;
+}
+.invoice-print-sheet--tpl-minimal .ips-sig-name {
+  font-size: 8pt;
+}
+.invoice-print-sheet--tpl-minimal .ips-terms-list {
+  font-size: 7pt;
+}
+
+/* ── Compact — dense rows, more per page ─────────────────────── */
+.invoice-print-sheet--tpl-compact {
+  font-size: 8pt;
+  line-height: 1.28;
+}
+.invoice-print-sheet--tpl-compact .ips-co-name-new { font-size: 14pt; margin-bottom: 2pt; }
+.invoice-print-sheet--tpl-compact .ips-co-line-new,
+.invoice-print-sheet--tpl-compact .ips-co-gstin { font-size: 7pt; }
+.invoice-print-sheet--tpl-compact .ips-logo { max-height: 44pt; max-width: 60pt; }
+.invoice-print-sheet--tpl-compact .ips-hdr { padding-bottom: 5pt; gap: 8pt; }
+.invoice-print-sheet--tpl-compact .ips-doc-banner { padding: 5pt 8px; }
+.invoice-print-sheet--tpl-compact .ips-doc-banner-title { font-size: 11pt; }
+.invoice-print-sheet--tpl-compact .ips-meta-2col { min-height: 40pt; }
+.invoice-print-sheet--tpl-compact .ips-billto,
+.invoice-print-sheet--tpl-compact .ips-invmeta { padding: 5pt 7pt; }
+.invoice-print-sheet--tpl-compact .ips-cust-name { font-size: 9.5pt; }
+.invoice-print-sheet--tpl-compact .ips-det-tbl th,
+.invoice-print-sheet--tpl-compact .ips-det-tbl td { padding: 3pt 5pt; font-size: 7.5pt; }
+.invoice-print-sheet--tpl-compact .ips-itm { font-size: 7.5pt; }
+.invoice-print-sheet--tpl-compact .ips-itm th,
+.invoice-print-sheet--tpl-compact .ips-itm td { padding: 2.5pt 3pt; }
+.invoice-print-sheet--tpl-compact .ips-itm thead th { font-size: 7pt; padding: 3pt 2pt; }
+.invoice-print-sheet--tpl-compact .ips-hsn { font-size: 7pt; }
+.invoice-print-sheet--tpl-compact .ips-hsn th,
+.invoice-print-sheet--tpl-compact .ips-hsn td { padding: 2pt 3pt; }
+.invoice-print-sheet--tpl-compact .ips-words,
+.invoice-print-sheet--tpl-compact .ips-notebox { font-size: 7.5pt; padding: 4pt 6pt; }
+.invoice-print-sheet--tpl-compact .ips-txpanel,
+.invoice-print-sheet--tpl-compact .ips-simpletot { font-size: 7.5pt; }
+.invoice-print-sheet--tpl-compact .ips-txpanel td,
+.invoice-print-sheet--tpl-compact .ips-simpletot td { padding: 3pt 5pt; }
+.invoice-print-sheet--tpl-compact .ips-sig-row { margin-top: 8pt; font-size: 7pt; }
+.invoice-print-sheet--tpl-compact .ips-sig-space { height: 18pt; }
+
+/* ── Centered — formal centred letterhead ────────────────────── */
+.invoice-print-sheet--tpl-centered .ips-hdr {
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 8pt;
+}
+.invoice-print-sheet--tpl-centered .ips-hdr-left {
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+.invoice-print-sheet--tpl-centered .ips-hdr-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.invoice-print-sheet--tpl-centered .ips-hdr-right {
+  text-align: center;
+  width: 100%;
+}
+.invoice-print-sheet--tpl-centered .ips-doc-type {
+  margin: 0 auto;
+}
+.invoice-print-sheet--tpl-centered .ips-copy-label {
+  text-align: center;
+}
+.invoice-print-sheet--tpl-centered .ips-doc-banner-title {
+  letter-spacing: 0.16em;
+}
+.invoice-print-sheet--tpl-centered .ips-section-lbl {
+  text-align: center;
+}
+.invoice-print-sheet--tpl-centered .ips-billto {
+  text-align: center;
+}
+.invoice-print-sheet--tpl-centered .ips-cust-name,
+.invoice-print-sheet--tpl-centered .ips-cust-addr,
+.invoice-print-sheet--tpl-centered .ips-cust-gstin,
+.invoice-print-sheet--tpl-centered .ips-cust-pos {
+  text-align: center;
+}
+.invoice-print-sheet--tpl-centered .ips-sig-block {
+  text-align: center;
+  margin: 0 auto;
+}
+.invoice-print-sheet--tpl-centered .ips-sig-img {
+  margin-left: auto;
+  margin-right: auto;
+}
+.invoice-print-sheet--tpl-centered .ips-sig-eoe {
+  text-align: center;
+  padding-right: 0;
+}
+
+/* ── Framed — certificate / formal border ────────────────────── */
+.invoice-print-sheet--tpl-framed {
+  border: 3pt double #1e293b;
+  padding: 12pt 10pt 14pt;
+  box-sizing: border-box;
+}
+.invoice-print-sheet--tpl-framed .ips-divider {
+  border-top-width: 1.5pt;
+  border-top-color: #64748b;
+}
+.invoice-print-sheet--tpl-framed .ips-doc-banner {
+  border: 1pt solid #94a3b8;
+  margin: 6pt 0;
+}
+.invoice-print-sheet--tpl-framed .ips-meta-2col,
+.invoice-print-sheet--tpl-framed .ips-itm th,
+.invoice-print-sheet--tpl-framed .ips-itm td {
+  border-color: #64748b;
+}
+.invoice-print-sheet--tpl-framed .ips-itm thead th {
+  background: #f1f5f9;
+  color: #0f172a;
+  border-color: #64748b;
+}
+.invoice-print-sheet--tpl-framed .ips-tp-grand td,
+.invoice-print-sheet--tpl-framed .ips-st-grand td {
+  background: #1e293b !important;
+  color: #fff !important;
+}
+
+/* ── Stacked — vertical meta blocks ──────────────────────────── */
+.invoice-print-sheet--tpl-stacked .ips-meta-2col {
+  flex-direction: column;
+  min-height: 0;
+}
+.invoice-print-sheet--tpl-stacked .ips-billto {
+  border-right: none;
+  border-bottom: 0.75pt solid #000;
+  width: 100%;
+}
+.invoice-print-sheet--tpl-stacked .ips-invmeta {
+  width: 100%;
+}
+.invoice-print-sheet--tpl-stacked .ips-det-tbl th {
+  width: 28%;
+}
+.invoice-print-sheet--tpl-stacked .ips-floor {
+  flex-direction: column;
+}
+.invoice-print-sheet--tpl-stacked .ips-floor-r {
+  width: 100%;
+  margin-left: 0;
+  margin-top: 8pt;
+}
+.invoice-print-sheet--tpl-stacked .ips-txpanel,
+.invoice-print-sheet--tpl-stacked .ips-simpletot {
+  max-width: 280pt;
+  margin-left: auto;
+}
+
+/* ── Colour themes (shared structure, per-theme tokens) ──────── */
+.invoice-print-sheet--tpl-ocean,
+.invoice-print-sheet--tpl-forest,
+.invoice-print-sheet--tpl-burgundy,
+.invoice-print-sheet--tpl-royal,
+.invoice-print-sheet--tpl-sunset {
+  font-family: ui-sans-serif, system-ui, "Segoe UI", Roboto, Arial, sans-serif;
+  position: relative;
+}
+.invoice-print-sheet--tpl-ocean { --tpl-accent: #0d9488; --tpl-accent-dark: #0f766e; --tpl-accent-soft: #99f6e4; --tpl-accent-muted: #f0fdfa; --tpl-accent-bar: linear-gradient(90deg, #0d9488, #2dd4bf); }
+.invoice-print-sheet--tpl-forest { --tpl-accent: #15803d; --tpl-accent-dark: #166534; --tpl-accent-soft: #86efac; --tpl-accent-muted: #f0fdf4; --tpl-accent-bar: linear-gradient(90deg, #15803d, #4ade80); }
+.invoice-print-sheet--tpl-burgundy { --tpl-accent: #9f1239; --tpl-accent-dark: #881337; --tpl-accent-soft: #fda4af; --tpl-accent-muted: #fff1f2; --tpl-accent-bar: linear-gradient(90deg, #9f1239, #e11d48); }
+.invoice-print-sheet--tpl-royal { --tpl-accent: #6d28d9; --tpl-accent-dark: #5b21b6; --tpl-accent-soft: #c4b5fd; --tpl-accent-muted: #f5f3ff; --tpl-accent-bar: linear-gradient(90deg, #6d28d9, #a78bfa); }
+.invoice-print-sheet--tpl-sunset { --tpl-accent: #c2410c; --tpl-accent-dark: #9a3412; --tpl-accent-soft: #fdba74; --tpl-accent-muted: #fff7ed; --tpl-accent-bar: linear-gradient(90deg, #c2410c, #fb923c); }
+
+.invoice-print-sheet--tpl-ocean::before,
+.invoice-print-sheet--tpl-forest::before,
+.invoice-print-sheet--tpl-burgundy::before,
+.invoice-print-sheet--tpl-royal::before,
+.invoice-print-sheet--tpl-sunset::before {
+  content: "";
+  display: block;
+  height: 5pt;
+  background: var(--tpl-accent-bar);
+  margin-bottom: 9pt;
+  border-radius: 2pt;
+}
+
+.invoice-print-sheet--tpl-ocean .ips-co-name-new,
+.invoice-print-sheet--tpl-forest .ips-co-name-new,
+.invoice-print-sheet--tpl-burgundy .ips-co-name-new,
+.invoice-print-sheet--tpl-royal .ips-co-name-new,
+.invoice-print-sheet--tpl-sunset .ips-co-name-new {
+  color: var(--tpl-accent-dark);
+}
+
+.invoice-print-sheet--tpl-ocean .ips-divider,
+.invoice-print-sheet--tpl-forest .ips-divider,
+.invoice-print-sheet--tpl-burgundy .ips-divider,
+.invoice-print-sheet--tpl-royal .ips-divider,
+.invoice-print-sheet--tpl-sunset .ips-divider {
+  border-top: 2pt solid var(--tpl-accent);
+}
+
+.invoice-print-sheet--tpl-ocean .ips-doc-type,
+.invoice-print-sheet--tpl-forest .ips-doc-type,
+.invoice-print-sheet--tpl-burgundy .ips-doc-type,
+.invoice-print-sheet--tpl-royal .ips-doc-type,
+.invoice-print-sheet--tpl-sunset .ips-doc-type {
+  border: 2pt solid var(--tpl-accent);
+  color: var(--tpl-accent-dark);
+  background: var(--tpl-accent-muted);
+}
+
+.invoice-print-sheet--tpl-ocean .ips-doc-banner,
+.invoice-print-sheet--tpl-forest .ips-doc-banner,
+.invoice-print-sheet--tpl-burgundy .ips-doc-banner,
+.invoice-print-sheet--tpl-royal .ips-doc-banner,
+.invoice-print-sheet--tpl-sunset .ips-doc-banner {
+  background: var(--tpl-accent-muted);
+  border-color: var(--tpl-accent-soft);
+}
+
+.invoice-print-sheet--tpl-ocean .ips-doc-banner-title,
+.invoice-print-sheet--tpl-forest .ips-doc-banner-title,
+.invoice-print-sheet--tpl-burgundy .ips-doc-banner-title,
+.invoice-print-sheet--tpl-royal .ips-doc-banner-title,
+.invoice-print-sheet--tpl-sunset .ips-doc-banner-title {
+  color: var(--tpl-accent-dark);
+}
+
+.invoice-print-sheet--tpl-ocean .ips-meta-2col,
+.invoice-print-sheet--tpl-forest .ips-meta-2col,
+.invoice-print-sheet--tpl-burgundy .ips-meta-2col,
+.invoice-print-sheet--tpl-royal .ips-meta-2col,
+.invoice-print-sheet--tpl-sunset .ips-meta-2col {
+  border-color: var(--tpl-accent-soft);
+}
+
+.invoice-print-sheet--tpl-ocean .ips-billto,
+.invoice-print-sheet--tpl-forest .ips-billto,
+.invoice-print-sheet--tpl-burgundy .ips-billto,
+.invoice-print-sheet--tpl-royal .ips-billto,
+.invoice-print-sheet--tpl-sunset .ips-billto {
+  background: var(--tpl-accent-muted);
+}
+
+.invoice-print-sheet--tpl-ocean .ips-det-tbl th,
+.invoice-print-sheet--tpl-forest .ips-det-tbl th,
+.invoice-print-sheet--tpl-burgundy .ips-det-tbl th,
+.invoice-print-sheet--tpl-royal .ips-det-tbl th,
+.invoice-print-sheet--tpl-sunset .ips-det-tbl th {
+  background: var(--tpl-accent-muted);
+  color: var(--tpl-accent-dark);
+  border-color: var(--tpl-accent-soft);
+}
+
+.invoice-print-sheet--tpl-ocean .ips-itm thead th,
+.invoice-print-sheet--tpl-forest .ips-itm thead th,
+.invoice-print-sheet--tpl-burgundy .ips-itm thead th,
+.invoice-print-sheet--tpl-royal .ips-itm thead th,
+.invoice-print-sheet--tpl-sunset .ips-itm thead th {
+  background: var(--tpl-accent) !important;
+  color: #fff !important;
+  border-color: var(--tpl-accent-dark) !important;
+}
+
+.invoice-print-sheet--tpl-ocean .ips-itm tbody tr:nth-child(even),
+.invoice-print-sheet--tpl-forest .ips-itm tbody tr:nth-child(even),
+.invoice-print-sheet--tpl-burgundy .ips-itm tbody tr:nth-child(even),
+.invoice-print-sheet--tpl-royal .ips-itm tbody tr:nth-child(even),
+.invoice-print-sheet--tpl-sunset .ips-itm tbody tr:nth-child(even) {
+  background: var(--tpl-accent-muted);
+}
+
+.invoice-print-sheet--tpl-ocean .ips-itm-tot td,
+.invoice-print-sheet--tpl-forest .ips-itm-tot td,
+.invoice-print-sheet--tpl-burgundy .ips-itm-tot td,
+.invoice-print-sheet--tpl-royal .ips-itm-tot td,
+.invoice-print-sheet--tpl-sunset .ips-itm-tot td {
+  background: var(--tpl-accent-soft);
+}
+
+.invoice-print-sheet--tpl-ocean .ips-hsn-title,
+.invoice-print-sheet--tpl-forest .ips-hsn-title,
+.invoice-print-sheet--tpl-burgundy .ips-hsn-title,
+.invoice-print-sheet--tpl-royal .ips-hsn-title,
+.invoice-print-sheet--tpl-sunset .ips-hsn-title {
+  background: var(--tpl-accent-muted);
+  color: var(--tpl-accent-dark);
+}
+
+.invoice-print-sheet--tpl-ocean .ips-hsn thead tr:nth-child(2) th,
+.invoice-print-sheet--tpl-forest .ips-hsn thead tr:nth-child(2) th,
+.invoice-print-sheet--tpl-burgundy .ips-hsn thead tr:nth-child(2) th,
+.invoice-print-sheet--tpl-royal .ips-hsn thead tr:nth-child(2) th,
+.invoice-print-sheet--tpl-sunset .ips-hsn thead tr:nth-child(2) th {
+  background: var(--tpl-accent-soft);
+  color: var(--tpl-accent-dark);
+}
+
+.invoice-print-sheet--tpl-ocean .ips-tp-grand td,
+.invoice-print-sheet--tpl-forest .ips-tp-grand td,
+.invoice-print-sheet--tpl-burgundy .ips-tp-grand td,
+.invoice-print-sheet--tpl-royal .ips-tp-grand td,
+.invoice-print-sheet--tpl-sunset .ips-tp-grand td,
+.invoice-print-sheet--tpl-ocean .ips-st-grand td,
+.invoice-print-sheet--tpl-forest .ips-st-grand td,
+.invoice-print-sheet--tpl-burgundy .ips-st-grand td,
+.invoice-print-sheet--tpl-royal .ips-st-grand td,
+.invoice-print-sheet--tpl-sunset .ips-st-grand td {
+  background: var(--tpl-accent) !important;
+  color: #fff !important;
+}
+
+.invoice-print-sheet--tpl-ocean .ips-sig-row,
+.invoice-print-sheet--tpl-forest .ips-sig-row,
+.invoice-print-sheet--tpl-burgundy .ips-sig-row,
+.invoice-print-sheet--tpl-royal .ips-sig-row,
+.invoice-print-sheet--tpl-sunset .ips-sig-row {
+  border-top-color: var(--tpl-accent);
+}
+
+/* Settings — template picker mini previews */
+.invoice-tpl-group {
+  margin-bottom: 16px;
+}
+.invoice-tpl-group:last-child {
+  margin-bottom: 0;
+}
+.invoice-tpl-group-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0 0 8px;
+}
+.invoice-tpl-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-bottom: 4px;
+}
+@media (min-width: 640px) {
+  .invoice-tpl-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+@media (min-width: 900px) {
+  .invoice-tpl-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+.invoice-tpl-card {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  padding: 0;
+  border: 2px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--card);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  overflow: hidden;
+}
+.invoice-tpl-card:hover {
+  border-color: var(--primary);
+}
+.invoice-tpl-card.is-selected {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 1px var(--primary);
+}
+.invoice-tpl-card:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+.invoice-tpl-preview {
+  height: 72px;
+  margin: 8px 8px 0;
+  border: 1px solid var(--line2);
+  border-radius: 4px;
+  background: #fff;
+  overflow: hidden;
+  position: relative;
+  flex-shrink: 0;
+}
+.invoice-tpl-preview::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.invoice-tpl-preview--premium {
+  background: linear-gradient(180deg, #fff 0%, #fff 55%, #f5f5f5 55%, #f5f5f5 100%);
+}
+.invoice-tpl-preview--premium::after {
+  content: "";
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  right: 8px;
+  height: 3px;
+  background: #111;
+}
+.invoice-tpl-preview--premium .invoice-tpl-preview-bar {
+  background: #111;
+}
+.invoice-tpl-preview--classic {
+  background: #fff;
+  border-bottom: 3px double #1e3a8a;
+}
+.invoice-tpl-preview--classic .invoice-tpl-preview-bar {
+  background: #eff6ff;
+  border-bottom: 2px solid #1e3a8a;
+}
+.invoice-tpl-preview--modern::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #2563eb, #60a5fa);
+}
+.invoice-tpl-preview--modern .invoice-tpl-preview-bar {
+  background: #f1f5f9;
+}
+.invoice-tpl-preview--minimal {
+  background: #fff;
+}
+.invoice-tpl-preview--minimal .invoice-tpl-preview-bar {
+  background: #fafafa;
+  border-bottom: 1px solid #ccc;
+}
+.invoice-tpl-preview--compact .invoice-tpl-preview-bar {
+  height: 10px;
+  margin-top: 10px;
+  background: #111;
+}
+.invoice-tpl-preview--compact .invoice-tpl-preview-lines { gap: 2px; }
+.invoice-tpl-preview--centered {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.invoice-tpl-preview--centered .invoice-tpl-preview-bar {
+  width: 50%;
+  margin-left: auto;
+  margin-right: auto;
+  background: #334155;
+}
+.invoice-tpl-preview--framed {
+  border: 2px double #334155;
+  margin: 6px;
+  height: 64px;
+}
+.invoice-tpl-preview--framed .invoice-tpl-preview-bar {
+  background: #e2e8f0;
+  margin-top: 10px;
+}
+.invoice-tpl-preview--stacked .invoice-tpl-preview-bar {
+  background: #cbd5e1;
+  height: 18px;
+  margin-top: 8px;
+}
+.invoice-tpl-preview--stacked .invoice-tpl-preview-line--dark {
+  width: 100%;
+  height: 8px;
+}
+.invoice-tpl-preview--ocean .invoice-tpl-preview-bar { background: #0d9488; }
+.invoice-tpl-preview--ocean::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #0d9488, #2dd4bf);
+}
+.invoice-tpl-preview--forest .invoice-tpl-preview-bar { background: #15803d; }
+.invoice-tpl-preview--forest::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #15803d, #4ade80);
+}
+.invoice-tpl-preview--burgundy .invoice-tpl-preview-bar { background: #9f1239; }
+.invoice-tpl-preview--burgundy::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #9f1239, #e11d48);
+}
+.invoice-tpl-preview--royal .invoice-tpl-preview-bar { background: #6d28d9; }
+.invoice-tpl-preview--royal::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #6d28d9, #a78bfa);
+}
+.invoice-tpl-preview--sunset .invoice-tpl-preview-bar { background: #c2410c; }
+.invoice-tpl-preview--sunset::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #c2410c, #fb923c);
+}
+.invoice-tpl-preview-bar {
+  height: 14px;
+  margin: 14px 6px 0;
+  border-radius: 1px;
+}
+.invoice-tpl-preview-lines {
+  padding: 4px 6px 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.invoice-tpl-preview-line {
+  height: 3px;
+  background: #e2e8f0;
+  border-radius: 1px;
+}
+.invoice-tpl-preview-line--short {
+  width: 60%;
+}
+.invoice-tpl-preview-line--dark {
+  background: #94a3b8;
+}
+.invoice-tpl-body {
+  padding: 8px 10px 10px;
+}
+.invoice-tpl-label {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.2;
+}
+.invoice-tpl-tag {
+  font-size: 0.68rem;
+  color: var(--primary);
+  font-weight: 600;
+  margin-top: 2px;
+}
+.invoice-tpl-hint {
+  font-size: 0.68rem;
+  color: var(--muted);
+  line-height: 1.35;
+  margin-top: 4px;
+}
+.invoice-tpl-compliance {
+  font-size: 0.72rem;
+  color: var(--muted2);
+  line-height: 1.45;
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  background: var(--line2);
+  border-radius: var(--radius-sm);
+}

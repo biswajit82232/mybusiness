@@ -29,6 +29,7 @@ export function BankAccountDetailScreen({
   otherIncomes = [],
   purchases = [],
   loansGiven = [],
+  customerAdvancePayments = [],
   activityMonthKey,
   onClose,
   onPatch,
@@ -71,12 +72,13 @@ export function BankAccountDetailScreen({
         allBankAccounts,
         purchases,
         loansGiven,
+        customerAdvancePayments,
       ),
-    [account?.id, expenses, sales, bankTransfers, inventoryEntries, otherIncomes, allBankAccounts, purchases, loansGiven],
+    [account?.id, expenses, sales, bankTransfers, inventoryEntries, otherIncomes, allBankAccounts, purchases, loansGiven, customerAdvancePayments],
   );
   const book = useMemo(() => {
     if (!account?.id) return 0;
-    return computeBankAccountBookBalance(
+    const bal = computeBankAccountBookBalance(
       account,
       expenses,
       sales,
@@ -85,8 +87,11 @@ export function BankAccountDetailScreen({
       otherIncomes,
       purchases,
       loansGiven,
+      null,
+      customerAdvancePayments,
     );
-  }, [account, expenses, sales, bankTransfers, inventoryEntries, otherIncomes, purchases, loansGiven]);
+    return bal;
+  }, [account, expenses, sales, bankTransfers, inventoryEntries, otherIncomes, purchases, loansGiven, customerAdvancePayments, txs.length]);
 
   const filteredTxs = useMemo(() => {
     if (activityShowAll) return txs;
@@ -115,8 +120,9 @@ export function BankAccountDetailScreen({
         viewMonthKey,
         purchases,
         loansGiven,
+        customerAdvancePayments,
       ),
-    [expenses, sales, bankTransfers, inventoryEntries, otherIncomes, account?.id, viewMonthKey, purchases, loansGiven],
+    [expenses, sales, bankTransfers, inventoryEntries, otherIncomes, account?.id, viewMonthKey, purchases, loansGiven, customerAdvancePayments],
   );
   const monthNet = roundMoney2(num(mtd.inn) - num(mtd.out));
 
@@ -342,7 +348,8 @@ export function BankAccountDetailScreen({
                         t.linkKind === "otherIncome" ||
                         (t.linkKind === "transfer" && t.transferId) ||
                         (t.linkKind === "payment" && t.saleId && t.paymentEntryId) ||
-                        (t.linkKind === "purchasePayment" && t.purchaseId && t.paymentEntryId));
+                        (t.linkKind === "purchasePayment" && t.purchaseId && t.paymentEntryId) ||
+                        (t.linkKind === "advancePayment" && t.advancePaymentId));
                     return (
                       <li key={t.key} className={`bank-tx-li${canDelete ? " bank-tx-li--actions" : ""}`}>
                         <button

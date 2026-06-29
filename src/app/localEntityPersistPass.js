@@ -85,6 +85,11 @@ export async function persistEntityStateDiff({ userId, prevState, nextState, upd
       normalizedBalance.customerDirectory || [],
     );
     await persistEntityList(
+      "customerAdvancePayments",
+      prevState.customerAdvancePayments || [],
+      normalizedBalance.customerAdvancePayments || [],
+    );
+    await persistEntityList(
       "vendorDirectory",
       prevState.vendorDirectory || [],
       normalizedBalance.vendorDirectory || [],

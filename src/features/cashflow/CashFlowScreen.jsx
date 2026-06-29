@@ -23,6 +23,7 @@ export function CashFlowScreen({
   purchases = [],
   loansGiven = [],
   bankTransfers = [],
+  customerAdvancePayments = [],
   fsm,
   fyYear,
   fyStr,
@@ -41,8 +42,9 @@ export function CashFlowScreen({
       purchases: purchases || [],
       loansGiven: loansGiven || [],
       bankTransfers: bankTransfers || [],
+      customerAdvancePayments: customerAdvancePayments || [],
     }),
-    [sales, expenses, inventoryEntries, otherIncomes, purchases, loansGiven, bankTransfers],
+    [sales, expenses, inventoryEntries, otherIncomes, purchases, loansGiven, bankTransfers, customerAdvancePayments],
   );
 
   const { rows, periodLabel, colLabel } = useMemo(() => {
@@ -85,6 +87,7 @@ export function CashFlowScreen({
         purchases || [],
         loansGiven,
         bankTransfers,
+        customerAdvancePayments || [],
       );
       const maxIn = Math.max(1, ...pairs.map(([, o]) => o.cashIn));
       const list = pairs.map(([day, o]) => ({
@@ -131,6 +134,7 @@ export function CashFlowScreen({
     purchases,
     loansGiven,
     bankTransfers,
+    customerAdvancePayments,
     fsm,
     fyYear,
     fyStr,

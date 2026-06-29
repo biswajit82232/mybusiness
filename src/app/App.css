@@ -1209,6 +1209,17 @@ a:focus-visible {
 }
 @media (max-width: 899px) {
   .tab-appbar { display: none; }
+  .settings-overlay .settings-mobile-back {
+    display: flex;
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+  }
+}
+@media (min-width: 900px) {
+  .settings-overlay .settings-mobile-back { display: none; }
 }
 
 .tab-title {
@@ -5120,6 +5131,70 @@ button.bank-tx-row-btn.bank-tx-row {
 }
 
 .line-items-actions { display: flex; }
+
+/* Invoice line bundle (New Sale) — scoped to invoice lines card only */
+.form-card--invoice-lines .line-item-head-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+.form-card--invoice-lines .line-item-select {
+  display: flex;
+  align-items: center;
+  margin: 0;
+  cursor: pointer;
+}
+.form-card--invoice-lines .line-item-select input {
+  width: 1rem;
+  height: 1rem;
+  margin: 0;
+  accent-color: var(--primary);
+}
+.form-card--invoice-lines .line-item-bundle-badge {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--primary);
+  background: var(--primary-soft);
+  border: 1px solid var(--primary-mid);
+  border-radius: 999px;
+  padding: 2px 8px;
+  white-space: nowrap;
+}
+.form-card--invoice-lines .line-item-row--bundled {
+  border-color: color-mix(in srgb, var(--primary) 35%, var(--line));
+  box-shadow: inset 3px 0 0 color-mix(in srgb, var(--primary) 55%, transparent);
+}
+.form-card--invoice-lines .line-item-row--selected {
+  background: color-mix(in srgb, var(--primary) 5%, var(--card));
+}
+.form-card--invoice-lines .line-item-bundle-hint {
+  margin: 0 0 10px;
+  padding: 0 2px;
+}
+.form-card--invoice-lines .line-items-actions {
+  flex-direction: column;
+  gap: 8px;
+}
+.form-card--invoice-lines .line-item-bundle-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  font-weight: 600;
+  color: var(--primary);
+  border-color: color-mix(in srgb, var(--primary) 35%, var(--line));
+}
+.form-card--invoice-lines .line-item-bundle-btn svg {
+  width: 1.1rem;
+  height: 1.1rem;
+  flex-shrink: 0;
+}
+.form-card--invoice-lines .line-item-unbundle-btn { align-self: flex-start; }
+.form-card--invoice-lines .form-hint--warn { color: var(--warning); }
+
 .ghost-btn--full {
   width: 100%;
   justify-content: center;
@@ -10100,6 +10175,7 @@ button.activity-row.activity-row--clickable:active { background: var(--line2); }
   .sidebar, .sidebar-overlay, .mobile-appbar, .tab-appbar,
   .fab, .toast, .sw-update-banner, .sync-bar,
   .notif-panel, .notif-backdrop, .modal-overlay, .welcome-overlay,
+  .invoice-preview-overlay,
   .page-hdr .icon-btn, .hamburger-btn,
   .quick-actions, .period-bar,
   .inv-actions { display: none !important; }
@@ -11515,7 +11591,8 @@ button.activity-row.activity-row--clickable:active { background: var(--line2); }
   .kpi-card,
   .sale-row,
   .inv-row,
-  .activity-row {
+  .activity-row,
+  .payments-row {
     transition: background-color 0.12s ease, border-color 0.12s ease, color 0.12s ease !important;
   }
 
@@ -11531,6 +11608,7 @@ button.activity-row.activity-row--clickable:active { background: var(--line2); }
   .inv-row,
   .banking-acct-row,
   .activity-row,
+  .payments-row,
   .seg-btn,
   .sort-chip,
   .month-nav-btn,

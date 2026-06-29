@@ -47,6 +47,10 @@ export function BankingTab({
   const purchases = useMemo(() => state.purchases ?? [], [state.purchases]);
   const otherIncomes = useMemo(() => state.otherIncomes ?? [], [state.otherIncomes]);
   const loansGiven = useMemo(() => state.loansGiven ?? [], [state.loansGiven]);
+  const customerAdvancePayments = useMemo(
+    () => state.customerAdvancePayments ?? [],
+    [state.customerAdvancePayments],
+  );
   const expenseList = useMemo(() => expenses ?? [], [expenses]);
   const salesList = useMemo(() => sales ?? [], [sales]);
 
@@ -75,9 +79,11 @@ export function BankingTab({
           otherIncomes,
           purchases,
           loansGiven,
+          null,
+          customerAdvancePayments,
         ),
       })),
-    [bankAccounts, expenseList, salesList, transfers, inventoryEntries, otherIncomes, purchases, loansGiven],
+    [bankAccounts, expenseList, salesList, transfers, inventoryEntries, otherIncomes, purchases, loansGiven, customerAdvancePayments],
   );
 
   const totalLiquid = useMemo(
@@ -99,6 +105,7 @@ export function BankingTab({
     purchases,
     transfers,
     loansGiven,
+    customerAdvancePayments,
   );
   const monthNet = roundMoney2(num(act.cashIn) - num(act.cashOut));
   const monthLabel = formatMonthLabel(bankingMonthKey);
@@ -283,6 +290,7 @@ export function BankingTab({
                     bankingMonthKey,
                     purchases,
                     loansGiven,
+                    customerAdvancePayments,
                   );
                   const inLiquid = bankAccountCountsInLiquidTotal(acc);
                   const flags = [];

@@ -207,6 +207,8 @@ export function mergeAuthenticatedMainStageProps(c) {
       closeNewExpense: c.closeNewExpense,
       onRecordPayment: c.onRecordPayment,
       onRecordPurchasePayment: c.onRecordPurchasePayment,
+      onRecordAdvancePayment: c.onRecordAdvancePayment,
+      onApplyAdvanceToSale: c.onApplyAdvanceToSale,
       setPayDate: c.setPayDate,
       onDeleteConfirmed: c.onDeleteConfirmed,
       confirmImportBackup: c.confirmImportBackup,

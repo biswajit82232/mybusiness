@@ -49,6 +49,7 @@ export const ENTITY_TYPES = [
   "emiEntries",
   "loansGiven",
   "customerDirectory",
+  "customerAdvancePayments",
   "vendorDirectory",
   "dismissedAlertIds",
   "auditEvents",
@@ -160,6 +161,7 @@ function toLocalPayloadShape(raw) {
     emiEntries: Array.isArray(base.emiEntries) ? base.emiEntries : [],
     loansGiven: Array.isArray(base.loansGiven) ? base.loansGiven : [],
     customerDirectory: Array.isArray(base.customerDirectory) ? base.customerDirectory : [],
+    customerAdvancePayments: Array.isArray(base.customerAdvancePayments) ? base.customerAdvancePayments : [],
     vendorDirectory: Array.isArray(base.vendorDirectory) ? base.vendorDirectory : [],
     dismissedAlertIds: Array.isArray(base.dismissedAlertIds) ? base.dismissedAlertIds : [],
     auditEvents: Array.isArray(base.auditEvents) ? base.auditEvents : [],
@@ -241,6 +243,7 @@ async function seedEntityRecordsFromPayload(client, businessId, payload) {
   pushList("emiEntries", payload?.emiEntries);
   pushList("loansGiven", payload?.loansGiven);
   pushList("customerDirectory", payload?.customerDirectory);
+  pushList("customerAdvancePayments", payload?.customerAdvancePayments);
   pushList("vendorDirectory", payload?.vendorDirectory);
   pushList("auditEvents", payload?.auditEvents);
   pushList("syncConflictQueue", payload?.syncConflictQueue);

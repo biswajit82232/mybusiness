@@ -8,6 +8,7 @@ import {
   normFyCloseSnapshots,
   normSaleDraft,
   normalizeExpenseCategoriesFromPersist,
+  normalizeInvoiceTemplate,
   normalizeOtherIncomeCategoriesFromPersist,
   num,
   sanitizePrefix,
@@ -46,11 +47,17 @@ export function useSettingsActions({
       if ("invoiceTerms" in updates) s.invoiceTerms = String(updates.invoiceTerms ?? "").trim();
       if ("invoiceSignatory" in updates) s.invoiceSignatory = String(updates.invoiceSignatory ?? "").trim();
       if ("invoiceSignature" in updates) s.invoiceSignature = String(updates.invoiceSignature ?? "").trim();
+      if ("invoiceTemplate" in updates)
+        s.invoiceTemplate = normalizeInvoiceTemplate(updates.invoiceTemplate);
       if ("gstEnabled" in updates) s.gstEnabled = updates.gstEnabled !== false;
       if ("defaultProductHsn" in updates)
         s.defaultProductHsn = String(updates.defaultProductHsn ?? "8711").trim() || "8711";
       if ("defaultProductGstRate" in updates)
         s.defaultProductGstRate = Math.max(0, num(updates.defaultProductGstRate ?? 5));
+      if ("additionalChargesLabel" in updates)
+        s.additionalChargesLabel =
+          String(updates.additionalChargesLabel ?? "Additional Charges").trim() ||
+          "Additional Charges";
       if ("invoicePrefix" in updates)
         s.invoicePrefix = sanitizePrefix(updates.invoicePrefix ?? s.invoicePrefix);
       if ("billOfSupplyPrefix" in updates)

@@ -13,6 +13,7 @@ import {
   IcLedger,
   IcLogout,
   IcNetWorth,
+  IcPayment,
   IcReceivable,
   IcServicing,
   IcPayable,
@@ -68,6 +69,7 @@ const NAV_GROUPS = [
       { page: "fixedAssets", label: "Fixed Assets", Icon: IcLandmark },
       { page: "cashFlow", label: "Cash flow", Icon: IcCashFlow },
       { page: "ledger", label: "Ledger", Icon: IcLedger },
+      { page: "payments", label: "Payments In/Out", Icon: IcPayment },
     ],
   },
   {

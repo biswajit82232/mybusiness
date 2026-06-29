@@ -167,21 +167,26 @@ export function useSalesActions({
           chassisNo: String(li?.chassisNo || "").trim(),
           motorNo: String(li?.motorNo || "").trim(),
           batterySerialNo: String(li?.batterySerialNo || "").trim(),
+          invoiceGroupId: String(li?.invoiceGroupId || "").trim(),
         }))
         .filter((li) => li.item || li.qty > 0 || li.salePrice > 0 || li.costPrice > 0);
       if (lineItemsCoerced.length === 0) {
-        lineItemsCoerced.push({
-          id: makeId(),
-          item: (saleEntry.item || "").trim(),
-          qty: num(saleEntry.qty),
-          salePrice: num(saleEntry.salePrice),
-          costPrice: num(saleEntry.costPrice),
-        });
+        showToast("Add at least one line item");
+        return;
+      }
+      for (const li of lineItemsCoerced) {
+        if (num(li.qty) < 0 || num(li.salePrice) < 0 || num(li.costPrice) < 0) {
+          showToast("Quantity and prices cannot be negative");
+          return;
+        }
       }
 
       const lineTotals = sumSaleLineItems(lineItemsCoerced);
       const discount = roundMoney2(Math.max(0, num(saleEntry.discount)));
-      const totalSale = roundMoney2(Math.max(0, lineTotals.totalSale - discount));
+      const additionalCharges = roundMoney2(Math.max(0, num(saleEntry.additionalCharges)));
+      const totalSale = roundMoney2(
+        Math.max(0, lineTotals.totalSale - discount + additionalCharges),
+      );
       const totalCost = lineTotals.totalCost;
       const first = lineItemsCoerced[0];
       const qty = first.qty;
@@ -237,7 +242,8 @@ export function useSalesActions({
           (s) => s && s.invoiceNo === invoiceNo && (!editingSaleId || s.id !== editingSaleId),
         )
       ) {
-        showToast("Warning: invoice number already used on another sale");
+        showToast("Invoice number already used on another sale");
+        return false;
       }
 
       const dueDate =
@@ -275,6 +281,7 @@ export function useSalesActions({
         costPrice: cp,
         lineItems: lineItemsCoerced,
         discount,
+        additionalCharges,
         totalSale,
         totalCost,
         grossProfit: roundMoney2(totalSale - totalCost),

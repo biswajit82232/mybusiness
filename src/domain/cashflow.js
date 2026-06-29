@@ -14,6 +14,8 @@ import {
   sumLoanRepaymentCashInOnDay,
   sumPurchasePaymentsInMonth,
   sumPurchasePaymentsOnDay,
+  sumCustomerAdvanceReceiptsInMonth,
+  sumCustomerAdvanceReceiptsOnDay,
   sumSalePaymentsInMonth,
   sumSalePaymentsOnDay,
   sumStockInCashOutInMonth,
@@ -175,10 +177,13 @@ export function computeCashflowBreakdownForMonth({
   purchases,
   loansGiven,
   bankTransfers,
+  customerAdvancePayments,
   monthKey,
 }) {
   const operatingIn = roundMoney2(
-    sumSalePaymentsInMonth(sales, monthKey) + sumOtherIncomeInMonth(otherIncomes, monthKey),
+    sumSalePaymentsInMonth(sales, monthKey) +
+      sumCustomerAdvanceReceiptsInMonth(customerAdvancePayments, monthKey) +
+      sumOtherIncomeInMonth(otherIncomes, monthKey),
   );
   const operatingOut = roundMoney2(
     sumExpenseCashOutInMonth(expenses, monthKey) +
@@ -220,10 +225,13 @@ export function computeCashflowBreakdownForDay({
   purchases,
   loansGiven,
   bankTransfers,
+  customerAdvancePayments,
   dayYmd,
 }) {
   const operatingIn = roundMoney2(
-    sumSalePaymentsOnDay(sales, dayYmd) + sumOtherIncomeOnDay(otherIncomes, dayYmd),
+    sumSalePaymentsOnDay(sales, dayYmd) +
+      sumCustomerAdvanceReceiptsOnDay(customerAdvancePayments, dayYmd) +
+      sumOtherIncomeOnDay(otherIncomes, dayYmd),
   );
   const operatingOut = roundMoney2(
     sumExpenseCashOutOnDay(expenses, dayYmd) +

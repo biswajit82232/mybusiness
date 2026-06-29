@@ -1,16 +1,21 @@
 import {
+  additionalChargesLabel,
   amountInWordsInr,
   buildInvoiceGstModel,
   businessAddressLines,
+  collapseInvoiceLinesForPrint,
   dateSlash,
   gstStateCode,
   hasSaleAddress,
   invoiceCopyLabel,
+  invoiceTemplateClass,
   isGstEnabled,
   num,
   placeOfSupplyLabel,
   saleAddressLines,
 } from "@/domain/index.js";
+import "./invoice-sheet-base.css";
+import "./invoice-template-styles.css";
 
 const AMT = new Intl.NumberFormat("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const QTY = new Intl.NumberFormat("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -70,6 +75,51 @@ function InvoiceHeader({ coName, coGstin, logo, addrLines, coPhone, coWa, settin
 
 /** Product description cell with serial numbers. */
 function ProductCell({ line, saleNotes, showNotes }) {
+  const members = Array.isArray(line?.groupMembers) ? line.groupMembers : null;
+
+  if (members && members.length > 1) {
+    return (
+      <div className="ips-prod-cell ips-prod-cell--grouped">
+        {members.map((m, i) => (
+          <div key={m.id || i} className="ips-prod-sub">
+            <div className="ips-prod-name">{m.item || "—"}</div>
+            {m.chassisNo ? (
+              <div className="ips-serial">
+                Chassis No:&nbsp;<span>{m.chassisNo}</span>
+              </div>
+            ) : null}
+            {m.motorNo ? (
+              <div className="ips-serial">
+                Motor No:&nbsp;<span>{m.motorNo}</span>
+              </div>
+            ) : null}
+            {String(m.batterySerialNo || "")
+              .trim()
+              .split(/\n+/)
+              .map((s) => s.trim())
+              .filter(Boolean).length > 0 ? (
+              <div className="ips-serial">
+                Battery S/No:&nbsp;
+                {String(m.batterySerialNo || "")
+                  .trim()
+                  .split(/\n+/)
+                  .map((s) => s.trim())
+                  .filter(Boolean)
+                  .map((b, j, arr) => (
+                    <span key={j}>
+                      {b}
+                      {j < arr.length - 1 ? ", " : ""}
+                    </span>
+                  ))}
+              </div>
+            ) : null}
+          </div>
+        ))}
+        {showNotes && saleNotes ? <div className="ips-serial">{saleNotes}</div> : null}
+      </div>
+    );
+  }
+
   const batteryLines = String(line.batterySerialNo || "")
     .trim()
     .split(/\n+/)
@@ -105,12 +155,65 @@ function ProductCell({ line, saleNotes, showNotes }) {
   );
 }
 
+/** Discount / additional-charge rows before the invoice total (BOS & simple layouts). */
+function SimpleTotalRows({ sale, settings, lineSubtotal }) {
+  const discount = num(sale?.discount);
+  const extra = num(sale?.additionalCharges);
+  const extraLabel = additionalChargesLabel(settings);
+  const showSubtotal = discount > 0 || extra > 0;
+  return (
+    <>
+      {showSubtotal ? (
+        <tr>
+          <td>Subtotal</td>
+          <td className="tr">{fmtAmt(lineSubtotal)}</td>
+        </tr>
+      ) : null}
+      {discount > 0 ? (
+        <tr>
+          <td>Discount</td>
+          <td className="tr">−{fmtAmt(discount)}</td>
+        </tr>
+      ) : null}
+      {extra > 0 ? (
+        <tr>
+          <td>{extraLabel}</td>
+          <td className="tr">+{fmtAmt(extra)}</td>
+        </tr>
+      ) : null}
+    </>
+  );
+}
+
 /** GST tax summary panel (right column). */
-function TaxPanel({ gstModel, grandTotal, received, outstanding, isInterState }) {
+function TaxPanel({
+  gstModel,
+  grandTotal,
+  received,
+  outstanding,
+  isInterState,
+  extraChargeLabel,
+  additionalCharges,
+  reverseCharge,
+}) {
   const balance = num(outstanding);
+  const discount = num(gstModel?.discount);
+  const rcm = reverseCharge === true;
   return (
     <table className="ips-txpanel">
       <tbody>
+        {discount > 0 ? (
+          <>
+            <tr>
+              <td className="ips-tp-lbl">Subtotal (incl. tax)</td>
+              <td className="ips-tp-amt">{fmtAmt(gstModel.subtotalInclusive)}</td>
+            </tr>
+            <tr>
+              <td className="ips-tp-lbl">Less: Discount</td>
+              <td className="ips-tp-amt">−{fmtAmt(discount)}</td>
+            </tr>
+          </>
+        ) : null}
         <tr>
           <td className="ips-tp-lbl">Taxable Amount</td>
           <td className="ips-tp-amt">{fmtAmt(gstModel.taxableTotal)}</td>
@@ -136,6 +239,19 @@ function TaxPanel({ gstModel, grandTotal, received, outstanding, isInterState })
           <td className="ips-tp-lbl">Total Tax</td>
           <td className="ips-tp-amt">{fmtAmt(gstModel.totalTax)}</td>
         </tr>
+        {rcm && gstModel.totalTax > 0 ? (
+          <tr>
+            <td className="ips-tp-lbl" colSpan={2} style={{ fontSize: "0.72rem", fontStyle: "italic" }}>
+              GST payable under reverse charge by recipient
+            </td>
+          </tr>
+        ) : null}
+        {num(additionalCharges) > 0 ? (
+          <tr>
+            <td className="ips-tp-lbl">{extraChargeLabel}</td>
+            <td className="ips-tp-amt">{fmtAmt(additionalCharges)}</td>
+          </tr>
+        ) : null}
         <tr className="ips-tp-grand">
           <td className="ips-tp-lbl">Grand Total</td>
           <td className="ips-tp-amt">{fmtAmt(grandTotal)}</td>
@@ -221,25 +337,33 @@ export function InvoicePrintSheet({ sale, settings = {} }) {
 
   const invoiceLines = (() => {
     const arr = Array.isArray(sale?.lineItems) ? sale.lineItems : [];
-    if (arr.length > 0) return arr;
-    return [
-      {
-        id: "legacy-1",
-        item: sale?.item || "",
-        qty: num(sale?.qty),
-        salePrice: num(sale?.salePrice),
-        costPrice: num(sale?.costPrice),
-      },
-    ];
+    const raw =
+      arr.length > 0
+        ? arr
+        : [
+            {
+              id: "legacy-1",
+              item: sale?.item || "",
+              qty: num(sale?.qty),
+              salePrice: num(sale?.salePrice),
+              costPrice: num(sale?.costPrice),
+            },
+          ];
+    return collapseInvoiceLinesForPrint(raw);
   })();
 
   const gstModel = buildInvoiceGstModel({
     lineItems: invoiceLines,
     discount: sale?.discount,
+    additionalCharges: sale?.additionalCharges,
     businessState: settings.businessState,
     customerState: sale?.customerState,
+    reverseCharge: sale?.reverseCharge === true,
     settings,
   });
+
+  const lineSubtotal = invoiceLines.reduce((s, li) => s + num(li.qty) * num(li.salePrice), 0);
+  const extraChargeLabel = additionalChargesLabel(settings);
 
   const isTaxInvoice = isGstEnabled(settings) && !isBos;
   const showGst = isTaxInvoice && !!coGstin;
@@ -253,14 +377,19 @@ export function InvoicePrintSheet({ sale, settings = {} }) {
   const outstanding = num(sale?.outstanding);
   const grandTotal = showGst ? gstModel.grandTotal : num(sale?.totalSale);
   const totalQty = gstModel.lines.reduce((s, l) => s + l.qty, 0);
+  const linesMerchTotal = showGst
+    ? gstModel.lines.reduce((s, l) => s + num(l.lineTotal), 0)
+    : grandTotal;
 
   const headerProps = { coName, coGstin, logo, addrLines, coPhone, coWa, settings };
   const sigProps = { signatory, signatureImage };
+  const tpl = invoiceTemplateClass(settings);
+  const sheetCls = (doc) => `invoice-print-sheet invoice-print-sheet--${doc} invoice-print-sheet--tpl-${tpl}`;
 
   /* ─────────────────────────── Bill of Supply ─────────────────────────── */
   if (isBos) {
     return (
-      <div className="invoice-print-sheet invoice-print-sheet--bos">
+      <div className={sheetCls("bos")}>
         <InvoiceHeader {...headerProps} docTitle="BILL OF SUPPLY" copyLabel={copyLabel} />
         <div className="ips-divider" />
         <DocTitleBanner title="BILL OF SUPPLY" />
@@ -333,6 +462,7 @@ export function InvoicePrintSheet({ sale, settings = {} }) {
           <div className="ips-floor-r">
             <table className="ips-simpletot">
               <tbody>
+                <SimpleTotalRows sale={sale} settings={settings} lineSubtotal={lineSubtotal} />
                 <tr className="ips-st-grand">
                   <td>Total</td>
                   <td className="tr">{fmtAmt(sale?.totalSale)}</td>
@@ -358,7 +488,7 @@ export function InvoicePrintSheet({ sale, settings = {} }) {
   /* ──────────────────────────── GST Tax Invoice ───────────────────────── */
   if (showGst) {
     return (
-      <div className="invoice-print-sheet invoice-print-sheet--gst">
+      <div className={sheetCls("gst")}>
         <InvoiceHeader {...headerProps} docTitle="" copyLabel="" />
         <div className="ips-divider" />
         <DocTitleBanner title="TAX INVOICE" copyLabel={copyLabel} />
@@ -523,7 +653,7 @@ export function InvoicePrintSheet({ sale, settings = {} }) {
                 </>
               )}
               <td className="tr">
-                <strong>{fmtAmt(grandTotal)}</strong>
+                <strong>{fmtAmt(linesMerchTotal)}</strong>
               </td>
             </tr>
           </tbody>
@@ -637,6 +767,9 @@ export function InvoicePrintSheet({ sale, settings = {} }) {
               received={received}
               outstanding={outstanding}
               isInterState={gstModel.isInterState}
+              extraChargeLabel={extraChargeLabel}
+              additionalCharges={sale?.additionalCharges}
+              reverseCharge={reverseCharge}
             />
           </div>
         </div>
@@ -649,7 +782,7 @@ export function InvoicePrintSheet({ sale, settings = {} }) {
   /* ───────────── Tax invoice title when GST on but GSTIN missing ─────── */
   if (isTaxInvoice) {
     return (
-      <div className="invoice-print-sheet invoice-print-sheet--simple">
+      <div className={sheetCls("simple")}>
         <InvoiceHeader {...headerProps} docTitle="" copyLabel="" />
         <div className="ips-divider" />
         <DocTitleBanner title="TAX INVOICE" copyLabel={copyLabel} />
@@ -727,6 +860,7 @@ export function InvoicePrintSheet({ sale, settings = {} }) {
           <div className="ips-floor-r">
             <table className="ips-simpletot">
               <tbody>
+                <SimpleTotalRows sale={sale} settings={settings} lineSubtotal={lineSubtotal} />
                 <tr className="ips-st-grand">
                   <td>Total Amount</td>
                   <td className="tr">{fmtAmt(sale?.totalSale)}</td>
@@ -751,7 +885,7 @@ export function InvoicePrintSheet({ sale, settings = {} }) {
 
   /* ───────────────────── Simple Invoice (GST disabled) ───────────────── */
   return (
-    <div className="invoice-print-sheet invoice-print-sheet--simple">
+    <div className={sheetCls("simple")}>
       <InvoiceHeader {...headerProps} docTitle="INVOICE" copyLabel={copyLabel} />
       <div className="ips-divider" />
       <DocTitleBanner title="INVOICE" />

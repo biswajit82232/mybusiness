@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   buildExistingCustomerPickerRows,
   buildLastSalePriceByItemKey,
+  canBundleInvoiceLines,
   defSalePaymentLine,
   defaultSalePriceForProductPick,
   filterCustomerSuggestRows,
@@ -18,6 +19,7 @@ import {
 } from "@/domain/index.js";
 import { MenuSelect } from "@/shared/ui/inputs/MenuSelect.jsx";
 import { Field, OverlayScreen, PageHeader } from "@/shared/ui/layout/AppChrome.jsx";
+import { IcPlus } from "@/shared/ui/icons/AppIcons.jsx";
 import { InventoryItemPickField } from "@/features/inventory/index.js";
 import { SaleDraftBanner } from "./SaleDraftBanner.jsx";
 import { saleDraftSummary } from "@/domain/index.js";
@@ -36,6 +38,7 @@ function blankLine() {
     motorNo: "",
     batterySerialNo: "",
     itemProductPick: "__custom__",
+    invoiceGroupId: "",
   };
 }
 
@@ -60,6 +63,7 @@ function hydrateLineItems(entry) {
       motorNo: String(li?.motorNo || ""),
       batterySerialNo: String(li?.batterySerialNo || ""),
       itemProductPick: String(li?.itemProductPick || "__custom__"),
+      invoiceGroupId: String(li?.invoiceGroupId || ""),
     }));
   }
   return [
@@ -75,6 +79,7 @@ function hydrateLineItems(entry) {
       motorNo: String(entry.motorNo || ""),
       batterySerialNo: String(entry.batterySerialNo || ""),
       itemProductPick: String(entry.itemProductPick || "__custom__"),
+      invoiceGroupId: "",
     },
   ];
 }
@@ -102,6 +107,7 @@ export function NewSaleScreen({
   defaultProductHsn = "8711",
   defaultProductGstRate = 5,
   gstEnabled = true,
+  additionalChargesLabel = "Additional Charges",
   onSubmit,
   onClose,
   draftSavedAt = null,
@@ -114,6 +120,37 @@ export function NewSaleScreen({
   );
   const invoiceManualRef = useRef(false);
   const gstOn = gstEnabled !== false;
+  const [selectedLineIds, setSelectedLineIds] = useState(() => new Set());
+  const [bundleHint, setBundleHint] = useState("");
+
+  const gstSettings = useMemo(
+    () => ({ defaultProductHsn, defaultProductGstRate }),
+    [defaultProductHsn, defaultProductGstRate],
+  );
+
+  const groupCounts = useMemo(() => {
+    const counts = new Map();
+    for (const li of lineItems) {
+      const gid = String(li.invoiceGroupId || "").trim();
+      if (!gid) continue;
+      counts.set(gid, (counts.get(gid) || 0) + 1);
+    }
+    return counts;
+  }, [lineItems]);
+
+  const pruneLoneInvoiceGroups = useCallback((lines) => {
+    const counts = new Map();
+    for (const li of lines) {
+      const gid = String(li.invoiceGroupId || "").trim();
+      if (!gid) continue;
+      counts.set(gid, (counts.get(gid) || 0) + 1);
+    }
+    return lines.map((li) => {
+      const gid = String(li.invoiceGroupId || "").trim();
+      if (gid && (counts.get(gid) || 0) < 2) return { ...li, invoiceGroupId: "" };
+      return li;
+    });
+  }, []);
 
   /**
    * Persist the new line-items array AND mirror the first line into the
@@ -137,10 +174,16 @@ export function NewSaleScreen({
 
   const updLine = useCallback(
     (idx, patch) => {
-      const next = lineItems.map((li, i) => (i === idx ? { ...li, ...patch } : li));
+      let next = lineItems.map((li, i) => (i === idx ? { ...li, ...patch } : li));
+      const gid = String(lineItems[idx]?.invoiceGroupId || "").trim();
+      if (gid && ("hsn" in patch || "gstRate" in patch)) {
+        next = next.map((li) =>
+          String(li.invoiceGroupId || "").trim() === gid ? { ...li, invoiceGroupId: "" } : li,
+        );
+      }
       setLines(next);
     },
-    [lineItems, setLines]
+    [lineItems, setLines],
   );
 
   const addLine = useCallback(() => setLines([...lineItems, blankLine()]), [lineItems, setLines]);
@@ -148,18 +191,71 @@ export function NewSaleScreen({
   const removeLine = useCallback(
     (idx) => {
       if (lineItems.length <= 1) return;
-      setLines(lineItems.filter((_, i) => i !== idx));
+      const next = pruneLoneInvoiceGroups(lineItems.filter((_, i) => i !== idx));
+      const removedId = lineItems[idx]?.id;
+      setLines(next);
+      if (removedId) {
+        setSelectedLineIds((prev) => {
+          if (!prev.has(removedId)) return prev;
+          const copy = new Set(prev);
+          copy.delete(removedId);
+          return copy;
+        });
+      }
     },
-    [lineItems, setLines]
+    [lineItems, setLines, pruneLoneInvoiceGroups],
   );
 
-  // Totals — sum across all line items, then apply discount.
+  const toggleLineSelect = useCallback((lineId) => {
+    setSelectedLineIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(lineId)) next.delete(lineId);
+      else next.add(lineId);
+      return next;
+    });
+    setBundleHint("");
+  }, []);
+
+  const bundleSelectedLines = useCallback(() => {
+    const selected = lineItems.filter((li) => selectedLineIds.has(li.id));
+    const check = canBundleInvoiceLines(selected, gstSettings);
+    if (!check.ok) {
+      setBundleHint(check.reason);
+      return;
+    }
+    const gid = makeId();
+    const sel = new Set(selected.map((li) => li.id));
+    setLines(
+      lineItems.map((li) => (sel.has(li.id) ? { ...li, invoiceGroupId: gid } : li)),
+    );
+    setSelectedLineIds(new Set());
+    setBundleHint("");
+  }, [lineItems, selectedLineIds, gstSettings, setLines]);
+
+  const unbundleSelectedLines = useCallback(() => {
+    const sel = selectedLineIds;
+    setLines(
+      pruneLoneInvoiceGroups(
+        lineItems.map((li) => (sel.has(li.id) ? { ...li, invoiceGroupId: "" } : li)),
+      ),
+    );
+    setSelectedLineIds(new Set());
+    setBundleHint("");
+  }, [lineItems, selectedLineIds, setLines, pruneLoneInvoiceGroups]);
+
+  const selectedHasBundle = useMemo(
+    () => lineItems.some((li) => selectedLineIds.has(li.id) && String(li.invoiceGroupId || "").trim()),
+    [lineItems, selectedLineIds],
+  );
+
+  // Totals — sum across all line items, then apply discount and additional charges.
   const subtotal = useMemo(
     () => roundMoney2(lineItems.reduce((s, li) => s + num(li.qty) * num(li.salePrice), 0)),
     [lineItems]
   );
   const discountNum = num(entry.discount);
-  const totalSale = roundMoney2(Math.max(0, subtotal - discountNum));
+  const additionalChargesNum = num(entry.additionalCharges);
+  const totalSale = roundMoney2(Math.max(0, subtotal - discountNum + additionalChargesNum));
   const totalCost = useMemo(
     () => roundMoney2(lineItems.reduce((s, li) => s + num(li.qty) * num(li.costPrice), 0)),
     [lineItems]
@@ -200,7 +296,8 @@ export function NewSaleScreen({
     [paymentLines],
   );
   const outstanding = Math.max(0, totalSale - recvNum);
-  const showPreview = subtotal > 0 || discountNum > 0 || lineItems.length > 1;
+  const showPreview =
+    subtotal > 0 || discountNum > 0 || additionalChargesNum > 0 || lineItems.length > 1;
 
   const customerPickRows = useMemo(
     () => buildExistingCustomerPickerRows(sales, customerDirectory || []),
@@ -505,26 +602,60 @@ export function NewSaleScreen({
                 <span className="form-card-meta">{lineItems.length} rows</span>
               ) : null}
             </div>
+            {lineItems.length > 1 ? (
+              <p className="form-hint line-item-bundle-hint">
+                Select rows and tap + to print them as one invoice line (same HSN &amp; GST %). Stock-out stays per item.
+              </p>
+            ) : null}
             <div className="form-stack form-stack--invoice-lines">
-              {lineItems.map((li, idx) => (
-                <LineItemRow
-                  key={li.id}
-                  idx={idx}
-                  line={li}
-                  total={lineItems.length}
-                  showStockItemPick={showStockItemPick}
-                  stockPickRows={stockPickRows}
-                  invRows={invRows}
-                  lastSalePriceByKey={lastSalePriceByKey}
-                  showGstFields={gstOn && currentDocType === "invoice"}
-                  defaultHsn={defaultProductHsn}
-                  defaultGstRate={defaultProductGstRate}
-                  onUpdate={(patch) => updLine(idx, patch)}
-                  onRemove={() => removeLine(idx)}
-                />
-              ))}
+              {lineItems.map((li, idx) => {
+                const gid = String(li.invoiceGroupId || "").trim();
+                const groupSize = gid ? groupCounts.get(gid) || 0 : 0;
+                return (
+                  <LineItemRow
+                    key={li.id}
+                    idx={idx}
+                    line={li}
+                    total={lineItems.length}
+                    showStockItemPick={showStockItemPick}
+                    stockPickRows={stockPickRows}
+                    invRows={invRows}
+                    lastSalePriceByKey={lastSalePriceByKey}
+                    showGstFields={gstOn && currentDocType === "invoice"}
+                    defaultHsn={defaultProductHsn}
+                    defaultGstRate={defaultProductGstRate}
+                    selectable={lineItems.length > 1}
+                    selected={selectedLineIds.has(li.id)}
+                    onToggleSelect={() => toggleLineSelect(li.id)}
+                    bundledOnInvoice={groupSize > 1}
+                    bundleGroupSize={groupSize}
+                    onUpdate={(patch) => updLine(idx, patch)}
+                    onRemove={() => removeLine(idx)}
+                  />
+                );
+              })}
 
               <div className="line-items-actions">
+                {lineItems.length > 1 && selectedLineIds.size >= 2 ? (
+                  <button
+                    type="button"
+                    className="ghost-btn line-item-bundle-btn"
+                    onClick={bundleSelectedLines}
+                    aria-label="Bundle selected lines on invoice PDF"
+                  >
+                    <IcPlus />
+                    <span>Bundle on invoice</span>
+                  </button>
+                ) : null}
+                {selectedHasBundle ? (
+                  <button
+                    type="button"
+                    className="ghost-btn ghost-btn--compact line-item-unbundle-btn"
+                    onClick={unbundleSelectedLines}
+                  >
+                    Ungroup
+                  </button>
+                ) : null}
                 <button
                   type="button"
                   className="ghost-btn ghost-btn--full form-add-line-btn"
@@ -534,6 +665,7 @@ export function NewSaleScreen({
                   + Add line item
                 </button>
               </div>
+              {bundleHint ? <p className="form-hint form-hint--warn">{bundleHint}</p> : null}
 
               <Field label="Description">
                 <textarea
@@ -561,6 +693,16 @@ export function NewSaleScreen({
                   placeholder="0"
                   value={entry.discount ?? ""}
                   onChange={(e) => upd("discount", e.target.value)}
+                />
+              </Field>
+              <Field label={`${additionalChargesLabel} (₹)`}>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="0"
+                  value={entry.additionalCharges ?? ""}
+                  onChange={(e) => upd("additionalCharges", e.target.value)}
                 />
               </Field>
             </div>
@@ -643,6 +785,12 @@ export function NewSaleScreen({
                     <strong style={{ color: "var(--danger)" }}>−{money(discountNum)}</strong>
                   </div>
                 </>
+              )}
+              {additionalChargesNum > 0 && (
+                <div className="ep-row">
+                  <span>{additionalChargesLabel}</span>
+                  <strong>+{money(additionalChargesNum)}</strong>
+                </div>
               )}
               <div className="ep-row">
                 <span>Total Sale</span>
@@ -779,6 +927,11 @@ function LineItemRow({
   showGstFields = true,
   defaultHsn = "8711",
   defaultGstRate = 5,
+  selectable = false,
+  selected = false,
+  onToggleSelect,
+  bundledOnInvoice = false,
+  bundleGroupSize = 0,
   onUpdate,
   onRemove,
 }) {
@@ -786,9 +939,29 @@ function LineItemRow({
   const pickRows = showStockItemPick ? stockPickRows : invRows;
 
   return (
-    <div className="line-item-row" data-line-index={idx}>
+    <div
+      className={`line-item-row${bundledOnInvoice ? " line-item-row--bundled" : ""}${selected ? " line-item-row--selected" : ""}`}
+      data-line-index={idx}
+    >
       <div className="line-item-head">
-        <span className="line-item-tag">Item {idx + 1}</span>
+        <div className="line-item-head-left">
+          {selectable ? (
+            <label className="line-item-select">
+              <input
+                type="checkbox"
+                checked={selected}
+                onChange={onToggleSelect}
+                aria-label={`Select item ${idx + 1} for invoice bundle`}
+              />
+            </label>
+          ) : null}
+          <span className="line-item-tag">Item {idx + 1}</span>
+          {bundledOnInvoice ? (
+            <span className="line-item-bundle-badge">
+              1 PDF row · {bundleGroupSize} items
+            </span>
+          ) : null}
+        </div>
         {total > 1 ? (
           <button
             type="button"

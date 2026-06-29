@@ -37,6 +37,7 @@
  * @property {string} [customerName]
  * @property {number} totalSale
  * @property {number} [discount]
+ * @property {number} [additionalCharges]
  * @property {number} totalCost
  * @property {number} received
  * @property {number} outstanding

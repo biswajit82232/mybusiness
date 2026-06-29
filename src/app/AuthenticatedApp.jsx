@@ -956,9 +956,10 @@ export default function AuthenticatedApp() {
         expenses: state.expenses,
         otherIncomes: state.otherIncomes,
         loansGiven: state.loansGiven,
+        customerAdvancePayments: state.customerAdvancePayments,
         invRows,
       }),
-    [invRows, state.balance, state.sales, state.inventoryEntries, state.settings, state.purchases, state.expenses, state.otherIncomes, state.loansGiven],
+    [invRows, state.balance, state.sales, state.inventoryEntries, state.settings, state.purchases, state.expenses, state.otherIncomes, state.loansGiven, state.customerAdvancePayments],
   );
 
   const selSale = useMemo(()=>selSaleId?state.sales.find(s=>s.id===selSaleId):null,[selSaleId,state.sales]);
@@ -1057,7 +1058,7 @@ export default function AuthenticatedApp() {
 
   usePwaLaunchActions(authState, setScreen, setPage, openNewSale);
 
-  const { onRecordPayment, onRecordPurchasePayment, openPayModal, openPayPurchaseModal } = usePaymentActions({
+  const { onRecordPayment, onRecordPurchasePayment, onRecordAdvancePayment, onApplyAdvanceToSale, openPayModal, openPayPurchaseModal } = usePaymentActions({
     state,
     payModal,
     payPurchaseModal,
@@ -1284,6 +1285,21 @@ export default function AuthenticatedApp() {
       setScreen(null);
       setSelExpenseCategory(null);
       setSelBankAccountId(null);
+      setSelSaleId(null);
+      setSelCustomerName(null);
+      setSelVendorName(null);
+      setSelPurchaseId(null);
+      setSelExpenseId(null);
+      setSelOtherIncomeId(null);
+      setSelEmiId(null);
+      setInvItemDetail(null);
+      setEditingSaleId(null);
+      setEditingPurchaseId(null);
+      setEditingCustomerId(null);
+      setEditingVendorId(null);
+      setEditingExpenseId(null);
+      setEditingOtherIncomeId(null);
+      setEditingInventoryId(null);
       setPage(id);
     });
   }, [resetRootNavigationRefs]);
@@ -1504,6 +1520,8 @@ export default function AuthenticatedApp() {
     closeNewExpense,
     onRecordPayment,
     onRecordPurchasePayment,
+    onRecordAdvancePayment,
+    onApplyAdvanceToSale,
     setPayDate,
     onDeleteConfirmed,
     confirmImportBackup,
@@ -1570,6 +1588,7 @@ export default function AuthenticatedApp() {
     markServicingComplete, undoServicingComplete, markServicingWaSent,
     closeExpenseCategory, closeExpenseDetail, openEditExpense,
     onSaveExpense, closeNewExpense, onRecordPayment, onRecordPurchasePayment,
+    onRecordAdvancePayment, onApplyAdvanceToSale,
     setPayDate, onDeleteConfirmed, confirmImportBackup, completeResetAllData,
     dismissWelcome, reloadWithNewVersion, requestConfirm,
     cancelSimpleConfirm, onSimpleConfirm,
@@ -1586,6 +1605,8 @@ export default function AuthenticatedApp() {
       saleDetail: closeSaleDetailNav,
       purchaseDetail: closePurchaseDetail,
       expenseDetail: closeExpenseDetail,
+      newExpense: closeNewExpense,
+      addStock: closeAddStock,
     };
   }, [
     closeBankAccountDetail,
@@ -1596,6 +1617,8 @@ export default function AuthenticatedApp() {
     closeSaleDetailNav,
     closePurchaseDetail,
     closeExpenseDetail,
+    closeNewExpense,
+    closeAddStock,
   ]);
 
   /* ─── render ─────────────────────────────────────────────── */

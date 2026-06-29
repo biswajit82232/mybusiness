@@ -152,6 +152,7 @@ import {
   sumSalePaymentsInFy,
   sumSalePaymentsInMonth,
   sumSalePaymentsOnDay,
+  sumCustomerAdvanceReceiptsInMonth,
   sumStockInCashOutInMonth,
   sumStockInCashOutOnDay,
   sumLoansGivenBookValue,
@@ -175,7 +176,10 @@ import {
   unwrapBackupFilePayload,
 } from "../src/domain/backup.js";
 import { computeBalanceSheetSummary, saleOutstandingAsOf } from "../src/domain/balanceSheet.js";
-import { buildInvoiceGstModel, isInterStateSale } from "../src/domain/invoiceGst.js";
+import { buildInvoiceGstModel, amountInWordsInr, effectiveLineGstRate, isInterStateSale } from "../src/domain/invoiceGst.js";
+import { computeCashflowBreakdownForMonth } from "../src/domain/cashflow.js";
+import { buildPaymentsLedger, paymentsPeriodTotals } from "../src/domain/payments.js";
+import { normalizeInvoiceTemplate, INVOICE_TEMPLATE_MODERN } from "../src/domain/invoiceTemplates.js";
 
 function ok(name, fn) {
   try {
@@ -492,6 +496,21 @@ ok("normSalesList: discount reduces totalSale", () => {
   ]);
   assert.equal(s.totalSale, 900);
   assert.equal(s.grossProfit, 300);
+});
+
+ok("normSalesList: additional charges increase totalSale", () => {
+  const [s] = normSalesList([
+    {
+      id: "s-extra",
+      date: "2026-04-01",
+      customerName: "C",
+      lineItems: [{ item: "X", qty: 1, salePrice: 1000, costPrice: 600 }],
+      additionalCharges: 150,
+      received: 0,
+    },
+  ]);
+  assert.equal(s.totalSale, 1150);
+  assert.equal(s.grossProfit, 550);
 });
 
 ok("computeAccountActivityNet: in minus out on one bank", () => {
@@ -1911,6 +1930,139 @@ ok("buildInvoiceGstModel: interStateOverride applies IGST when customer state mi
   });
   assert.ok(model.igst > 0);
   assert.equal(model.cgst, 0);
+});
+
+ok("normalizeInvoiceTemplate: whitelist and default", () => {
+  assert.equal(normalizeInvoiceTemplate("modern"), INVOICE_TEMPLATE_MODERN);
+  assert.equal(normalizeInvoiceTemplate("ocean"), "ocean");
+  assert.equal(normalizeInvoiceTemplate("stacked"), "stacked");
+  assert.equal(normalizeInvoiceTemplate("classic"), "classic");
+  assert.equal(normalizeInvoiceTemplate(""), "premium");
+  assert.equal(normalizeInvoiceTemplate("unknown"), "premium");
+});
+
+ok("effectiveLineGstRate: explicit 0% is zero, not default", () => {
+  assert.equal(effectiveLineGstRate({ gstRate: 0 }, { defaultProductGstRate: 5 }), 0);
+  assert.equal(effectiveLineGstRate({}, { defaultProductGstRate: 5 }), 5);
+});
+
+ok("buildInvoiceGstModel: explicit 0% line has no tax", () => {
+  const model = buildInvoiceGstModel({
+    lineItems: [{ item: "Exempt", qty: 1, salePrice: 1000, gstRate: 0 }],
+    settings: { defaultProductGstRate: 18 },
+  });
+  assert.equal(model.totalTax, 0);
+  assert.equal(model.grandTotal, 1000);
+});
+
+ok("paymentsPeriodTotals: skips advance-applied sale rows", () => {
+  const rows = buildPaymentsLedger({
+    sales: [
+      {
+        id: "s1",
+        customerName: "A",
+        invoiceNo: "INV-1",
+        paymentEntries: [
+          { id: "p1", date: "2026-01-01", amount: 5000, bankAccountId: "b1", sourceAdvanceId: "adv1" },
+        ],
+      },
+    ],
+    customerAdvancePayments: [
+      { id: "adv1", date: "2026-01-01", amount: 5000, bankAccountId: "b1", customerName: "A", receiptNo: "ADV-1" },
+    ],
+  });
+  const totals = paymentsPeriodTotals(rows);
+  assert.equal(totals.cashIn, 5000);
+  assert.equal(totals.count, 1);
+});
+
+ok("computeBalanceSheetSummary: customer advance liability on unapplied balance", () => {
+  const bs = computeBalanceSheetSummary({
+    sales: [],
+    purchases: [],
+    inventoryEntries: [],
+    balance: { bankAccounts: [], bankTransfers: [] },
+    settings: {},
+    customerAdvancePayments: [
+      { id: "adv1", date: "2026-01-01", amount: 3000, bankAccountId: "b1", customerName: "A", receiptNo: "ADV-1" },
+    ],
+  });
+  assert.equal(bs.customerAdvanceLiability, 3000);
+});
+
+ok("sumSalePaymentsInMonth: skips advance-applied payment lines", () => {
+  const sales = [
+    {
+      id: "x",
+      date: "2026-04-01",
+      paymentEntries: [
+        { id: "p1", date: "2026-04-15", amount: 40, bankAccountId: "b" },
+        { id: "p2", date: "2026-04-20", amount: 60, bankAccountId: "b", sourceAdvanceId: "adv1" },
+      ],
+    },
+  ];
+  assert.equal(sumSalePaymentsInMonth(sales, "2026-04"), 40);
+});
+
+ok("sumCustomerAdvanceReceiptsInMonth: advance receipt by date", () => {
+  const advances = [
+    { id: "adv1", date: "2026-04-05", amount: 500, bankAccountId: "b1", customerName: "A", receiptNo: "ADV-1" },
+  ];
+  assert.equal(sumCustomerAdvanceReceiptsInMonth(advances, "2026-04"), 500);
+});
+
+ok("computeCashflowBreakdownForMonth: advance in operating in, not on apply", () => {
+  const sales = [
+    {
+      id: "s1",
+      paymentEntries: [
+        { id: "p1", date: "2026-05-10", amount: 500, bankAccountId: "b1", sourceAdvanceId: "adv1" },
+      ],
+    },
+  ];
+  const advances = [
+    { id: "adv1", date: "2026-04-05", amount: 500, bankAccountId: "b1", customerName: "A", receiptNo: "ADV-1" },
+  ];
+  const apr = computeCashflowBreakdownForMonth({
+    sales,
+    expenses: [],
+    inventoryEntries: [],
+    otherIncomes: [],
+    purchases: [],
+    loansGiven: [],
+    bankTransfers: [],
+    customerAdvancePayments: advances,
+    monthKey: "2026-04",
+  });
+  const may = computeCashflowBreakdownForMonth({
+    sales,
+    expenses: [],
+    inventoryEntries: [],
+    otherIncomes: [],
+    purchases: [],
+    loansGiven: [],
+    bankTransfers: [],
+    customerAdvancePayments: advances,
+    monthKey: "2026-05",
+  });
+  assert.equal(apr.operatingIn, 500);
+  assert.equal(may.operatingIn, 0);
+});
+
+ok("amountInWordsInr: includes paise", () => {
+  assert.equal(amountInWordsInr(1234.56), "ONE THOUSAND TWO HUNDRED THIRTY FOUR RUPEES AND FIFTY SIX PAISE ONLY");
+  assert.equal(amountInWordsInr(0.75), "SEVENTY FIVE PAISE ONLY");
+});
+
+ok("buildInvoiceGstModel: reverse charge excludes tax from grand total", () => {
+  const model = buildInvoiceGstModel({
+    lineItems: [{ item: "Svc", qty: 1, salePrice: 1180, gstRate: 18 }],
+    reverseCharge: true,
+    settings: { defaultProductGstRate: 18 },
+  });
+  assert.ok(model.totalTax > 0);
+  assert.equal(model.grandTotal, 1000);
+  assert.equal(model.reverseCharge, true);
 });
 
 await runWithStableStringifyMemoAsync(async () => {

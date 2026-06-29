@@ -1,7 +1,7 @@
 import { openDB } from "idb";
 
 const DB_NAME = "mybusiness_offline_v1";
-const DB_VERSION = 10;
+const DB_VERSION = 11;
 
 /**
  * IndexedDB local-first storage:
@@ -24,6 +24,7 @@ const ENTITIES = [
   "emiEntries",
   "loansGiven",
   "customerDirectory",
+  "customerAdvancePayments",
   "vendorDirectory",
   "dismissedAlertIds",
   "auditEvents",
@@ -46,6 +47,7 @@ const legacyEntityStores = {
   emiEntries: "emi_entries",
   loansGiven: "loans_given",
   customerDirectory: "customer_directory",
+  customerAdvancePayments: "customer_advance_payments",
   vendorDirectory: "vendor_directory",
   dismissedAlertIds: "dismissed_alerts",
   auditEvents: "audit_events",
@@ -113,6 +115,9 @@ async function getDb() {
       }
       if (oldVersion < 10) {
         tx.objectStore("meta").put(10, "idb_schema_version");
+      }
+      if (oldVersion < 11) {
+        tx.objectStore("meta").put(11, "idb_schema_version");
       }
       if (!db.objectStoreNames.contains(STORE_LEGACY_CACHE)) {
         db.createObjectStore(STORE_LEGACY_CACHE);
@@ -341,7 +346,7 @@ async function getAllLocalEntityRowsForUser({ userId, entityType }) {
  */
 export async function loadUserLocalState(userId) {
   // Build a "payload-like" object that `mergePersistedPayload` can understand.
-  const [settingsRow, salesRows, expensesRows, otherIncomeRows, recurringRows, invRows, purchaseRows, emiRows, loansGivenRows, customerDirRows, vendorDirRows, dismissedRows, auditRows, conflictRows] =
+  const [settingsRow, salesRows, expensesRows, otherIncomeRows, recurringRows, invRows, purchaseRows, emiRows, loansGivenRows, customerDirRows, customerAdvanceRows, vendorDirRows, dismissedRows, auditRows, conflictRows] =
     await Promise.all([
       getAllLocalEntityRowsForUser({ userId, entityType: "settings" }),
       getAllLocalEntityRowsForUser({ userId, entityType: "sales" }),
@@ -353,6 +358,7 @@ export async function loadUserLocalState(userId) {
       getAllLocalEntityRowsForUser({ userId, entityType: "emiEntries" }),
       getAllLocalEntityRowsForUser({ userId, entityType: "loansGiven" }),
       getAllLocalEntityRowsForUser({ userId, entityType: "customerDirectory" }),
+      getAllLocalEntityRowsForUser({ userId, entityType: "customerAdvancePayments" }),
       getAllLocalEntityRowsForUser({ userId, entityType: "vendorDirectory" }),
       getAllLocalEntityRowsForUser({ userId, entityType: "dismissedAlertIds" }),
       getAllLocalEntityRowsForUser({ userId, entityType: "auditEvents" }),
@@ -375,6 +381,7 @@ export async function loadUserLocalState(userId) {
     emiEntries: emiRows.filter((r) => !r.deleted).map((r) => r.payload),
     loansGiven: loansGivenRows.filter((r) => !r.deleted).map((r) => r.payload),
     customerDirectory: customerDirRows.filter((r) => !r.deleted).map((r) => r.payload),
+    customerAdvancePayments: customerAdvanceRows.filter((r) => !r.deleted).map((r) => r.payload),
     vendorDirectory: vendorDirRows.filter((r) => !r.deleted).map((r) => r.payload),
     dismissedAlertIds: dismissedRows.filter((r) => !r.deleted).map((r) => String(r.payload?.id ?? r.recordId)),
     auditEvents: auditRows.filter((r) => !r.deleted).map((r) => r.payload),
@@ -608,6 +615,7 @@ export async function applyMergedStateToIndexedDbWithoutOutbox(userId, merged) {
   await listUpsert("emiEntries", merged.emiEntries);
   await listUpsert("loansGiven", merged.loansGiven);
   await listUpsert("customerDirectory", merged.customerDirectory);
+  await listUpsert("customerAdvancePayments", merged.customerAdvancePayments);
   await listUpsert("vendorDirectory", merged.vendorDirectory);
   await listUpsert("auditEvents", merged.auditEvents);
   await listUpsert("syncConflictQueue", merged.syncConflictQueue);

@@ -53,6 +53,7 @@ import {
   LazyVendorsScreen,
   LazyVendorDetailScreen,
   LazyPayablesScreen,
+  LazyPaymentsScreen,
   LazyServicingScreen,
 } from "@/features/main-stage/lazyMainStageScreens.jsx";
 
@@ -250,6 +251,8 @@ export function MainStage(props) {
     closeNewExpense,
     onRecordPayment,
     onRecordPurchasePayment,
+    onRecordAdvancePayment,
+    onApplyAdvanceToSale,
     setPayDate,
     onDeleteConfirmed,
     confirmImportBackup,
@@ -466,6 +469,7 @@ export function MainStage(props) {
             purchases={state.purchases || []}
             loansGiven={state.loansGiven || []}
             bankTransfers={state.balance?.bankTransfers || []}
+            customerAdvancePayments={state.customerAdvancePayments || []}
             fsm={fsm}
             fyYear={fyYear}
             fyStr={fyStr}
@@ -490,6 +494,25 @@ export function MainStage(props) {
             onOpenInventoryEntry={(id) => openEditInventoryEntry(id, "ledger")}
             onOpenPurchase={openPurchaseDetail}
             onOpenSidebar={() => setSidebarOpen(true)}
+          />
+        )}
+        {!screen && page === "payments" && (
+          <LazyPaymentsScreen
+            sales={safeSales}
+            purchases={state.purchases || []}
+            customerAdvancePayments={state.customerAdvancePayments || []}
+            customerDirectory={state.customerDirectory || []}
+            bankAccounts={state.balance?.bankAccounts || []}
+            settings={state.settings || {}}
+            businessMonth={businessMonth}
+            setBusinessMonth={setBusinessMonth}
+            fsm={fsm}
+            fyYear={fyYear}
+            onOpenSidebar={() => setSidebarOpen(true)}
+            onOpenSale={openSaleDetail}
+            onOpenPurchase={openPurchaseDetail}
+            onRecordAdvancePayment={onRecordAdvancePayment}
+            onApplyAdvanceToSale={onApplyAdvanceToSale}
           />
         )}
         {!screen && page === "expenses" && (
@@ -622,6 +645,7 @@ export function MainStage(props) {
           defaultProductHsn={state.settings?.defaultProductHsn}
           defaultProductGstRate={state.settings?.defaultProductGstRate}
           gstEnabled={state.settings?.gstEnabled}
+          additionalChargesLabel={state.settings?.additionalChargesLabel || "Additional Charges"}
           onSubmit={onSaveSale}
           onClose={closeNewSale}
           draftSavedAt={!editingSaleId ? state.settings?.saleDraft?.savedAt : null}
@@ -764,6 +788,7 @@ export function MainStage(props) {
           otherIncomes={state.otherIncomes || []}
           purchases={state.purchases || []}
           loansGiven={state.loansGiven || []}
+          customerAdvancePayments={state.customerAdvancePayments || []}
           activityMonthKey={
             businessMonth && String(businessMonth).length >= 7 ? String(businessMonth).slice(0, 7) : undefined
           }

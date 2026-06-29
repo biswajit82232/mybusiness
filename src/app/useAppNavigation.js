@@ -595,6 +595,10 @@ export function useAppNavigation({
           purchaseId: t.purchaseId,
           paymentEntryId: t.paymentEntryId,
         });
+        return;
+      }
+      if (t.linkKind === "advancePayment" && t.advancePaymentId) {
+        setDelConfirm({ type: "customerAdvance", id: t.advancePaymentId });
       }
     },
     [otherIncomeOpenedFromRef, setDelConfirm, stockNavRef],

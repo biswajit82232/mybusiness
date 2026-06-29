@@ -3,6 +3,7 @@
  */
 import { buildInvoiceGstModel, isGstEnabled, splitInclusiveGst } from "./invoiceGst.js";
 import {
+  advanceUnappliedAmount,
   num,
   roundMoney2,
   sumBankAccountBalances,
@@ -13,6 +14,7 @@ import {
   computeInvRowsAggregated,
   normBranchesList,
   normBankTransfers,
+  normCustomerAdvancePayments,
   normalizeReceivablePaymentEntries,
   normalizePurchasePaymentEntries,
   todayStr,
@@ -42,6 +44,7 @@ export function computeOutputGstCollected(sales, settings = {}) {
     const model = buildInvoiceGstModel({
       lineItems: saleLineItemsForGst(s),
       discount: num(s.discount),
+      additionalCharges: num(s.additionalCharges),
       businessState: settings.businessState,
       customerState: s.customerState,
       settings,
@@ -236,6 +239,7 @@ export function computeBalanceSheetSummary({
   expenses = [],
   otherIncomes = [],
   loansGiven = [],
+  customerAdvancePayments = [],
   asOfDate,
 }) {
   const asOf = String(asOfDate || todayStr()).slice(0, 10);
@@ -246,6 +250,15 @@ export function computeBalanceSheetSummary({
     : sumReceivablesAsOf(sales, asOf);
 
   const entriesForStock = isLive ? inventoryEntries : filterEntriesOnOrBefore(inventoryEntries, asOf);
+  const advancesForBs = isLive
+    ? normCustomerAdvancePayments(customerAdvancePayments)
+    : normCustomerAdvancePayments(customerAdvancePayments).filter((a) => {
+        const d = String(a.date || "").slice(0, 10);
+        return d.length < 10 || compareYmdAsc(d, asOf) <= 0;
+      });
+  const customerAdvanceLiability = roundMoney2(
+    advancesForBs.reduce((s, a) => s + advanceUnappliedAmount(a), 0),
+  );
   const stockRows = computeInvRowsAggregated(entriesForStock);
   const stockVal = stockRows.reduce((s, r) => s + num(r.stockValue), 0);
 
@@ -268,6 +281,7 @@ export function computeBalanceSheetSummary({
         otherIncomes: filterEntriesOnOrBefore(otherIncomes, asOf),
         purchases: filterPurchasesOnOrBefore(purchases, asOf),
         loansGiven: filterLoansGivenOnOrBefore(loansGiven, asOf),
+        customerAdvancePayments: advancesForBs,
         asOfDate: asOf,
         predicate: bankAccountCountsInBalanceSheet,
       });
@@ -291,7 +305,7 @@ export function computeBalanceSheetSummary({
   const purchasesForGst = filterPurchasesOnOrBefore(purchases, asOf);
   const gstLiability = computeNetGstLiability(salesForGst, purchasesForGst, settings);
   const supplierPayables = num(balance.supplierPayables);
-  const totalLiab = roundMoney2(supplierPayables + loansLiab + purchaseCredit + gstLiability);
+  const totalLiab = roundMoney2(supplierPayables + loansLiab + purchaseCredit + gstLiability + customerAdvanceLiability);
   const netCapital = roundMoney2(totalAssets - totalLiab);
   const ownerCapitalInvested = num(balance.ownerCapitalInvested);
   const retainedOps = roundMoney2(netCapital - ownerCapitalInvested);
@@ -320,6 +334,7 @@ export function computeBalanceSheetSummary({
     gstOutput: computeOutputGstCollected(salesForGst, settings),
     gstInputEstimate: estimateInputGstCredit(purchasesForGst, settings),
     supplierPayables,
+    customerAdvanceLiability,
     totalLiab,
     netCapital,
     ownerCapitalInvested,
@@ -401,6 +416,10 @@ export function stripBankAccountReferences(state, bankAccountId) {
     (t) => t && String(t.fromAccountId) !== id && String(t.toAccountId) !== id,
   );
 
+  const customerAdvancePayments = normCustomerAdvancePayments(state.customerAdvancePayments).map((a) =>
+    a && String(a.bankAccountId || "").trim() === id ? { ...a, bankAccountId: "" } : a,
+  );
+
   return {
     ...state,
     sales,
@@ -409,6 +428,7 @@ export function stripBankAccountReferences(state, bankAccountId) {
     inventoryEntries,
     purchases,
     loansGiven,
+    customerAdvancePayments,
     balance: {
       ...state.balance,
       bankAccounts: (state.balance?.bankAccounts || []).filter((a) => a && a.id !== id),

@@ -2,6 +2,66 @@
 
 All notable changes are tracked here. The Settings screen shows **Version** from `package.json`.
 
+## [8.1.12] — 2026-06-29
+
+### Fixes
+- **Cash flow** — Customer advance receipts count in the month received (aligned with Banking); advance-applied invoice payments no longer inflate operating inflow.
+- **Banking** — Customer advance payments can be deleted from account activity when not yet applied to invoices.
+- **GST invoices** — Amount in words includes paise; reverse charge excludes tax from grand total (tax shown for disclosure); negative qty/prices blocked on save.
+
+App version **8.1.12**; service worker cache **v122**. Supabase migration `20260629120000_entity_records_add_customer_advance_payments.sql` required for cloud sync of advance payments.
+
+---
+
+## [8.1.11] — 2026-06-29
+
+### Fixes
+- **Payments** — Period KPIs no longer double-count advance-applied invoice receipts; list renders before scroll parent mounts.
+- **Advances** — Removing an advance-applied payment restores unapplied balance; bank account delete clears advance bank links; balance sheet includes advance liability and historical bank totals with advances.
+- **GST invoices** — Explicit 0% GST rate honoured; discount shown on tax invoices; line-items footer no longer double-counts additional charges; bundled line serials preserved on GST print.
+- **Navigation** — Mobile Settings sub-screens get a back button; Payments page title on mobile; tab changes clear stale selection state; Escape/swipe back uses proper close handlers for expense/stock forms.
+- **Other** — Transfer save reports persist failure; duplicate invoice numbers blocked on save; PDF download shows inline error; `html2pdf.js` declared in dependencies; debug telemetry removed.
+
+App version **8.1.11**; service worker cache **v121**.
+
+---
+
+## [8.1.10] — 2026-06-29
+
+### Fixes
+- **Payments In/Out** — Customer advance picker showed blank names (`displayName` vs `name`); advance payments now persist to IndexedDB; banking balances and activity include advance receipts.
+
+App version **8.1.10**; service worker cache **v121**.
+
+---
+
+## [8.1.9] — 2026-06-29
+
+### Features
+- **Payments In/Out** — Finance sidebar module listing all customer receipts, supplier payments, and advance payments with payment IDs, detail panel, and printable receipts. Record customer advance payments and apply unapplied balance to outstanding invoices.
+
+App version **8.1.9**; service worker cache **v120**.
+
+---
+
+## [8.1.8] — 2026-06-29
+
+### Features
+- **More invoice templates** — four layout styles (Compact, Centered, Framed, Stacked) and five colour themes (Ocean, Forest, Burgundy, Royal, Sunset). Settings → Invoice groups templates by type.
+
+App version **8.1.8**; service worker cache **v119**.
+
+---
+
+## [8.1.7] — 2026-06-29
+
+### Features
+- **Invoice templates** — Settings → Invoice: choose from four print/preview layouts (Premium, Classic, Modern, Minimal). All include full GST Rule 46 fields; templates change visual style only (Tally / Zoho Books inspired).
+
+App version **8.1.7**; service worker cache **v118**.
+
+---
+
 ## [8.1.6] — 2026-06-27
 
 ### Fixes

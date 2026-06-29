@@ -113,21 +113,31 @@ export function splitInclusiveGst(inclusiveAmount, gstRatePercent) {
   return { taxable, tax, total: inc, gstRate: rate };
 }
 
+export const DEFAULT_ADDITIONAL_CHARGES_LABEL = "Additional Charges";
+
+/** User-configurable label for the extra charge field on invoices. */
+export function additionalChargesLabel(settings = {}) {
+  const label = String(settings.additionalChargesLabel || DEFAULT_ADDITIONAL_CHARGES_LABEL).trim();
+  return label || DEFAULT_ADDITIONAL_CHARGES_LABEL;
+}
+
 /**
  * Compute per-line GST breakdown from GST-inclusive sale price × qty.
- * @returns {{ lines, subtotalInclusive, discount, taxableTotal, cgst, sgst, igst, totalTax, grandTotal, hasGst, isInterState, hsnSummary }}
+ * @returns {{ lines, subtotalInclusive, discount, additionalCharges, taxableTotal, cgst, sgst, igst, totalTax, grandTotal, hasGst, isInterState, hsnSummary }}
  */
 export function buildInvoiceGstModel({
   lineItems = [],
   discount = 0,
+  additionalCharges = 0,
   businessState = "",
   customerState = "",
   interStateOverride,
+  reverseCharge = false,
   settings = {},
 }) {
   const disc = roundMoney2(Math.max(0, num(discount)));
+  const extra = roundMoney2(Math.max(0, num(additionalCharges)));
   const defaultHsn = String(settings.defaultProductHsn || DEFAULT_PRODUCT_HSN).trim() || DEFAULT_PRODUCT_HSN;
-  const defaultRate = Math.max(0, num(settings.defaultProductGstRate ?? DEFAULT_PRODUCT_GST_RATE));
 
   let subtotalInclusive = 0;
   const rawLines = (Array.isArray(lineItems) ? lineItems : []).map((li, idx) => {
@@ -136,7 +146,7 @@ export function buildInvoiceGstModel({
     const lineInclusive = roundMoney2(qty * inclusiveUnit);
     subtotalInclusive = roundMoney2(subtotalInclusive + lineInclusive);
     const hsn = String(li?.hsn || "").trim() || defaultHsn;
-    const gstRate = num(li?.gstRate) > 0 ? num(li?.gstRate) : defaultRate;
+    const gstRate = resolveLineGstRate(li, settings);
     const split = splitInclusiveGst(lineInclusive, gstRate);
     return {
       index: idx + 1,
@@ -150,6 +160,10 @@ export function buildInvoiceGstModel({
       chassisNo: String(li?.chassisNo || "").trim(),
       motorNo: String(li?.motorNo || "").trim(),
       batterySerialNo: String(li?.batterySerialNo || "").trim(),
+      ...(Array.isArray(li?.groupMembers) ? { groupMembers: li.groupMembers } : {}),
+      ...(String(li?.invoiceGroupId || "").trim()
+        ? { invoiceGroupId: String(li.invoiceGroupId).trim() }
+        : {}),
       taxable: split.taxable,
       tax: split.tax,
       cgst: 0,
@@ -163,6 +177,7 @@ export function buildInvoiceGstModel({
 
   const ratio = subtotalInclusive > 0 ? Math.max(0, subtotalInclusive - disc) / subtotalInclusive : 1;
   const interstate = isInterStateSale(businessState, customerState, interStateOverride);
+  const rcm = reverseCharge === true;
 
   let taxableTotal = 0;
   let cgstTotal = 0;
@@ -203,12 +218,14 @@ export function buildInvoiceGstModel({
       cgstRate,
       sgstRate,
       igstRate,
-      lineTotal: roundMoney2(adjTaxable + adjTax),
+      lineTotal: rcm ? adjTaxable : roundMoney2(adjTaxable + adjTax),
     };
   });
 
   const totalTax = roundMoney2(cgstTotal + sgstTotal + igstTotal);
-  const grandTotal = roundMoney2(taxableTotal + totalTax);
+  const grandTotal = rcm
+    ? roundMoney2(taxableTotal + extra)
+    : roundMoney2(taxableTotal + totalTax + extra);
   const hasGst = lines.some((l) => l.gstRate > 0 && l.tax > 0);
 
   const hsnMap = new Map();
@@ -238,6 +255,7 @@ export function buildInvoiceGstModel({
     lines,
     subtotalInclusive: roundMoney2(subtotalInclusive),
     discount: disc,
+    additionalCharges: extra,
     taxableTotal,
     cgst: cgstTotal,
     sgst: sgstTotal,
@@ -246,6 +264,7 @@ export function buildInvoiceGstModel({
     grandTotal,
     hasGst,
     isInterState: interstate,
+    reverseCharge: rcm,
     hsnSummary,
   };
 }
@@ -288,11 +307,18 @@ function threeDigits(n) {
   return `${BELOW_20[h]} HUNDRED${rest ? ` ${twoDigits(rest)}` : ""}`.trim();
 }
 
-/** Indian numbering: amount in words (rupees, paise ignored after round). */
+/** Indian numbering: amount in words (rupees and paise). */
 export function amountInWordsInr(amount) {
-  let n = Math.floor(Math.max(0, num(amount)));
-  if (n === 0) return "ZERO RUPEES ONLY";
+  const total = roundMoney2(Math.max(0, num(amount)));
+  let rupees = Math.floor(total);
+  let paise = Math.round((total - rupees) * 100);
+  if (paise === 100) {
+    rupees += 1;
+    paise = 0;
+  }
+  if (rupees === 0 && paise === 0) return "ZERO RUPEES ONLY";
   const parts = [];
+  let n = rupees;
   const crore = Math.floor(n / 10000000);
   n %= 10000000;
   const lakh = Math.floor(n / 100000);
@@ -303,12 +329,114 @@ export function amountInWordsInr(amount) {
   if (lakh) parts.push(`${twoDigits(lakh)} LAKH`);
   if (thousand) parts.push(`${twoDigits(thousand)} THOUSAND`);
   if (n) parts.push(threeDigits(n));
-  return `${parts.join(" ")} RUPEES ONLY`;
+  const rupeeWords = parts.length ? parts.join(" ") : "ZERO";
+  if (paise > 0) {
+    if (rupees > 0) return `${rupeeWords} RUPEES AND ${twoDigits(paise)} PAISE ONLY`;
+    return `${twoDigits(paise)} PAISE ONLY`;
+  }
+  return `${rupeeWords} RUPEES ONLY`;
 }
 
 export function invoiceCopyLabel(copyType) {
   const k = String(copyType || "original").toLowerCase();
   return INVOICE_COPY_LABELS[k] || INVOICE_COPY_LABELS.original;
+}
+
+/** Effective GST % for a line (explicit or settings default). */
+function resolveLineGstRate(line, settings = {}) {
+  const raw = line?.gstRate;
+  if (raw !== undefined && raw !== null && String(raw).trim() !== "") {
+    return Math.max(0, num(raw));
+  }
+  return Math.max(0, num(settings.defaultProductGstRate ?? DEFAULT_PRODUCT_GST_RATE));
+}
+
+export function effectiveLineGstRate(line, settings = {}) {
+  return resolveLineGstRate(line, settings);
+}
+
+/** Effective HSN for a line (explicit or settings default). */
+export function effectiveLineHsn(line, settings = {}) {
+  const hsn = String(line?.hsn || "").trim();
+  if (hsn) return hsn;
+  return String(settings.defaultProductHsn || DEFAULT_PRODUCT_HSN).trim() || DEFAULT_PRODUCT_HSN;
+}
+
+/**
+ * Whether selected lines can print as one invoice row (same HSN + GST %).
+ * Tax totals stay correct when merged because rates match.
+ */
+export function canBundleInvoiceLines(lines, settings = {}) {
+  const arr = (Array.isArray(lines) ? lines : []).filter(
+    (li) => li && (String(li.item || "").trim() || num(li.salePrice) > 0),
+  );
+  if (arr.length < 2) return { ok: false, reason: "Select at least 2 lines" };
+  const hsn = effectiveLineHsn(arr[0], settings);
+  const rate = effectiveLineGstRate(arr[0], settings);
+  for (let i = 1; i < arr.length; i++) {
+    if (effectiveLineHsn(arr[i], settings) !== hsn) {
+      return { ok: false, reason: "HSN / SAC must match to bundle on invoice" };
+    }
+    if (effectiveLineGstRate(arr[i], settings) !== rate) {
+      return { ok: false, reason: "GST % must match to bundle on invoice" };
+    }
+  }
+  return { ok: true, hsn, gstRate: rate };
+}
+
+function joinSerialField(members, field) {
+  const parts = members
+    .map((m) => String(m?.[field] || "").trim())
+    .filter(Boolean);
+  return parts.join("\n");
+}
+
+/** Merge grouped members into one printable line (qty 1, inclusive package price). */
+function mergeInvoiceGroupLines(members) {
+  const gid = String(members[0]?.invoiceGroupId || "").trim();
+  const totalInclusive = roundMoney2(
+    members.reduce((s, li) => s + num(li.qty) * num(li.salePrice), 0),
+  );
+  const names = members.map((li) => String(li.item || "").trim()).filter(Boolean);
+  const itemLabel = names.length > 1 ? names.join(" + ") : names[0] || "";
+  const first = members[0] || {};
+  return {
+    id: first.id || gid,
+    invoiceGroupId: gid,
+    groupMembers: members,
+    item: itemLabel,
+    qty: 1,
+    salePrice: totalInclusive,
+    costPrice: roundMoney2(members.reduce((s, li) => s + num(li.qty) * num(li.costPrice), 0)),
+    hsn: String(first.hsn || "").trim(),
+    gstRate: num(first.gstRate),
+    chassisNo: joinSerialField(members, "chassisNo"),
+    motorNo: joinSerialField(members, "motorNo"),
+    batterySerialNo: joinSerialField(members, "batterySerialNo"),
+  };
+}
+
+/**
+ * Collapse lines that share `invoiceGroupId` into one row for invoice PDF / GST table.
+ * Stock-out and profit still use the original `lineItems` array.
+ */
+export function collapseInvoiceLinesForPrint(lineItems = []) {
+  const items = Array.isArray(lineItems) ? lineItems : [];
+  const emittedGroups = new Set();
+  const out = [];
+
+  for (const li of items) {
+    const gid = String(li?.invoiceGroupId || "").trim();
+    if (!gid) {
+      out.push(li);
+      continue;
+    }
+    if (emittedGroups.has(gid)) continue;
+    emittedGroups.add(gid);
+    const members = items.filter((x) => String(x?.invoiceGroupId || "").trim() === gid);
+    out.push(members.length > 1 ? mergeInvoiceGroupLines(members) : li);
+  }
+  return out;
 }
 
 export function saleHasGstData(sale, settings = {}) {

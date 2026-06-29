@@ -2439,6 +2439,27 @@ kbd {
   overflow-wrap: anywhere;
 }
 
+/* Payments in/out totals — same grid as receivables KPI strip */
+.app-md3 .tab-page--payments > .payments-kpi-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(6px, 1.6vw, 10px);
+  margin: 8px var(--page-pad) 0;
+  padding: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+.app-md3 .tab-page--payments > .payments-kpi-strip .recv-kpi {
+  min-width: 0;
+  border-right: none;
+}
+.app-md3 .tab-page--payments > .payments-kpi-strip .recv-kpi-val {
+  font-size: clamp(0.72rem, 2.8vw, 1.05rem);
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
 /* Filter bars — flat, pill controls */
 .app-md3 .seg-bar,
 .app-md3 .sort-bar,
@@ -3194,6 +3215,25 @@ kbd {
   }
   .app-md3 .tab-page--cash-flow > .cashflow-kpi-strip .recv-kpi-val {
     font-size: clamp(0.82rem, 4vw, 1.05rem);
+  }
+
+  /* Payments in/out: same KPI treatment — currency totals must not clip */
+  .app-md3 .tab-page--payments > .payments-kpi-strip {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    margin: 8px var(--page-pad) 0;
+    padding: 0;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+  }
+  .app-md3 .tab-page--payments > .payments-kpi-strip .recv-kpi {
+    min-width: 0;
+    border-right: none;
+  }
+  .app-md3 .tab-page--payments > .payments-kpi-strip .recv-kpi-val {
+    font-size: clamp(0.82rem, 4vw, 1.05rem);
+    overflow-wrap: anywhere;
   }
 
   .app-md3 .banking-sum-val,
