@@ -28,6 +28,7 @@ export function saleEntryHasDraftContent(entry) {
   const lines = Array.isArray(entry.lineItems) ? entry.lineItems : [];
   for (const li of lines) {
     if (String(li?.item ?? "").trim()) return true;
+    if (String(li?.itemDescription ?? "").trim()) return true;
     if (Number(li?.qty) > 0 && Number(li?.salePrice) > 0) return true;
   }
   if (Number(entry.discount) > 0) return true;

@@ -167,6 +167,7 @@ export function useSalesActions({
           motorNo: String(li?.motorNo || "").trim(),
           batterySerialNo: String(li?.batterySerialNo || "").trim(),
           invoiceGroupId: String(li?.invoiceGroupId || "").trim(),
+          itemDescription: String(li?.itemDescription || "").trim(),
         }))
         .filter((li) => li.item || li.qty > 0 || li.salePrice > 0 || li.costPrice > 0);
       if (lineItemsCoerced.length === 0) {

@@ -40,6 +40,7 @@ function blankLine() {
     batterySerialNo: "",
     itemProductPick: "__custom__",
     invoiceGroupId: "",
+    itemDescription: "",
   };
 }
 
@@ -65,6 +66,7 @@ function hydrateLineItems(entry) {
       batterySerialNo: String(li?.batterySerialNo || ""),
       itemProductPick: String(li?.itemProductPick || "__custom__"),
       invoiceGroupId: String(li?.invoiceGroupId || ""),
+      itemDescription: String(li?.itemDescription || ""),
     }));
   }
   return [
@@ -81,6 +83,7 @@ function hydrateLineItems(entry) {
       batterySerialNo: String(entry.batterySerialNo || ""),
       itemProductPick: String(entry.itemProductPick || "__custom__"),
       invoiceGroupId: "",
+      itemDescription: "",
     },
   ];
 }
@@ -1025,6 +1028,17 @@ function LineItemRow({
                     : {}),
                 });
               }}
+            />
+          </Field>
+        </div>
+        <div className="line-item-field-full">
+          <Field label="Item description">
+            <textarea
+              className="textarea-compact"
+              rows={2}
+              value={line.itemDescription || ""}
+              onChange={(e) => onUpdate({ itemDescription: e.target.value })}
+              placeholder="Optional — shown on invoice PDF"
             />
           </Field>
         </div>

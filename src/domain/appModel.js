@@ -1418,6 +1418,8 @@ export function defSaleLineItem() {
     itemProductPick: "__custom__",
     /** Shared id → print as one invoice row; inventory still uses each line separately. */
     invoiceGroupId: "",
+    /** Optional per-line text shown on invoice PDF under the item name. */
+    itemDescription: "",
   };
 }
 
@@ -1531,6 +1533,7 @@ export function saleToEntry(sale, emi) {
     batterySerialNo: String(li?.batterySerialNo || ""),
     itemProductPick: String(li?.itemProductPick || "__custom__"),
     invoiceGroupId: String(li?.invoiceGroupId || ""),
+    itemDescription: String(li?.itemDescription || ""),
   }));
   const first = lineItems[0];
   return {
@@ -3154,6 +3157,7 @@ export function normSaleLineItems(raw, legacyFallback) {
       motorNo: String(x.motorNo || "").trim(),
       batterySerialNo: String(x.batterySerialNo || "").trim(),
       invoiceGroupId: String(x.invoiceGroupId || "").trim(),
+      itemDescription: String(x.itemDescription || "").trim(),
     }));
   if (clean.length > 0) return clean;
   const fb = legacyFallback || {};

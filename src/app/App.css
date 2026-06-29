@@ -5727,6 +5727,7 @@ input[readonly] { background: var(--line2); color: var(--muted); }
 .dc-item-row { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; margin-bottom: 12px; }
 .dc-item-row strong { font-size: 0.94rem; }
 .dc-item-sub { font-size: 0.8rem; color: var(--muted); margin-top: 3px; }
+.dc-item-desc { font-size: 0.82rem; color: var(--text2); margin-top: 4px; line-height: 1.35; white-space: pre-wrap; }
 .dc-totals { border-top: 1px solid var(--line2); padding-top: 12px; display: flex; flex-direction: column; gap: 8px; }
 .dc-totals > div { display: flex; justify-content: space-between; font-size: 0.88rem; color: var(--muted); }
 .dc-profit { color: var(--success) !important; font-weight: 600; }

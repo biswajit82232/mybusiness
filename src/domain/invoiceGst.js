@@ -413,6 +413,7 @@ function mergeInvoiceGroupLines(members) {
     chassisNo: joinSerialField(members, "chassisNo"),
     motorNo: joinSerialField(members, "motorNo"),
     batterySerialNo: joinSerialField(members, "batterySerialNo"),
+    itemDescription: joinSerialField(members, "itemDescription"),
   };
 }
 

@@ -252,6 +252,9 @@ export function SaleDetailScreen({
             <div className="dc-item-row" key={li.id || idx}>
               <div className="dc-item-main">
                 <strong>{li.item || "—"}</strong>
+                {String(li.itemDescription || "").trim() ? (
+                  <p className="dc-item-desc">{li.itemDescription}</p>
+                ) : null}
                 <p className="dc-item-sub">
                   {num(li.qty)} × {moneyFull(li.salePrice)}
                 </p>

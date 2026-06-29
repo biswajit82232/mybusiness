@@ -75,6 +75,13 @@ function InvoiceHeader({ coName, coGstin, logo, addrLines, coPhone, coWa, settin
   );
 }
 
+/** Optional per-line description under the product name on print. */
+function ItemDesc({ text }) {
+  const desc = String(text || "").trim();
+  if (!desc) return null;
+  return <div className="ips-item-desc">{desc}</div>;
+}
+
 /** Product description cell with serial numbers. */
 function ProductCell({ line, saleNotes, showNotes }) {
   const members = Array.isArray(line?.groupMembers) ? line.groupMembers : null;
@@ -85,6 +92,7 @@ function ProductCell({ line, saleNotes, showNotes }) {
         {members.map((m, i) => (
           <div key={m.id || i} className="ips-prod-sub">
             <div className="ips-prod-name">{m.item || "—"}</div>
+            <ItemDesc text={m.itemDescription} />
             {m.chassisNo ? (
               <div className="ips-serial">
                 Chassis No:&nbsp;<span>{m.chassisNo}</span>
@@ -131,6 +139,7 @@ function ProductCell({ line, saleNotes, showNotes }) {
   return (
     <div className="ips-prod-cell">
       <div className="ips-prod-name">{line.item || "—"}</div>
+      <ItemDesc text={line.itemDescription} />
       {line.chassisNo ? (
         <div className="ips-serial">
           Chassis No:&nbsp;<span>{line.chassisNo}</span>

@@ -255,13 +255,16 @@ ok("sumSaleLineItems sums per-line qty × price across rows", () => {
 });
 
 ok("normSaleLineItems: passes through explicit lineItems unchanged in shape", () => {
-  const out = normSaleLineItems([{ id: "L1", item: "Widget", qty: "2", salePrice: "10", costPrice: "5" }]);
+  const out = normSaleLineItems([
+    { id: "L1", item: "Widget", qty: "2", salePrice: "10", costPrice: "5", itemDescription: "Red, large" },
+  ]);
   assert.equal(out.length, 1);
   assert.equal(out[0].id, "L1");
   assert.equal(out[0].item, "Widget");
   assert.equal(out[0].qty, 2);
   assert.equal(out[0].salePrice, 10);
   assert.equal(out[0].costPrice, 5);
+  assert.equal(out[0].itemDescription, "Red, large");
 });
 
 ok("normSaleLineItems: synthesizes one line from legacy single fields", () => {

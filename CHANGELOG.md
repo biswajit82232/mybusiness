@@ -2,6 +2,15 @@
 
 All notable changes are tracked here. The Settings screen shows **Version** from `package.json`.
 
+## [8.4.1] — 2026-06-24
+
+### Features
+- **Invoices** — Per-line **Item description** on New Sale; text appears on printed and PDF invoices under each product name.
+
+App version **8.4.1**; service worker cache **v131**.
+
+---
+
 ## [8.4.0] — 2026-06-24
 
 Production release — accounts, invoicing, and reports.

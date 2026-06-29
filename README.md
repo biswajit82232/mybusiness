@@ -1,6 +1,6 @@
 # MyBusiness (React + Vite)
 
-**Current version: 8.4.0** (shown in **Settings → Version**; service worker cache **v130**.)
+**Current version: 8.4.1** (shown in **Settings → Version**; service worker cache **v131**.)
 
 Offline-first business management for small shops and traders: sales invoices, inventory, purchases, banking, expenses, GST-aware reporting, and optional Supabase cloud sync. Works as a installable **PWA** on phone and desktop.
 
@@ -136,6 +136,7 @@ Open the **☰ menu** (sidebar). Groups:
 - **Record payment**, **Edit**, **Delete**
 - **Duplicate invoice** — copy lines and customer into a new sale
 - **Credit note** / **Debit note** — linked to the original invoice (adjusts receivables and GST reports)
+- **Item description** — optional per-line text on each invoice row (shown on PDF)
 - Print/share includes **UPI QR** when UPI ID is set in Settings
 
 **What to expect:** Duplicate invoice numbers warn but do not block save. Draft clears on successful save. Credit notes reduce outstanding on receivables and dashboard KPIs.
