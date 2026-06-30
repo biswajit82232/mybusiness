@@ -4,19 +4,6 @@
  */
 import { normSaleDraft } from "./saleDraft.js";
 import { normalizeInvoiceTemplate } from "./invoiceTemplates.js";
-import {
-  formatINR,
-  toPaise,
-  toRupees,
-  addMoney,
-  subtractMoney,
-  multiplyMoney,
-  sumMoney,
-  percentage,
-  calcPaymentStatus,
-} from "../utils/money.js";
-import { migrateData, CURRENT_SCHEMA_VERSION } from "../utils/schema.js";
-import { categoryFromTransferKind } from "../utils/bankingCategories.js";
 
 export const MAX_DISMISSED_ALERTS = 500;
 /** Chunk size for long scrolling lists (sales, ledger, etc.). */
@@ -49,7 +36,7 @@ export function stockInCashAmount(entry) {
   if (!entry || typeof entry !== "object") return 0;
   if (entry.type === "out" || entry.type === "opening") return 0;
   if (String(entry.purchaseId || "").trim()) return 0;
-  return multiplyMoney(num(entry.costPerUnit), num(entry.qty));
+  return num(entry.qty) * num(entry.costPerUnit);
 }
 
 /** Per calendar day in `YYYY-MM` with cash in/out (payment dates for sales; bank-linked expenses, stock, supplier payments — matches `bankingActivityForMonth`). */
@@ -366,18 +353,12 @@ export function num(v)   { const n = Number(v); return Number.isFinite(n) ? n : 
 
 export const moneyFormatter = new Intl.NumberFormat("en-IN",{style:"currency",currency:"INR",maximumFractionDigits:0});
 export const moneyFullFormatter = new Intl.NumberFormat("en-IN",{style:"currency",currency:"INR",minimumFractionDigits:2,maximumFractionDigits:2});
-/** Format paise as compact INR (no decimals). */
 export function money(v) {
-  const paise = roundMoney2(v);
-  return moneyFormatter.format(toRupees(paise));
+  return moneyFormatter.format(num(v));
 }
-/** Format paise as full INR with 2 decimal places. */
 export function moneyFull(v) {
-  return formatINR(roundMoney2(v));
+  return moneyFullFormatter.format(num(v));
 }
-
-/** Convert rupee form input to stored paise. */
-export { toPaise, toRupees, formatINR, addMoney, subtractMoney, multiplyMoney, sumMoney, percentage };
 
 // Used for offline-first diffing so we enqueue/upload only changed records.
 /** When set, memoizes string results per object identity (helps shared refs in one graph). */
@@ -554,8 +535,6 @@ export const SS_NAV = "mb_nav_v1";
 export const VALID_SESSION_SCREENS = new Set([
   "newSale",
   "saleDetail",
-  "issueCreditNote",
-  "creditNoteDetail",
   "addStock",
   "newExpense",
   "expenseDetail",
@@ -855,7 +834,7 @@ export function entityTimeMsFromId(id) {
 
 export function sumAccounts(arr) {
   if (!Array.isArray(arr)) return 0;
-  return sumMoney(arr.map((a) => num(a?.amount)));
+  return arr.reduce((s,a) => s + num(a?.amount), 0);
 }
 
 /** When true, account balance counts toward balance sheet / net worth bank total. */
@@ -1250,12 +1229,6 @@ export function saleMatchesSearch(s, queryRaw) {
   for (const f of textFields) {
     if (String(f ?? "").toLowerCase().includes(q)) return true;
   }
-  const lines = Array.isArray(s.lineItems) ? s.lineItems : [];
-  for (const li of lines) {
-    for (const cf of [li.chassisNo, li.motorNo, li.batterySerialNo]) {
-      if (String(cf ?? "").trim().toUpperCase().includes(q.toUpperCase())) return true;
-    }
-  }
   const qDigits = digitsOnly(queryRaw);
   if (qDigits.length >= 2) {
     const d1 = digitsOnly(s.customerNo1);
@@ -1454,7 +1427,6 @@ export function defSale() {
   const d = todayStr();
   return {
     docType: "invoice",
-    status: "draft",
     date: d,
     invoiceNo: "",
     dueDate: "",
@@ -1566,9 +1538,8 @@ export function saleToEntry(sale, emi) {
   const first = lineItems[0];
   return {
     docType: normalizeSaleDocType(sale.docType),
-    status: sale.status || (sale.invoiceNo ? "confirmed" : "draft"),
     date: sale.date,
-    invoiceNo: sale.status === "draft" ? "" : sale.invoiceNo || "",
+    invoiceNo: sale.invoiceNo || "",
     dueDate: sale.dueDate || "",
     customerName: sale.customerName || "",
     customerNo1: sale.customerNo1 || "",
@@ -1784,10 +1755,6 @@ export function normBankTransfers(raw) {
         amount: num(x.amount),
         note: String(x.note ?? "").trim(),
         kind,
-        category: String(x.category || "").trim() || categoryFromTransferKind(kind, kind === "deposit" || fromAccountId === BANK_EXTERNAL_SOURCE_ID),
-        subcategory: String(x.subcategory || "").trim(),
-        linkedDocumentId: String(x.linkedDocumentId || "").trim(),
-        linkedDocumentType: String(x.linkedDocumentType || "").trim() || "other",
       };
     })
     .filter((x) => x.amount > 0 && x.fromAccountId && x.toAccountId && x.fromAccountId !== x.toAccountId);
@@ -1803,9 +1770,6 @@ export function normalizePaymentEntries(sale) {
       date: String(p.date || sale?.date || todayStr()).slice(0, 10),
       amount: num(p.amount),
       bankAccountId: String(p.bankAccountId || "").trim(),
-      method: String(p.method || "").trim() || (p.bankAccountId ? "bank_transfer" : "cash"),
-      reference: String(p.reference || "").trim(),
-      note: String(p.note || "").trim(),
       ...(String(p.sourceAdvanceId || "").trim() ? { sourceAdvanceId: String(p.sourceAdvanceId).trim() } : {}),
     }))
     .filter((p) => p.amount > 0 && p.bankAccountId);
@@ -1863,7 +1827,7 @@ export function buildSalePaymentEntriesFromForm(saleEntry, invoiceDate, bankAcco
   const banks = (Array.isArray(bankAccounts) ? bankAccounts : []).filter((b) => b && b.id);
   const defaultBid = getDefaultBankAccountId(banks);
   const dated = String(invoiceDate || saleEntry?.date || todayStr()).slice(0, 10);
-  const lines = hydrateSalePaymentLines(saleEntry, banks).filter((l) => toPaise(num(l.amount)) > 0);
+  const lines = hydrateSalePaymentLines(saleEntry, banks).filter((l) => num(l.amount) > 0.001);
   if (lines.length === 0) return { entries: [], received: 0 };
 
   const entries = normalizePaymentEntries({
@@ -1872,11 +1836,11 @@ export function buildSalePaymentEntriesFromForm(saleEntry, invoiceDate, bankAcco
       const bid = banks.some((b) => String(b.id) === String(l.bankAccountId))
         ? String(l.bankAccountId)
         : defaultBid || "";
-      return { id: String(l.id || makeId()), date: dated, amount: toPaise(num(l.amount)), bankAccountId: bid };
+      return { id: String(l.id || makeId()), date: dated, amount: num(l.amount), bankAccountId: bid };
     }),
   });
   const received = roundMoney2(entries.reduce((s, p) => s + num(p.amount), 0));
-  if (received > num(totalSale) + 2) return { error: "exceeds" };
+  if (received > num(totalSale) + 0.02) return { error: "exceeds" };
   if (received > 0 && banks.length > 0 && entries.some((e) => !e.bankAccountId)) return { error: "bank" };
   return { entries, received: Math.min(received, num(totalSale)) };
 }
@@ -2870,18 +2834,15 @@ export function normBalance(raw) {
   };
 }
 
-/** Round to integer paise — all stored money is in paise. */
 export function roundMoney2(n) {
-  return Math.round(num(n));
+  return Math.round((num(n) + Number.EPSILON) * 100) / 100;
 }
 
-/** Clean string for money `<input type="number">` fields — shows rupees from stored paise. */
+/** Clean string for money `<input type="number">` fields — avoids float noise like 10.666666666666666. */
 export function moneyInputStr(v) {
   if (v === "" || v == null) return "";
-  const paise = roundMoney2(v);
-  if (!Number.isFinite(paise)) return "";
-  const rupees = toRupees(paise);
-  return rupees % 1 === 0 ? String(rupees) : rupees.toFixed(2);
+  const n = roundMoney2(v);
+  return Number.isFinite(n) ? String(n) : "";
 }
 
 function activityDateOnOrBefore(recordDate, fallbackDate, asOf) {
@@ -3223,13 +3184,15 @@ export function sumSaleLineItems(lineItems) {
   let totalCost = 0;
   for (const li of items) {
     const q = num(li?.qty);
-    totalSale = addMoney(totalSale, multiplyMoney(num(li?.salePrice), q));
-    totalCost = addMoney(totalCost, multiplyMoney(num(li?.costPrice), q));
+    totalSale += q * num(li?.salePrice);
+    totalCost += q * num(li?.costPrice);
   }
+  totalSale = roundMoney2(totalSale);
+  totalCost = roundMoney2(totalCost);
   return {
-    totalSale: roundMoney2(totalSale),
-    totalCost: roundMoney2(totalCost),
-    grossProfit: roundMoney2(subtractMoney(totalSale, totalCost)),
+    totalSale,
+    totalCost,
+    grossProfit: roundMoney2(totalSale - totalCost),
   };
 }
 
@@ -3281,30 +3244,13 @@ export function normSalesList(raw, bankAccountsForDefault = null) {
       const totalCost = totalsFromLines.totalCost > 0 ? totalsFromLines.totalCost : num(x.totalCost);
       const grossProfit = roundMoney2(totalSale - totalCost);
       const outstanding = roundMoney2(Math.max(0, totalSale - received));
-      const payments = (paymentEntries || []).map((p) => ({
-        id: p.id,
-        date: p.date,
-        amountPaise: num(p.amount),
-        method: p.method || (p.bankAccountId ? "bank_transfer" : "cash"),
-        reference: p.reference || "",
-        note: p.note || "",
-      }));
-      const paySummary = calcPaymentStatus(totalSale, payments);
-      const status =
-        x.status ||
-        (x.cancelledAt || x.creditNoteId ? "cancelled" : x.invoiceNo ? "confirmed" : "draft");
       return {
         ...x,
         docType: normalizeSaleDocType(x.docType),
         id: String(x.id || makeId()),
-        status,
         date: String(x.date || todayStr()).slice(0, 10),
         dueDate: x.dueDate ? String(x.dueDate).slice(0, 10) : "",
-        invoiceNo: status === "draft" ? "" : String(x.invoiceNo || ""),
-        confirmedAt: x.confirmedAt || null,
-        cancelledAt: x.cancelledAt || null,
-        creditNoteId: String(x.creditNoteId || "").trim(),
-        creditNoteNumber: String(x.creditNoteNumber || "").trim(),
+        invoiceNo: String(x.invoiceNo || ""),
         linkedSaleId: String(x.linkedSaleId || "").trim(),
         linkedInvoiceNo: String(x.linkedInvoiceNo || "").trim(),
         customerName: String(x.customerName || ""),
@@ -3328,12 +3274,8 @@ export function normSalesList(raw, bankAccountsForDefault = null) {
         totalCost,
         grossProfit,
         received,
-        outstanding: roundMoney2(Math.max(0, paySummary.balanceDuePaise)),
+        outstanding,
         paymentEntries,
-        payments,
-        totalPaidPaise: paySummary.totalPaidPaise,
-        balanceDuePaise: paySummary.balanceDuePaise,
-        paymentStatus: paySummary.paymentStatus,
         bundleId: String(x.bundleId || "").trim(),
       };
     });
@@ -4903,7 +4845,6 @@ export const defaultState = applyComputedBankBalances({
   },
   balance:normBalance({}),
   sales:[],
-  creditNotes:[],
   expenses:[],
   otherIncomes:[],
   recurringExpenses:[],
@@ -4930,13 +4871,10 @@ export const defaultState = applyComputedBankBalances({
 export function mergePersistedPayload(p) {
   if (!p || typeof p !== "object" || Array.isArray(p)) return null;
   try {
-    const migrated = migrateData({ ...p, schemaVersion: p.schemaVersion || 1 });
-    const settingsIn = migrated.settings || {};
-    const balanceMerged = normBalance({ ...defaultState.balance, ...(migrated.balance || {}) });
+    const settingsIn = p.settings || {};
+    const balanceMerged = normBalance({ ...defaultState.balance, ...(p.balance || {}) });
     const merged = {
-      ...defaultState, ...migrated,
-      schemaVersion: CURRENT_SCHEMA_VERSION,
-      lastMigrated: migrated.lastMigrated || new Date().toISOString(),
+      ...defaultState, ...p,
       settings:{
         ...defaultState.settings,...settingsIn,
         fyYear: settingsIn?.fyYear ?? detectFyYear(settingsIn?.financialYearStartMonth??4),
@@ -5007,23 +4945,22 @@ export function mergePersistedPayload(p) {
         saleDraft: normSaleDraft(settingsIn?.saleDraft),
       },
       balance: balanceMerged,
-      sales: normSalesList(migrated.sales, balanceMerged.bankAccounts),
-      creditNotes: Array.isArray(migrated.creditNotes) ? migrated.creditNotes : [],
-      expenses: normExpensesList(migrated.expenses),
-      otherIncomes: normOtherIncomesList(migrated.otherIncomes),
-      recurringExpenses: normRecurringList(migrated.recurringExpenses),
-      inventoryEntries: normInventoryList(migrated.inventoryEntries),
-      purchases: normPurchasesList(migrated.purchases, balanceMerged.bankAccounts),
-      emiEntries: normEmiList(migrated.emiEntries),
-      loansGiven: normLoansGivenList(migrated.loansGiven),
-      servicingCompletions: normServicingCompletions(migrated.servicingCompletions),
-      servicingWaSent: normServicingWaSent(migrated.servicingWaSent),
-      customerDirectory: normCustomerDirectory(migrated.customerDirectory),
-      customerAdvancePayments: normCustomerAdvancePayments(migrated.customerAdvancePayments),
-      vendorDirectory: normVendorDirectory(migrated.vendorDirectory),
-      dismissedAlertIds: Array.isArray(migrated.dismissedAlertIds) ? migrated.dismissedAlertIds.filter(Boolean).map(String) : [],
-      auditEvents: normAuditEvents(migrated.auditEvents),
-      syncConflictQueue: normSyncConflictQueue(migrated.syncConflictQueue),
+      sales: normSalesList(p.sales, balanceMerged.bankAccounts),
+      expenses: normExpensesList(p.expenses),
+      otherIncomes: normOtherIncomesList(p.otherIncomes),
+      recurringExpenses: normRecurringList(p.recurringExpenses),
+      inventoryEntries: normInventoryList(p.inventoryEntries),
+      purchases: normPurchasesList(p.purchases, balanceMerged.bankAccounts),
+      emiEntries: normEmiList(p.emiEntries),
+      loansGiven: normLoansGivenList(p.loansGiven),
+      servicingCompletions: normServicingCompletions(p.servicingCompletions),
+      servicingWaSent: normServicingWaSent(p.servicingWaSent),
+      customerDirectory: normCustomerDirectory(p.customerDirectory),
+      customerAdvancePayments: normCustomerAdvancePayments(p.customerAdvancePayments),
+      vendorDirectory: normVendorDirectory(p.vendorDirectory),
+      dismissedAlertIds: Array.isArray(p.dismissedAlertIds) ? p.dismissedAlertIds.filter(Boolean).map(String) : [],
+      auditEvents: normAuditEvents(p.auditEvents),
+      syncConflictQueue: normSyncConflictQueue(p.syncConflictQueue),
     };
     return applyComputedBankBalances(merged);
   } catch (err) {

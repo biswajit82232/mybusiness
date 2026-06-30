@@ -166,50 +166,6 @@
   --z-skip-link:  100000;
 
   color-scheme: light;
-
-  /* ── Phase 3 premium polish tokens (add-only) ─────────────── */
-  --brand: #0F3D91;
-  --brand-light: #e6edf8;
-  --brand-text: #0a2d6e;
-  --surface-0: var(--bg);
-  --surface-1: var(--card);
-  --surface-2: var(--card-2);
-  --surface-input: var(--card);
-  --border: var(--line);
-  --color-secondary: var(--muted);
-  --font-caption: 11px;
-  --font-sm: 12px;
-  --font-body: 14px;
-  --font-md: 15px;
-  --font-lg: 16px;
-  --font-xl: 18px;
-  --font-hero: 24px;
-  --font-display-num: 28px;
-  --radius-sm-v7: 8px;
-  --radius-md-v7: 12px;
-  --radius-lg-v7: 16px;
-  --radius-pill-v7: 20px;
-  --dur-fast-v7: 120ms;
-  --dur-base-v7: 200ms;
-  --dur-slow-v7: 300ms;
-  --ease-out-v7: cubic-bezier(0.2, 0, 0, 1);
-  /* Invoice row accent */
-  --accent-overdue: #ef4444;
-  --accent-partial: #f59e0b;
-  --accent-pending: #6366f1;
-  --accent-paid: #22c55e;
-  --accent-draft: #f59e0b;
-  /* Status pill light */
-  --pill-paid-bg: #dcfce7;
-  --pill-paid-text: #15803d;
-  --pill-pending-bg: #ede9fe;
-  --pill-pending-text: #5b21b6;
-  --pill-partial-bg: #fef3c7;
-  --pill-partial-text: #92400e;
-  --pill-overdue-bg: #fee2e2;
-  --pill-overdue-text: #991b1b;
-  --pill-draft-bg: #fef3c7;
-  --pill-draft-text: #92400e;
 }
 
 /* ── Dark mode — neutral near-black (no blue tint) ─────────── */
@@ -275,29 +231,6 @@
   --scroll-thumb-hover:  rgba(255, 255, 255, 0.18);
 
   color-scheme: dark;
-
-  /* Phase 3 dark surfaces & pills */
-  --page-bg: #0a0a0a;
-  --surface-card: #161616;
-  --surface-raised: #1f1f1f;
-  --surface-input: #222222;
-  --text-primary: #f0f0f0;
-  --text-secondary: #a0a0a0;
-  --text-muted: #666666;
-  --border: rgba(255, 255, 255, 0.08);
-  --border-strong: rgba(255, 255, 255, 0.14);
-  --brand-light: #0f2451;
-  --brand-text: #93b4f0;
-  --pill-paid-bg: #052e16;
-  --pill-paid-text: #4ade80;
-  --pill-pending-bg: #1e1b4b;
-  --pill-pending-text: #a5b4fc;
-  --pill-overdue-bg: #2d0a0a;
-  --pill-overdue-text: #f87171;
-  --pill-partial-bg: #2d1a00;
-  --pill-partial-text: #fbbf24;
-  --pill-draft-bg: #2d1a00;
-  --pill-draft-text: #fbbf24;
 }
 
 /* Small phones: tighter gutters, same tap comfort. */

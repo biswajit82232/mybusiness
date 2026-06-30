@@ -372,7 +372,6 @@ export async function loadUserLocalState(userId) {
     balance: settingsPayload?.balance ?? null,
     servicingCompletions: settingsPayload?.servicingCompletions ?? null,
     servicingWaSent: settingsPayload?.servicingWaSent ?? null,
-    creditNotes: settingsPayload?.creditNotes ?? null,
     sales: salesRows.filter((r) => !r.deleted).map((r) => r.payload),
     expenses: expensesRows.filter((r) => !r.deleted).map((r) => r.payload),
     otherIncomes: otherIncomeRows.filter((r) => !r.deleted).map((r) => r.payload),

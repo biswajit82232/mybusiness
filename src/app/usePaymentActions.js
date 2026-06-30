@@ -24,8 +24,6 @@ export function usePaymentActions({
   payAmt,
   payDate,
   payBankAccountId,
-  payMethod = "cash",
-  payReference = "",
   showToast,
   setState,
   setPayModal,
@@ -33,8 +31,6 @@ export function usePaymentActions({
   setPayAmt,
   setPayDate,
   setPayBankAccountId,
-  setPayMethod,
-  setPayReference,
   persistWholeStateImmediate,
   appendAuditEvent,
 }) {
@@ -55,8 +51,6 @@ export function usePaymentActions({
         date: String(payDate || todayStr()).slice(0, 10),
         amount: add,
         bankAccountId: acct,
-        method: String(payMethod || "bank_transfer").trim() || "bank_transfer",
-        reference: String(payReference || "").trim(),
       };
       let next = {
         ...state,
@@ -85,23 +79,17 @@ export function usePaymentActions({
       setPayAmt("");
       setPayDate(todayStr());
       setPayBankAccountId("");
-      setPayMethod?.("cash");
-      setPayReference?.("");
       showToast("Payment recorded");
     },
     [
       appendAuditEvent,
       payAmt,
       payBankAccountId,
-      payMethod,
-      payReference,
       payDate,
       payModal,
       persistWholeStateImmediate,
       setPayAmt,
       setPayBankAccountId,
-      setPayMethod,
-      setPayReference,
       setPayDate,
       setPayModal,
       setState,

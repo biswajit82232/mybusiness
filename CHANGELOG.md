@@ -2,69 +2,6 @@
 
 All notable changes are tracked here. The Settings screen shows **Version** from `package.json`.
 
-## [8.7.1] — 2026-06-30
-
-### Fixes
-- **Money display** — Schema v4 repairs data where the v2→v3 migration accidentally multiplied sales and banking amounts by 100 again; v2→v3 no longer re-converts paise.
-
-App version **8.7.1**; service worker cache **v136**.
-
----
-
-## [8.7.0] — 2026-06-30
-
-### Improvements
-- **UI polish (Phase 3)** — Foundation tokens (`--brand`, spacing, motion, status pills) in `app-tokens.css`; canonical component overrides in `premium-v7-polish.css` (KPI cards, 56px list rows, invoice accent bars, filter pills, FAB, toast, dark-mode pill pairs).
-- **Dashboard** — Net-profit hero with 4px brand border; sales-target progress bar; privacy eye 44×44px.
-- **Sales** — Filter pills (brand-light active state); invoice rows with semantic accent colors and sentence-case status pills; credit-note rows styled; inline token styles moved to CSS classes on list and detail screens.
-
-- **Inventory** — Low-stock (amber) and out-of-stock (red) 3px left accent bars on product rows.
-
-App version **8.7.0**; service worker cache **v135**.
-
----
-
-## [8.6.0] — 2026-06-30
-
-### Features
-- **Invoices** — Draft state with gapless BPH/FY numbering; confirm assigns `BPH/2425/NNNN`; confirmed invoices cannot be deleted.
-- **Credit notes** — Issue credit note flow against confirmed invoices; original invoice marked cancelled; credit note list tab.
-- **Payments** — Split payment tracking with method, reference, and UNPAID/PARTIAL/PAID status on list and detail.
-- **Banking** — Transaction categories for P&amp;L linkage; categorized bank transfers feed profit &amp; loss reports.
-- **Validation** — Chassis/serial number uniqueness check on invoice confirm with inline errors.
-
-### Improvements
-- **Data** — Schema v3 migration (invoice status, payments, credit notes, banking categories on legacy data).
-
-App version **8.6.0**; service worker cache **v134**.
-
----
-
-## [8.5.0] — 2026-06-30
-
-### Improvements
-- **Money** — All financial amounts stored and calculated as integer paise (no float GST/P&amp;L errors); `formatINR` display throughout.
-- **Data** — Schema v2 with automatic v1→v2 migration on load (rupee floats → paise integers).
-- **Design** — `src/tokens.js` design token system; CSS variables injected at app root.
-- **Backup** — Import safety checks before restore (`checkImportSafety`).
-
-### Fixes
-- **GST** — Invoice GST model uses integer paise arithmetic (`calcGST`, `splitGST`, `calcTaxableFromInclusive`).
-
-App version **8.5.0**; service worker cache **v133**.
-
----
-
-## [8.4.2] — 2026-06-29
-
-### Fixes
-- **Inventory** — Credit/debit notes no longer trigger automatic stock-out or stock sufficiency checks when cloned from an invoice.
-
-App version **8.4.2**; service worker cache **v132**.
-
-
----
-
 ## [8.4.1] — 2026-06-24
 
 ### Features

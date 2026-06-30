@@ -393,13 +393,7 @@ export function HomeTab({
       <div className="home-md3-scroll">
         <div className="home-md3-period">
           {salesTargetDisplay ? (
-            <div
-              className="home-md3-target"
-              role="status"
-              aria-label={salesTargetDisplay.ariaLabel}
-              style={{ "--target-pct": Math.min(100, Math.max(0, salesTargetDisplay.pct)) }}
-              data-pct={salesTargetDisplay.pct}
-            >
+            <div className="home-md3-target" role="status" aria-label={salesTargetDisplay.ariaLabel}>
               <span className="home-md3-target-lbl">{salesTargetDisplay.month}</span>
               <span className="home-md3-target-val">
                 {salesTargetDisplay.count} / {salesTargetDisplay.goal} {salesTargetDisplay.unit}

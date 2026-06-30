@@ -4,7 +4,6 @@ import {
   getDefaultBankAccountId,
   makeId,
   num,
-  toPaise,
   processRecurringExpenses,
   resolveExpenseCategory,
 } from "@/domain/index.js";
@@ -45,7 +44,7 @@ export function useExpenseActions({
         const updated = {
           ...existing,
           date: expEntry.date,
-          amount: toPaise(num(expEntry.amount)),
+          amount: num(expEntry.amount),
           category: resolveExpenseCategory(expEntry.category, state.settings),
           description: (expEntry.description || "").trim(),
           note: (expEntry.note || "").trim(),
@@ -67,7 +66,7 @@ export function useExpenseActions({
       const base = {
         id: makeId(),
         date: expEntry.date,
-        amount: toPaise(num(expEntry.amount)),
+        amount: num(expEntry.amount),
         category: resolveExpenseCategory(expEntry.category, state.settings),
         description: (expEntry.description || "").trim(),
         note: (expEntry.note || "").trim(),

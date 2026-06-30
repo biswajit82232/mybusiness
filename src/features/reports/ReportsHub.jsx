@@ -16,7 +16,6 @@ export function ReportsHub({
   otherIncomes,
   purchases,
   balSum,
-  bankTransfers = [],
   fsm,
   fyYear,
 }) {
@@ -41,7 +40,6 @@ export function ReportsHub({
           otherIncomes={otherIncomes}
           purchases={purchases}
           balSum={balSum}
-          bankTransfers={bankTransfers}
           period={period}
           fsm={fsm}
           fyYear={fyYear}

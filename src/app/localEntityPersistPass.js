@@ -32,14 +32,12 @@ export async function persistEntityStateDiff({ userId, prevState, nextState, upd
       balance: normalizedBalance.balance,
       servicingCompletions: normalizedBalance.servicingCompletions || [],
       servicingWaSent: normalizedBalance.servicingWaSent || [],
-      creditNotes: normalizedBalance.creditNotes || [],
     };
     const prevMeta = {
       settings: prevState.settings,
       balance: prevState.balance,
       servicingCompletions: prevState.servicingCompletions || [],
       servicingWaSent: prevState.servicingWaSent || [],
-      creditNotes: prevState.creditNotes || [],
     };
     if (stableStringify(prevMeta) !== stableStringify(nextMeta)) {
       await upsertLocalEntityRecord({

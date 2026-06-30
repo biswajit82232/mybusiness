@@ -23,26 +23,6 @@ import { ContactIcons, OverlayScreen, PageHeader } from "@/shared/ui/layout/AppC
 import { InvoicePreviewModal } from "./InvoicePreviewModal.jsx";
 import { InvoicePrintSheet } from "./InvoicePrintSheet.jsx";
 
-function sentenceCaseStatus(text) {
-  if (!text || typeof text !== "string") return text;
-  return text.charAt(0) + text.slice(1).toLowerCase();
-}
-
-const PAYMENT_PILL = {
-  paid: { cls: "pill-paid", text: "Paid" },
-  partial: { cls: "pill-partial", text: "Partial" },
-  unpaid: { cls: "pill-unpaid", text: "Unpaid" },
-  overpaid: { cls: "pill-overpaid", text: "Overpaid" },
-};
-
-const METHOD_LABELS = {
-  cash: "💵 Cash",
-  upi: "📱 UPI",
-  bank_transfer: "🏦 Bank",
-  cheque: "📝 Cheque",
-  other: "Other",
-};
-
 /**
  * @param {object} [invoiceCompany] — from settings: businessName, businessPhone, businessWhatsapp
  */
@@ -68,8 +48,6 @@ export function SaleDetailScreen({
 }) {
   const docType = normalizeDocType(sale?.docType);
   const isBos = docType === "billOfSupply";
-  const isDraft = sale?.status === "draft";
-  const isCancelled = sale?.status === "cancelled";
   const docLabel = saleDocLabel(docType);
   const linkedRef = String(sale?.linkedInvoiceNo || "").trim();
   const st = saleStatus(sale, defaultDueDays);
@@ -159,18 +137,10 @@ export function SaleDetailScreen({
         <section className="detail-hero detail-hero-v2">
           <div className="dh-topline">
             <div className="dh-topline-left">
-              {isDraft ? (
-                <span className="detail-hero-badge--draft">Draft</span>
-              ) : (
-                <span className="dh-inv">{sale.invoiceNo || "—"}</span>
-              )}
+              <span className="dh-inv">{sale.invoiceNo || "—"}</span>
               <span className="dh-doc-type">{docLabel}</span>
             </div>
-            {isCancelled ? (
-              <span className="status-badge pill-cancelled">Cancelled</span>
-            ) : (
-              <span className={`status-badge ${st.cls}`}>{isDraft ? "Draft" : sentenceCaseStatus(st.text)}</span>
-            )}
+            <span className={`status-badge ${st.cls}`}>{st.text}</span>
           </div>
           <h2 className="dh-name">{sale.customerName || "Customer"}</h2>
           <div className="detail-kpi-grid detail-kpi-grid--3">
@@ -389,50 +359,7 @@ export function SaleDetailScreen({
           </section>
         )}
 
-        {sale.status !== "draft" && (
-          <section className="detail-card detail-card-v2">
-            <div className="dc-title">Payments</div>
-            <div className="dc-totals">
-              <div>
-                <span>Invoice total</span>
-                <span>{moneyFull(sale.totalSale)}</span>
-              </div>
-              <div>
-                <span>Amount paid</span>
-                <span className="amt-positive">{moneyFull(sale.totalPaidPaise ?? sale.received)}</span>
-              </div>
-              <div>
-                <span>Balance due</span>
-                <span className={(sale.balanceDuePaise ?? sale.outstanding) > 0 ? "amt-negative" : "amt-positive"}>
-                  {moneyFull(sale.balanceDuePaise ?? sale.outstanding)}
-                </span>
-              </div>
-            </div>
-            {sale.paymentStatus ? (
-              <span className={`status-badge payment-status-badge ${PAYMENT_PILL[sale.paymentStatus]?.cls || "pill-unpaid"}`}>
-                {PAYMENT_PILL[sale.paymentStatus]?.text || "Unpaid"}
-              </span>
-            ) : null}
-            {payRows.length > 0 ? (
-              <ul className="sale-pay-list sale-pay-list--spaced" role="list">
-                {payRows.map((pe) => (
-                  <li key={pe.id} className="sale-pay-row">
-                    <span className="sale-pay-date">{dateSlash(pe.date)}</span>
-                    <span className="sale-pay-acct">
-                      {METHOD_LABELS[pe.method] || pe.method || acctName(pe.bankAccountId)}
-                      {pe.reference ? ` · ${pe.reference}` : ""}
-                    </span>
-                    <strong className="sale-pay-amt amt-positive">
-                      {moneyFull(pe.amount)}
-                    </strong>
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-          </section>
-        )}
-
-        {payRows.length > 0 && sale.status === "draft" && (
+        {payRows.length > 0 && (
           <section className="detail-card detail-card-v2">
             <div className="dc-title">Payments received</div>
             <ul className="sale-pay-list" role="list">

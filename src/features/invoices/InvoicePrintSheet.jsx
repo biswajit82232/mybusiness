@@ -13,7 +13,6 @@ import {
   num,
   placeOfSupplyLabel,
   saleAddressLines,
-  toRupees,
 } from "@/domain/index.js";
 import { normalizeDocType, saleDocLabel } from "@/domain/saleDocuments.js";
 import { UpiQrBlock } from "./UpiQrBlock.jsx";
@@ -24,17 +23,15 @@ const AMT = new Intl.NumberFormat("en-IN", { minimumFractionDigits: 2, maximumFr
 const QTY = new Intl.NumberFormat("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const RATE = new Intl.NumberFormat("en-IN", { maximumFractionDigits: 0 });
 
-function fmtAmt(paise) {
-  return AMT.format(toRupees(num(paise)));
+function fmtAmt(v) {
+  return AMT.format(num(v));
 }
-function fmtRate(paise) {
-  const rupees = toRupees(num(paise));
-  return Number.isInteger(rupees) || Math.abs(rupees - Math.round(rupees)) < 0.001
-    ? RATE.format(rupees)
-    : AMT.format(rupees);
+function fmtRate(v) {
+  const n = num(v);
+  return Number.isInteger(n) || Math.abs(n - Math.round(n)) < 0.001 ? RATE.format(n) : AMT.format(n);
 }
-function fmtBalance(paise) {
-  return `₹${AMT.format(toRupees(num(paise)))}`;
+function fmtBalance(v) {
+  return `₹${AMT.format(num(v))}`;
 }
 function fmtGstPct(v) {
   const n = num(v);

@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import { getDefaultBankAccountId, makeId, num, toPaise, resolveOtherIncomeCategory } from "@/domain/index.js";
+import { getDefaultBankAccountId, makeId, num, resolveOtherIncomeCategory } from "@/domain/index.js";
 
 /**
  * Save-other-income handler (new + edit).
@@ -38,7 +38,7 @@ export function useOtherIncomeActions({
         const updated = {
           ...existing,
           date: oiEntry.date,
-          amount: toPaise(num(oiEntry.amount)),
+          amount: num(oiEntry.amount),
           category: resolveOtherIncomeCategory(oiEntry.category, state.settings),
           description: (oiEntry.description || "").trim(),
           note: (oiEntry.note || "").trim(),
@@ -70,7 +70,7 @@ export function useOtherIncomeActions({
       const row = {
         id: makeId(),
         date: oiEntry.date,
-        amount: toPaise(num(oiEntry.amount)),
+        amount: num(oiEntry.amount),
         category: resolveOtherIncomeCategory(oiEntry.category, state.settings),
         description: (oiEntry.description || "").trim(),
         note: (oiEntry.note || "").trim(),

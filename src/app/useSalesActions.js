@@ -17,10 +17,8 @@ import {
   normBundlesList,
   normEmiPaidDates,
   normalizePaymentEntries,
-  normSalesList,
   num,
   roundMoney2,
-  toPaise,
   saleDocPrefix,
   saleToEntry,
   sumSaleLineItems,
@@ -31,11 +29,8 @@ import {
 import { isGstEnabled } from "@/domain/invoiceGst.js";
 import {
   normalizeDocType,
-  saleDocUsesAutoStockOut,
   saleDocNextNumberSettingKey,
 } from "@/domain/saleDocuments.js";
-import { getNextInvoiceNumber, salesAsInvoiceRecords } from "@/utils/invoiceNumber.js";
-import { validateChassisNumbers } from "@/utils/chassisValidation.js";
 
 /**
  * Save-sale handler (new + edit), including stock-out automation and EMI capture.
@@ -57,15 +52,27 @@ export function useSalesActions({
   emi2,
   emi3,
   emi4,
-  setSaleChassisErrors,
 }) {
   const openNewSale = useCallback(
     (opts) => {
+      setEditingSaleId(null);
       if (!opts?.fresh) {
         const draft = normSaleDraft(state.settings?.saleDraft);
         if (draft?.entry) {
-          setEditingSaleId(null);
-          setSaleEntry({ ...defSale(), ...draft.entry, status: "draft", invoiceNo: "" });
+          const base = { ...defSale(), ...draft.entry };
+          const docType = normalizeDocType(base.docType);
+          if (!String(base.invoiceNo || "").trim()) {
+            const prefix = saleDocPrefix(state.settings, docType);
+            const nextNo = state.settings?.[saleDocNextNumberSettingKey(docType)];
+            base.invoiceNo = genInvoiceNo(state.sales, prefix, nextNo);
+          }
+          if (!String(base.dueDate || "").trim()) {
+            base.dueDate = addDaysStr(
+              base.date || todayStr(),
+              num(state.settings?.defaultDueDays) || 30,
+            );
+          }
+          setSaleEntry(base);
           setScreen("newSale");
           return;
         }
@@ -76,50 +83,19 @@ export function useSalesActions({
           settings: clearSaleDraftSettings(prev.settings),
         }));
       }
-
-      const draftId = makeId();
       const base = defSale();
       const docType = normalizeDocType(base.docType);
-      const draftSale = normSalesList(
-        [
-          {
-            ...base,
-            id: draftId,
-            docType,
-            status: "draft",
-            invoiceNo: "",
-            dueDate: addDaysStr(base.date, num(state.settings?.defaultDueDays) || 30),
-            customerName: "",
-            lineItems: base.lineItems,
-            totalSale: 0,
-            totalCost: 0,
-            received: 0,
-            outstanding: 0,
-            paymentEntries: [],
-          },
-        ],
-        state.balance?.bankAccounts || [],
-      )[0];
-
-      setEditingSaleId(draftId);
-      setSaleEntry(saleToEntry(draftSale, null));
+      const prefix = saleDocPrefix(state.settings, docType);
+      const nextNo = state.settings?.[saleDocNextNumberSettingKey(docType)];
+      setSaleEntry({
+        ...base,
+        docType,
+        invoiceNo: genInvoiceNo(state.sales, prefix, nextNo),
+        dueDate: addDaysStr(base.date, num(state.settings?.defaultDueDays) || 30),
+      });
       setScreen("newSale");
-
-      setState((prev) => ({
-        ...prev,
-        sales: [draftSale, ...(prev.sales || []).filter((s) => s?.id !== draftId)],
-      }));
-      void persistSaleImmediate(draftSale, null);
     },
-    [
-      persistSaleImmediate,
-      setEditingSaleId,
-      setSaleEntry,
-      setScreen,
-      setState,
-      state.balance?.bankAccounts,
-      state.settings,
-    ],
+    [setEditingSaleId, setSaleEntry, setScreen, setState, state.sales, state.settings],
   );
 
   const discardSaleDraft = useCallback(() => {
@@ -183,8 +159,8 @@ export function useSalesActions({
           id: String(li?.id || makeId()),
           item: String(li?.item || "").trim(),
           qty: num(li?.qty),
-          salePrice: toPaise(num(li?.salePrice)),
-          costPrice: toPaise(num(li?.costPrice)),
+          salePrice: num(li?.salePrice),
+          costPrice: num(li?.costPrice),
           hsn: String(li?.hsn || "").trim(),
           gstRate: num(li?.gstRate),
           chassisNo: String(li?.chassisNo || "").trim(),
@@ -198,10 +174,6 @@ export function useSalesActions({
         showToast("Add at least one line item");
         return;
       }
-      if (!(saleEntry.customerName || "").trim()) {
-        showToast("Customer name is required");
-        return;
-      }
       for (const li of lineItemsCoerced) {
         if (num(li.qty) < 0 || num(li.salePrice) < 0 || num(li.costPrice) < 0) {
           showToast("Quantity and prices cannot be negative");
@@ -210,8 +182,8 @@ export function useSalesActions({
       }
 
       const lineTotals = sumSaleLineItems(lineItemsCoerced);
-      const discount = roundMoney2(Math.max(0, toPaise(num(saleEntry.discount))));
-      const additionalCharges = roundMoney2(Math.max(0, toPaise(num(saleEntry.additionalCharges))));
+      const discount = roundMoney2(Math.max(0, num(saleEntry.discount)));
+      const additionalCharges = roundMoney2(Math.max(0, num(saleEntry.additionalCharges)));
       const totalSale = roundMoney2(
         Math.max(0, lineTotals.totalSale - discount + additionalCharges),
       );
@@ -236,47 +208,21 @@ export function useSalesActions({
       }
       const paymentEntriesFromForm = payBuild.entries;
       const receivedFromForm = payBuild.received;
+      const oldSale = editingSaleId
+        ? state.sales.find((s) => s && s.id === editingSaleId)
+        : null;
 
       const docType = normalizeDocType(saleEntry.docType);
       if (isGstEnabled(state.settings) && docType !== "billOfSupply" && !(saleEntry.customerState || "").trim()) {
         showToast("Customer state is required for GST tax invoices");
         return;
       }
-      const oldSale = editingSaleId
-        ? state.sales.find((s) => s && s.id === editingSaleId)
-        : null;
-      const isDraftConfirm = oldSale?.status === "draft";
-
-      const chassisErrors = validateChassisNumbers(
-        lineItemsCoerced,
-        { sales: state.sales },
-        editingSaleId,
-      );
-      if (isDraftConfirm && chassisErrors.length > 0) {
-        setSaleChassisErrors?.(chassisErrors);
-        showToast("Fix chassis / serial number errors below");
-        return;
-      }
-      setSaleChassisErrors?.([]);
-
       const docPrefix = saleDocPrefix(state.settings, docType);
       const docNextSetting = state.settings?.[saleDocNextNumberSettingKey(docType)];
-      let invoiceNo =
+      const invoiceNo =
         (saleEntry.invoiceNo || "").trim() ||
         oldSale?.invoiceNo ||
-        "";
-      if (isDraftConfirm || (!invoiceNo && !editingSaleId)) {
-        if (docType === "invoice") {
-          invoiceNo = getNextInvoiceNumber(
-            salesAsInvoiceRecords(
-              (state.sales || []).filter((s) => s?.status === "confirmed" && s?.invoiceNo),
-            ),
-            saleEntry.date,
-          );
-        } else {
-          invoiceNo = genInvoiceNo(state.sales, docPrefix, docNextSetting);
-        }
-      }
+        genInvoiceNo(state.sales, docPrefix, docNextSetting);
       const usedSeq = invoiceSequenceForPrefix(invoiceNo, docPrefix);
       const advanceSettingsNext = (settingsObj) => {
         const s2 = { ...settingsObj };
@@ -338,10 +284,6 @@ export function useSalesActions({
         bundleId: String(saleEntry.bundleId || "").trim(),
         linkedSaleId: String(saleEntry.linkedSaleId || "").trim(),
         linkedInvoiceNo: String(saleEntry.linkedInvoiceNo || "").trim(),
-        status: isDraftConfirm ? "confirmed" : oldSale?.status || "confirmed",
-        confirmedAt: isDraftConfirm
-          ? new Date().toISOString()
-          : oldSale?.confirmedAt || (oldSale?.invoiceNo ? oldSale?.date : null),
       };
 
       const bundleList = normBundlesList(state.settings?.bundles);
@@ -350,7 +292,6 @@ export function useSalesActions({
       /* ── stock helper ── */
       const checkStockBeforeSave = (inventoryEntries, linesToCheck) => {
         if (!state.settings?.autoStockOutOnSale) return true;
-        if (!saleDocUsesAutoStockOut(docType)) return true;
         const branches = normBranchesList(state.settings?.branches);
         const branchId = getDefaultBranchId(branches);
         const scoped = computeInvRowsForBranch(inventoryEntries, branchId, branches);
@@ -383,7 +324,6 @@ export function useSalesActions({
 
       const buildAutoStockOutEntries = (inventoryEntries, saleRecord, saleIdForEntries) => {
         if (!state.settings?.autoStockOutOnSale) return inventoryEntries;
-        if (!saleDocUsesAutoStockOut(saleRecord.docType)) return inventoryEntries;
         const branches = normBranchesList(state.settings?.branches);
         const branchId = getDefaultBranchId(branches);
         const scoped = computeInvRowsForBranch(inventoryEntries, branchId, branches);
@@ -568,7 +508,6 @@ export function useSalesActions({
       setScreen,
       setState,
       showToast,
-      setSaleChassisErrors,
       state,
     ],
   );

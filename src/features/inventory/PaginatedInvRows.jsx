@@ -100,14 +100,8 @@ export function PaginatedInvRows({ invRows, onDeleteItem, onOpenItem, onAddStock
     );
   }
 
-  const rowClass = (row) => {
-    const q = row.currentQty;
-    let tone = " inv-row--ok";
-    if (q < 0) tone = " inv-row--neg";
-    else if (q === 0) tone = " inv-row--out";
-    else if (q <= 2) tone = " inv-row--low";
-    return `inv-row${tone}${onOpenItem ? " inv-row--clickable" : ""}`;
-  };
+  const rowClass = (row) =>
+    `inv-row${row.currentQty < 0 ? " inv-row--neg" : row.currentQty === 0 ? " inv-row--empty" : " inv-row--ok"}${onOpenItem ? " inv-row--clickable" : ""}`;
 
   if (!scrollParent) {
     return (

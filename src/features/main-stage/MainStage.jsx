@@ -17,8 +17,6 @@ import {
   LazySalesTab,
   LazyNewSaleScreen,
   LazySaleDetailScreen,
-  LazyIssueCreditNoteScreen,
-  LazyCreditNoteDetailScreen,
   LazyBranchScreen,
   LazyInventoryTab,
   LazyAccountsOverviewTab,
@@ -97,7 +95,6 @@ export function MainStage(props) {
     dashExp,
     dashOtherIncome,
     filteredSales,
-    filteredCreditNotes = [],
     saleView,
     setSaleView,
     searchTerm,
@@ -121,10 +118,6 @@ export function MainStage(props) {
     simpleConfirm,
     welcomeOpen,
     payBankAccountId,
-    payMethod,
-    payReference,
-    setPayMethod,
-    setPayReference,
     payAmt,
     payDate,
     dismissAlert,
@@ -186,7 +179,6 @@ export function MainStage(props) {
     editingExpenseId,
     editingOtherIncomeId,
     saleEntry,
-    saleChassisErrors = [],
     updSale,
     emi2,
     emi3,
@@ -207,7 +199,6 @@ export function MainStage(props) {
     selExpenseCategory,
     selEmiDetail,
     selSale,
-    selCreditNote,
     selEmi,
     selExpense,
     selOtherIncome,
@@ -230,10 +221,6 @@ export function MainStage(props) {
     openEditSale,
     openDuplicateSale,
     openCreditNoteFromSale,
-    openIssueCreditNote,
-    issueCreditNote,
-    openCreditNoteDetail,
-    closeCreditNoteFlow,
     openDebitNoteFromSale,
     openPayModal,
     openPayPurchaseModal,
@@ -339,7 +326,6 @@ export function MainStage(props) {
         {!screen && page === "invoices" && (
           <LazySalesTab
             filteredSales={filteredSales}
-            filteredCreditNotes={filteredCreditNotes}
             saleView={saleView}
             setSaleView={setSaleView}
             searchTerm={searchTerm}
@@ -351,7 +337,6 @@ export function MainStage(props) {
             defaultDueDays={state.settings?.defaultDueDays}
             openNewSale={openNewSale}
             openSaleDetail={openSaleDetail}
-            openCreditNoteDetail={openCreditNoteDetail}
             saleDraftSummary={saleDraftResume}
             onResumeSaleDraft={onResumeSaleDraft}
             onDiscardSaleDraft={onDiscardSaleDraft}
@@ -669,7 +654,6 @@ export function MainStage(props) {
           defaultProductGstRate={state.settings?.defaultProductGstRate}
           gstEnabled={state.settings?.gstEnabled}
           additionalChargesLabel={state.settings?.additionalChargesLabel || "Additional Charges"}
-          chassisErrors={saleChassisErrors}
           onSubmit={onSaveSale}
           onClose={closeNewSale}
           draftSavedAt={!editingSaleId ? state.settings?.saleDraft?.savedAt : null}
@@ -705,24 +689,6 @@ export function MainStage(props) {
           onOpenInvoice={openSaleDetailFromInvoice}
         />
       )}
-      {screen === "issueCreditNote" && selSale && (
-        <LazyIssueCreditNoteScreen
-          sale={selSale}
-          settings={state.settings}
-          onClose={closeCreditNoteFlow}
-          onIssue={issueCreditNote}
-        />
-      )}
-      {screen === "creditNoteDetail" && selCreditNote && (
-        <LazyCreditNoteDetailScreen
-          creditNote={selCreditNote}
-          onClose={() => {
-            setScreen(null);
-            goPage("invoices");
-          }}
-          onOpenOriginalInvoice={(id) => openSaleDetail(id)}
-        />
-      )}
       {screen === "saleDetail" && selSale && (
         <LazySaleDetailScreen
           sale={selSale}
@@ -736,30 +702,10 @@ export function MainStage(props) {
           onClose={closeSaleDetailNav}
           onEdit={() => openEditSale(selSale, selEmi)}
           onDuplicate={() => openDuplicateSale(selSale)}
-          onCreditNote={() => {
-            if (selSale?.status === "confirmed") openIssueCreditNote(selSale);
-            else openCreditNoteFromSale(selSale);
-          }}
+          onCreditNote={() => openCreditNoteFromSale(selSale)}
           onDebitNote={() => openDebitNoteFromSale(selSale)}
           onPayment={() => openPayModal(selSale.id)}
-          onDelete={() => {
-            if (selSale?.status === "confirmed") {
-              requestConfirm?.({
-                title: "Cannot delete confirmed invoice",
-                message: "Confirmed invoices cannot be deleted. Issue a credit note instead.",
-                confirmLabel: "Issue Credit Note",
-                onConfirm: () => openIssueCreditNote(selSale),
-              });
-            } else if (selSale?.status === "cancelled") {
-              requestConfirm?.({
-                title: "Already cancelled",
-                message: "This invoice was cancelled via credit note and cannot be deleted.",
-                confirmLabel: "OK",
-              });
-            } else {
-              setDelConfirm({ type: "sale", id: selSale.id });
-            }
-          }}
+          onDelete={() => setDelConfirm({ type: "sale", id: selSale.id })}
           onOpenServicing={() => {
             closeSaleDetailNav();
             goPage("servicing");
@@ -997,10 +943,6 @@ export function MainStage(props) {
           bankAccounts={state.balance?.bankAccounts || []}
           payBankAccountId={payBankAccountId}
           onPayBankAccountChange={setPayBankAccountId}
-          payMethod={payMethod}
-          onPayMethodChange={setPayMethod}
-          payReference={payReference}
-          onPayReferenceChange={setPayReference}
           payAmt={payAmt}
           onPayAmtChange={setPayAmt}
           payDate={payDate}
@@ -1010,8 +952,6 @@ export function MainStage(props) {
             setPayModal(null);
             setPayPurchaseModal(null);
             setPayBankAccountId("");
-            setPayMethod("cash");
-            setPayReference("");
             setPayDate(todayStr());
           }}
         />

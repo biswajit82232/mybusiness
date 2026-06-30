@@ -1,21 +1,11 @@
-import {
-  calcTaxableFromInclusive,
-  subtractMoney,
-  multiplyMoney,
-  addMoney,
-  splitGST,
-  toRupees,
-} from "../utils/money.js";
-
 function num(v) {
   if (v == null || v === "") return 0;
   const n = Number(v);
   return Number.isFinite(n) ? n : 0;
 }
 
-/** Round to integer paise. */
-function roundPaise(v) {
-  return Math.round(num(v));
+function roundMoney2(v) {
+  return Math.round(num(v) * 100) / 100;
 }
 
 /** GST state codes (name → 2-digit code). Keys are lowercase trimmed names. */
@@ -111,15 +101,15 @@ export function isInterStateSale(businessState, customerState, interStateOverrid
   return b !== c;
 }
 
-/** Split GST-inclusive line total into taxable value + tax (single combined rate %). Amounts in paise. */
-export function splitInclusiveGst(inclusiveAmountPaise, gstRatePercent) {
-  const inc = roundPaise(Math.max(0, num(inclusiveAmountPaise)));
+/** Split GST-inclusive line total into taxable value + tax (single combined rate %). */
+export function splitInclusiveGst(inclusiveAmount, gstRatePercent) {
+  const inc = roundMoney2(Math.max(0, num(inclusiveAmount)));
   const rate = Math.max(0, num(gstRatePercent));
   if (inc <= 0 || rate <= 0) {
     return { taxable: inc, tax: 0, total: inc, gstRate: rate };
   }
-  const taxable = calcTaxableFromInclusive(inc, rate);
-  const tax = subtractMoney(inc, taxable);
+  const taxable = roundMoney2(inc / (1 + rate / 100));
+  const tax = roundMoney2(inc - taxable);
   return { taxable, tax, total: inc, gstRate: rate };
 }
 
@@ -133,7 +123,6 @@ export function additionalChargesLabel(settings = {}) {
 
 /**
  * Compute per-line GST breakdown from GST-inclusive sale price × qty.
- * All amounts are integer paise.
  * @returns {{ lines, subtotalInclusive, discount, additionalCharges, taxableTotal, cgst, sgst, igst, totalTax, grandTotal, hasGst, isInterState, hsnSummary }}
  */
 export function buildInvoiceGstModel({
@@ -146,16 +135,16 @@ export function buildInvoiceGstModel({
   reverseCharge = false,
   settings = {},
 }) {
-  const disc = roundPaise(Math.max(0, num(discount)));
-  const extra = roundPaise(Math.max(0, num(additionalCharges)));
+  const disc = roundMoney2(Math.max(0, num(discount)));
+  const extra = roundMoney2(Math.max(0, num(additionalCharges)));
   const defaultHsn = String(settings.defaultProductHsn || DEFAULT_PRODUCT_HSN).trim() || DEFAULT_PRODUCT_HSN;
 
   let subtotalInclusive = 0;
   const rawLines = (Array.isArray(lineItems) ? lineItems : []).map((li, idx) => {
     const qty = num(li?.qty);
-    const inclusiveUnitPaise = roundPaise(num(li?.salePrice));
-    const lineInclusive = multiplyMoney(inclusiveUnitPaise, qty);
-    subtotalInclusive = addMoney(subtotalInclusive, lineInclusive);
+    const inclusiveUnit = num(li?.salePrice);
+    const lineInclusive = roundMoney2(qty * inclusiveUnit);
+    subtotalInclusive = roundMoney2(subtotalInclusive + lineInclusive);
     const hsn = String(li?.hsn || "").trim() || defaultHsn;
     const gstRate = resolveLineGstRate(li, settings);
     const split = splitInclusiveGst(lineInclusive, gstRate);
@@ -164,7 +153,7 @@ export function buildInvoiceGstModel({
       id: li?.id,
       item: String(li?.item || ""),
       qty,
-      inclusiveUnit: inclusiveUnitPaise,
+      inclusiveUnit,
       lineInclusive,
       hsn,
       gstRate,
@@ -196,9 +185,9 @@ export function buildInvoiceGstModel({
   let igstTotal = 0;
 
   const lines = rawLines.map((row) => {
-    const adjTaxable = roundPaise(row.taxable * ratio);
-    const adjTax = roundPaise(row.tax * ratio);
-    taxableTotal = addMoney(taxableTotal, adjTaxable);
+    const adjTaxable = roundMoney2(row.taxable * ratio);
+    const adjTax = roundMoney2(row.tax * ratio);
+    taxableTotal = roundMoney2(taxableTotal + adjTaxable);
     let cgst = 0;
     let sgst = 0;
     let igst = 0;
@@ -209,15 +198,14 @@ export function buildInvoiceGstModel({
       if (interstate) {
         igst = adjTax;
         igstRate = row.gstRate;
-        igstTotal = addMoney(igstTotal, igst);
+        igstTotal = roundMoney2(igstTotal + igst);
       } else {
-        const gstSplit = splitGST(adjTax, false);
-        cgst = gstSplit.cgst;
-        sgst = gstSplit.sgst;
-        cgstRate = row.gstRate / 2;
-        sgstRate = row.gstRate - cgstRate;
-        cgstTotal = addMoney(cgstTotal, cgst);
-        sgstTotal = addMoney(sgstTotal, sgst);
+        cgst = roundMoney2(adjTax / 2);
+        sgst = roundMoney2(adjTax - cgst);
+        cgstRate = roundMoney2(row.gstRate / 2);
+        sgstRate = roundMoney2(row.gstRate - cgstRate);
+        cgstTotal = roundMoney2(cgstTotal + cgst);
+        sgstTotal = roundMoney2(sgstTotal + sgst);
       }
     }
     return {
@@ -230,14 +218,14 @@ export function buildInvoiceGstModel({
       cgstRate,
       sgstRate,
       igstRate,
-      lineTotal: rcm ? adjTaxable : addMoney(adjTaxable, adjTax),
+      lineTotal: rcm ? adjTaxable : roundMoney2(adjTaxable + adjTax),
     };
   });
 
-  const totalTax = addMoney(addMoney(cgstTotal, sgstTotal), igstTotal);
+  const totalTax = roundMoney2(cgstTotal + sgstTotal + igstTotal);
   const grandTotal = rcm
-    ? addMoney(taxableTotal, extra)
-    : addMoney(addMoney(taxableTotal, totalTax), extra);
+    ? roundMoney2(taxableTotal + extra)
+    : roundMoney2(taxableTotal + totalTax + extra);
   const hasGst = lines.some((l) => l.gstRate > 0 && l.tax > 0);
 
   const hsnMap = new Map();
@@ -255,25 +243,25 @@ export function buildInvoiceGstModel({
       sgstRate: l.sgstRate,
       igstRate: l.igstRate,
     };
-    prev.taxable = addMoney(prev.taxable, l.taxable);
-    prev.cgst = addMoney(prev.cgst, l.cgst);
-    prev.sgst = addMoney(prev.sgst, l.sgst);
-    prev.igst = addMoney(prev.igst, l.igst);
+    prev.taxable = roundMoney2(prev.taxable + l.taxable);
+    prev.cgst = roundMoney2(prev.cgst + l.cgst);
+    prev.sgst = roundMoney2(prev.sgst + l.sgst);
+    prev.igst = roundMoney2(prev.igst + l.igst);
     hsnMap.set(key, prev);
   }
   const hsnSummary = [...hsnMap.values()].sort((a, b) => String(a.hsn).localeCompare(String(b.hsn)));
 
   return {
     lines,
-    subtotalInclusive: roundPaise(subtotalInclusive),
+    subtotalInclusive: roundMoney2(subtotalInclusive),
     discount: disc,
     additionalCharges: extra,
-    taxableTotal: roundPaise(taxableTotal),
-    cgst: roundPaise(cgstTotal),
-    sgst: roundPaise(sgstTotal),
-    igst: roundPaise(igstTotal),
-    totalTax: roundPaise(totalTax),
-    grandTotal: roundPaise(grandTotal),
+    taxableTotal,
+    cgst: cgstTotal,
+    sgst: sgstTotal,
+    igst: igstTotal,
+    totalTax,
+    grandTotal,
     hasGst,
     isInterState: interstate,
     reverseCharge: rcm,
@@ -319,11 +307,11 @@ function threeDigits(n) {
   return `${BELOW_20[h]} HUNDRED${rest ? ` ${twoDigits(rest)}` : ""}`.trim();
 }
 
-/** Indian numbering: amount in words (rupees and paise). Input is paise. */
-export function amountInWordsInr(amountPaise) {
-  const totalPaise = roundPaise(Math.max(0, num(amountPaise)));
-  let rupees = Math.floor(totalPaise / 100);
-  let paise = totalPaise % 100;
+/** Indian numbering: amount in words (rupees and paise). */
+export function amountInWordsInr(amount) {
+  const total = roundMoney2(Math.max(0, num(amount)));
+  let rupees = Math.floor(total);
+  let paise = Math.round((total - rupees) * 100);
   if (paise === 100) {
     rupees += 1;
     paise = 0;
@@ -406,8 +394,8 @@ function joinSerialField(members, field) {
 /** Merge grouped members into one printable line (qty 1, inclusive package price). */
 function mergeInvoiceGroupLines(members) {
   const gid = String(members[0]?.invoiceGroupId || "").trim();
-  const totalInclusive = roundPaise(
-    members.reduce((s, li) => addMoney(s, multiplyMoney(roundPaise(num(li.salePrice)), num(li.qty))), 0),
+  const totalInclusive = roundMoney2(
+    members.reduce((s, li) => s + num(li.qty) * num(li.salePrice), 0),
   );
   const names = members.map((li) => String(li.item || "").trim()).filter(Boolean);
   const itemLabel = names.length > 1 ? names.join(" + ") : names[0] || "";
@@ -419,9 +407,7 @@ function mergeInvoiceGroupLines(members) {
     item: itemLabel,
     qty: 1,
     salePrice: totalInclusive,
-    costPrice: roundPaise(
-      members.reduce((s, li) => addMoney(s, multiplyMoney(roundPaise(num(li.costPrice)), num(li.qty))), 0),
-    ),
+    costPrice: roundMoney2(members.reduce((s, li) => s + num(li.qty) * num(li.costPrice), 0)),
     hsn: String(first.hsn || "").trim(),
     gstRate: num(first.gstRate),
     chassisNo: joinSerialField(members, "chassisNo"),

@@ -8,7 +8,6 @@ import {
   findDuplicatePurchase,
   roundMoney2,
   num,
-  toPaise,
 } from "@/domain/index.js";
 
 /**
@@ -36,7 +35,7 @@ export function usePurchaseActions({
         .map((l) => ({
           item: (l.item || "").trim(),
           qty: num(l.qty),
-          costPerUnit: toPaise(num(l.costPerUnit)),
+          costPerUnit: num(l.costPerUnit),
         }))
         .filter((l) => l.item && l.qty > 0);
       if (!lines.length) {
@@ -131,7 +130,7 @@ export function usePurchaseActions({
         return;
       }
 
-      const paidRaw = roundMoney2(toPaise(num(purchaseEntry.paidAmount)));
+      const paidRaw = roundMoney2(num(purchaseEntry.paidAmount));
       const payApply = Math.min(paidRaw, totalAmount);
       const banks = base.balance?.bankAccounts || [];
       const bid = String(purchaseEntry.bankAccountId || "").trim() || getDefaultBankAccountId(banks);

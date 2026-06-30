@@ -1,5 +1,4 @@
 import { Component } from "react";
-import { COLORS, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from "@/tokens.js";
 import { viteEnv } from "@/config/env.js";
 import { coarseUserAgent, sanitizeFilename } from "@/data/telemetry/telemetry.js";
 
@@ -178,12 +177,12 @@ export default class ErrorBoundary extends Component {
               width: "100%",
               minHeight: 44,
               marginTop: 4,
-              borderRadius: BORDER_RADIUS.md,
+              borderRadius: 10,
               border: "none",
-              background: COLORS.primary,
-              color: COLORS.surface,
-              fontWeight: FONT_WEIGHT.bold,
-              fontSize: FONT_SIZE.bodyLg,
+              background: "var(--primary, #2563eb)",
+              color: "#fff",
+              fontWeight: 600,
+              fontSize: 15,
               cursor: "pointer",
             }}
           >
