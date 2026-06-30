@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { buildVendorPickerRows, filterVendorSuggestRows, getDefaultBankAccountId, money, moneyInputStr, num } from "@/domain/index.js";
+import { buildVendorPickerRows, filterVendorSuggestRows, getDefaultBankAccountId, money, moneyInputStr, num, roundMoney2 } from "@/domain/index.js";
 import { InventoryItemPickField } from "@/features/inventory/index.js";
 import { MenuSelect } from "@/shared/ui/inputs/MenuSelect.jsx";
 import { Field, OverlayScreen, PageHeader } from "@/shared/ui/layout/AppChrome.jsx";
@@ -47,14 +47,16 @@ export function NewPurchaseScreen({
     upd("lines", lines.length ? lines : [{ item: "", qty: "1", costPerUnit: "" }]);
   };
 
-  const totalAmount = useMemo(
-    () => (entry.lines || []).reduce((s, l) => s + num(l.qty) * num(l.costPerUnit), 0),
+  const lineSubtotal = useMemo(
+    () => roundMoney2((entry.lines || []).reduce((s, l) => s + num(l.qty) * num(l.costPerUnit), 0)),
     [entry.lines],
   );
+  const discountNum = num(entry.discount);
+  const totalAmount = roundMoney2(Math.max(0, lineSubtotal - discountNum));
   const paidNow = num(entry.paidAmount);
   const creditAfter = Math.max(0, totalAmount - paidNow);
   const purchaseLineCount = (entry.lines || []).length;
-  const showTotalPreview = totalAmount > 0 || purchaseLineCount > 1;
+  const showTotalPreview = lineSubtotal > 0 || discountNum > 0 || purchaseLineCount > 1;
 
   const vendorPickRows = useMemo(() => buildVendorPickerRows(purchases, vendorDirectory), [purchases, vendorDirectory]);
   const vendorSuggestMatches = useMemo(
@@ -208,8 +210,30 @@ export function NewPurchaseScreen({
               <button type="button" className="text-btn" onClick={addLine}>
                 + Add line
               </button>
+              <Field label="Discount (₹)">
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="0"
+                  value={entry.discount ?? ""}
+                  onChange={(e) => upd("discount", e.target.value)}
+                />
+              </Field>
               {showTotalPreview && (
                 <div className="entry-preview">
+                  {discountNum > 0 && (
+                    <>
+                      <div className="ep-row">
+                        <span>Subtotal</span>
+                        <strong>{money(lineSubtotal)}</strong>
+                      </div>
+                      <div className="ep-row">
+                        <span>Discount</span>
+                        <strong style={{ color: "var(--danger)" }}>−{money(discountNum)}</strong>
+                      </div>
+                    </>
+                  )}
                   <div className="ep-row">
                     <span>Total purchase</span>
                     <strong>{money(totalAmount)}</strong>

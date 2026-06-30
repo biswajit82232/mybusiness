@@ -2,6 +2,15 @@
 
 All notable changes are tracked here. The Settings screen shows **Version** from `package.json`.
 
+## [8.4.5] — 2026-06-30
+
+### Features
+- **Purchases** — Flat discount (₹) on new/edit purchase; total, payables, and purchase detail reflect subtotal minus discount.
+
+App version **8.4.5**; service worker cache **v135**.
+
+---
+
 ## [8.4.4] — 2026-06-30
 
 ### Improvements

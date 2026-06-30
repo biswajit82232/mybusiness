@@ -54,6 +54,10 @@ export function PurchaseDetailScreen({
   const out = num(purchase.outstanding);
   const recv = num(purchase.received);
   const total = roundMoney2(num(purchase.totalAmount));
+  const discount = roundMoney2(Math.max(0, num(purchase.discount)));
+  const lineSubtotal = roundMoney2(
+    lines.reduce((s, line) => s + num(line.qty) * num(line.costPerUnit), 0),
+  );
   const paidFull = out <= 0.01;
   const isOd = !paidFull && dueEst < today;
   const badgeCls = paidFull ? "s-paid" : isOd ? "s-overdue" : recv > 0.01 ? "s-partial" : "s-unpaid";
@@ -167,6 +171,18 @@ export function PurchaseDetailScreen({
 
           <div className="ips-summary">
             <div className="ips-summary-rows">
+              {discount > 0 ? (
+                <>
+                  <div className="ips-sum-row">
+                    <span>Subtotal</span>
+                    <span>{moneyFull(lineSubtotal)}</span>
+                  </div>
+                  <div className="ips-sum-row">
+                    <span>Discount</span>
+                    <span>−{moneyFull(discount)}</span>
+                  </div>
+                </>
+              ) : null}
               <div className="ips-sum-row ips-sum-row--purchase-total">
                 <span>Total</span>
                 <span>{moneyFull(total)}</span>
@@ -314,6 +330,20 @@ export function PurchaseDetailScreen({
 
         <section className="detail-card detail-card-v2">
           <div className="dc-title">Line items</div>
+          {discount > 0 ? (
+            <div className="dc-items-head">
+              <span>Subtotal</span>
+              <span>{moneyFull(lineSubtotal)}</span>
+            </div>
+          ) : null}
+          {discount > 0 ? (
+            <div className="dc-item-row">
+              <div>
+                <strong>Discount</strong>
+              </div>
+              <strong style={{ color: "var(--danger)" }}>−{moneyFull(discount)}</strong>
+            </div>
+          ) : null}
           <div className="dc-items-head">
             <span>Item</span>
             <span>Amount</span>

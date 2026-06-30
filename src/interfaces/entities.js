@@ -72,6 +72,7 @@
  * @property {string} date
  * @property {string} supplierName
  * @property {{ item: string, qty: number, costPerUnit: number }[]} lines
+ * @property {number} [discount]
  * @property {number} totalAmount
  * @property {number} received
  * @property {number} outstanding

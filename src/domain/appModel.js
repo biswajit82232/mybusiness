@@ -1597,6 +1597,7 @@ export function defPurchase() {
     invoiceRef: "",
     branchId: "",
     notes: "",
+    discount: "",
     lines: [{ item: "", qty: "1", costPerUnit: "" }],
     paidAmount: "",
     bankAccountId: "",
@@ -1887,6 +1888,7 @@ export function purchaseToEntry(p) {
     paidAmount: received > 0 ? String(received) : "",
     bankAccountId,
     notes: String(p.notes || ""),
+    discount: p.discount != null && p.discount !== "" ? String(p.discount) : "",
   };
 }
 
@@ -1919,7 +1921,8 @@ export function normPurchasesList(raw, bankAccountsForDefault = null) {
     .map((x) => {
       const lines = normPurchaseLines(x.lines);
       const lineTotal = lines.reduce((a, l) => a + l.qty * l.costPerUnit, 0);
-      const totalAmount = roundMoney2(lineTotal);
+      const discount = roundMoney2(Math.max(0, num(x.discount)));
+      const totalAmount = roundMoney2(Math.max(0, lineTotal - discount));
       const dated = String(x.date || todayStr()).slice(0, 10);
       let paymentEntries = normalizePurchasePaymentEntries({ ...x, date: dated });
       if (paymentEntries.length === 0) {
@@ -1955,6 +1958,7 @@ export function normPurchasesList(raw, bankAccountsForDefault = null) {
         supplierName: String(x.supplierName || "").trim(),
         invoiceRef: String(x.invoiceRef || "").trim(),
         lines,
+        discount,
         totalAmount: roundMoney2(totalAmount),
         paymentEntries,
         received,

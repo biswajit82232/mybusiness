@@ -467,6 +467,26 @@ ok("normPurchasesList: totalAmount always from line items", () => {
   assert.equal(p.totalAmount, 50);
 });
 
+ok("normPurchasesList: discount reduces totalAmount", () => {
+  const [p] = normPurchasesList([
+    {
+      id: "pur-disc",
+      date: "2026-04-01",
+      supplierName: "S",
+      discount: 15,
+      lines: [
+        { item: "A", qty: 2, costPerUnit: 50 },
+        { item: "B", qty: 1, costPerUnit: 100 },
+      ],
+      paymentEntries: [{ id: "pe1", date: "2026-04-01", amount: 100, bankAccountId: "bk" }],
+    },
+  ]);
+  assert.equal(p.totalAmount, 185);
+  assert.equal(p.discount, 15);
+  assert.equal(p.received, 100);
+  assert.equal(p.outstanding, 85);
+});
+
 ok("normPurchasesList: legacy received migrates to paymentEntries for bank", () => {
   const [p] = normPurchasesList(
     [

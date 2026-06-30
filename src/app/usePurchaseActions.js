@@ -57,7 +57,9 @@ export function usePurchaseActions({
         showToast("This supplier invoice # was already entered");
         return;
       }
-      const totalAmount = roundMoney2(lines.reduce((s, l) => s + l.qty * l.costPerUnit, 0));
+      const lineSubtotal = roundMoney2(lines.reduce((s, l) => s + l.qty * l.costPerUnit, 0));
+      const discount = roundMoney2(Math.max(0, num(purchaseEntry.discount)));
+      const totalAmount = roundMoney2(Math.max(0, lineSubtotal - discount));
 
       if (editingPurchaseId) {
         const oldPurchase = (base.purchases || []).find((p) => p && p.id === editingPurchaseId);
@@ -73,6 +75,7 @@ export function usePurchaseActions({
           supplierName: purchaseEntry.supplierName.trim(),
           invoiceRef: (purchaseEntry.invoiceRef || "").trim(),
           lines,
+          discount,
           notes: (purchaseEntry.notes || "").trim(),
           paymentEntries: Array.isArray(oldPurchase.paymentEntries) ? oldPurchase.paymentEntries : [],
         };
@@ -162,6 +165,7 @@ export function usePurchaseActions({
         supplierName: purchaseEntry.supplierName.trim(),
         invoiceRef: (purchaseEntry.invoiceRef || "").trim(),
         lines,
+        discount,
         paymentEntries,
         notes: (purchaseEntry.notes || "").trim(),
       };
