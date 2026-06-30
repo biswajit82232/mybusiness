@@ -25,7 +25,7 @@ import { NotifPanel } from "./NotifPanel.jsx";
 const PROFIT_MASK_KEYS = new Set(["profit", "gross", "revenue", "cogs"]);
 const RECENT_LIMIT = 5;
 const AV_COLORS = ["av-blue", "av-green", "av-purple", "av-orange", "av-teal", "av-indigo", "av-amber", "av-red"];
-const SPARKLINE_TILE_KEYS = new Set(["revenue", "profit"]);
+const SPARKLINE_TILE_KEYS = new Set(["profit"]);
 
 const SPARK_W = 120;
 const SPARK_H = 22;

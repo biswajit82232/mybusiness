@@ -99,7 +99,7 @@ export function SalesTab({
         </span>
         <span className="seg-count">{filteredSales.length}</span>
       </div>
-      <div className="list-area">
+      <div className="list-area sales-list-area">
         <PaginatedSaleList
           key={`${saleView}|${businessMonth}|${searchTerm}`}
           filteredSales={filteredSales}

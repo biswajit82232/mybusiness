@@ -2,6 +2,17 @@
 
 All notable changes are tracked here. The Settings screen shows **Version** from `package.json`.
 
+## [8.4.3] — 2026-06-30
+
+### Improvements
+- **Mobile performance** — Removed unnecessary mobile animations, transitions, blur effects, press transforms, and heavy shadows for faster scrolling and tapping.
+- **Invoices** — Stabilized the virtualized invoice list by letting `react-virtuoso` measure real row heights.
+- **Dashboard** — Removed the revenue sparkline while keeping the revenue KPI value.
+
+App version **8.4.3**; service worker cache **v133**.
+
+---
+
 ## [8.4.2] — 2026-06-30
 
 ### Fixes

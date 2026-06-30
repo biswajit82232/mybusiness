@@ -199,6 +199,13 @@
   color: var(--muted);
 }
 
+/* Invoice rows are already virtualized by react-virtuoso. Let Virtuoso measure
+   real row heights; content-visibility can cause jumpy/glitchy scroll there. */
+.app-md3 .sales-list-area .sale-row {
+  content-visibility: visible;
+  contain-intrinsic-size: auto;
+}
+
 /* Buttons and chips: consistent heights, restrained active states. */
 .app-md3 :is(.primary-btn, .action-btn, .login-submit, .qa-primary, .home-md3-action--filled, .fab) {
   background: var(--primary);
@@ -353,6 +360,75 @@
     --business-card-radius: 0;
     --business-row-pad-x: var(--page-pad);
     --business-row-pad-y: 11px;
+    --business-surface-shadow: none;
+    --business-floating-shadow: 0 1px 0 var(--line2);
+    --dur-fast: 0ms;
+    --dur-base: 0ms;
+    --dur-slow: 0ms;
+  }
+
+  .app-md3 *,
+  .app-md3 *::before,
+  .app-md3 *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+
+  .app-md3 :is(
+    .tab-appbar,
+    .mobile-appbar,
+    .page-hdr,
+    .period-bar,
+    .overlay-toolbar,
+    .modal,
+    .modal-overlay,
+    .notif-panel,
+    .home-kpi-spark-tip,
+    .preview-shell
+  ) {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  .app-md3 :is(
+    .fab,
+    .icon-btn,
+    .primary-btn,
+    .ghost-btn,
+    .danger-btn,
+    .action-btn,
+    .qa-btn,
+    .seg-btn,
+    .sort-chip,
+    .sub-tab,
+    .sale-row,
+    .customer-row,
+    .activity-row,
+    .exp-row,
+    .product-row,
+    .inv-row,
+    .banking-acct-row,
+    .bank-tx-row-btn,
+    .settings-hub-row
+  ):active {
+    transform: none !important;
+  }
+
+  .app-md3 :is(
+    .fab,
+    .modal,
+    .toast,
+    .sw-update-banner,
+    .notif-panel,
+    .home-md3-kpi,
+    .rep-kpi,
+    .detail-hero-v2,
+    .customer-detail-hero,
+    .banking-hero,
+    .inv-hero
+  ) {
+    box-shadow: var(--business-floating-shadow);
   }
 
   .app-md3 :is(.tab-page-scroll, .overlay-scroll, .detail-scroll) {
