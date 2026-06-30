@@ -5,7 +5,7 @@ function num(v) {
 }
 
 function roundMoney2(v) {
-  return Math.round(num(v) * 100) / 100;
+  return Math.round((num(v) + Number.EPSILON) * 100) / 100;
 }
 
 /** GST state codes (name → 2-digit code). Keys are lowercase trimmed names. */
@@ -201,9 +201,9 @@ export function buildInvoiceGstModel({
         igstTotal = roundMoney2(igstTotal + igst);
       } else {
         cgst = roundMoney2(adjTax / 2);
-        sgst = roundMoney2(adjTax - cgst);
+        sgst = cgst;
         cgstRate = roundMoney2(row.gstRate / 2);
-        sgstRate = roundMoney2(row.gstRate - cgstRate);
+        sgstRate = cgstRate;
         cgstTotal = roundMoney2(cgstTotal + cgst);
         sgstTotal = roundMoney2(sgstTotal + sgst);
       }

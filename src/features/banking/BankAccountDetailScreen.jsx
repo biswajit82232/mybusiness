@@ -100,7 +100,19 @@ export function BankAccountDetailScreen({
     return txs.filter((t) => String(t.date || "").slice(0, 7) === mk);
   }, [txs, activityShowAll, viewMonthKey]);
 
-  const txRows = useMemo(() => bankTxRowsWithRunningAfter(filteredTxs, book), [filteredTxs, book]);
+  // When viewing a specific month, seed the running balance from the book balance at the end of
+  // that month (= current book balance minus net activity of all transactions after that month).
+  const bookForPeriod = useMemo(() => {
+    if (activityShowAll) return book;
+    const mk = String(viewMonthKey || "").slice(0, 7);
+    if (mk.length < 7) return book;
+    const laterDelta = txs
+      .filter((t) => String(t.date || "").slice(0, 7) > mk)
+      .reduce((s, t) => s + (t.dir === "in" ? num(t.amount) : -num(t.amount)), 0);
+    return roundMoney2(book - laterDelta);
+  }, [txs, activityShowAll, viewMonthKey, book]);
+
+  const txRows = useMemo(() => bankTxRowsWithRunningAfter(filteredTxs, bookForPeriod), [filteredTxs, bookForPeriod]);
   const visibleTxRows = useMemo(
     () => (txRows.length > activityLimit ? txRows.slice(0, activityLimit) : txRows),
     [txRows, activityLimit],

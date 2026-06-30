@@ -278,7 +278,13 @@ export function AccountsOverviewTab({ state, saveOtherBalance, onOpenSidebar }) 
             ) : null}
 
             {hasAmount(balSum.gstLiability) && isGstEnabled(state.settings) ? (
-              <BsRow label="GST payable (net)" value={balSum.gstLiability} />
+              <>
+                <BsRow label="GST payable (net)" value={balSum.gstLiability} />
+                <p className="form-hint" style={{ marginTop: 2 }}>
+                  ITC estimated at {state.settings?.defaultProductGstRate ?? 5}% for all purchases.
+                  If you stock items with different GST rates, update the default rate in Settings.
+                </p>
+              </>
             ) : null}
 
             {!hasAmount(balance.supplierPayables) &&

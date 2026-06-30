@@ -2367,4 +2367,49 @@ await runWithStableStringifyMemoAsync(async () => {
 });
 console.log("  ✓ runWithStableStringifyMemoAsync");
 
+// ─── Regression: CGST must always equal SGST (odd-paisa fix) ───────────────
+ok("buildInvoiceGstModel: CGST === SGST for intra-state invoice (odd-paisa line)", () => {
+  // A line that produces odd total paise: ₹2,489.03 tax → was splitting 1244.52 / 1244.51
+  const model = buildInvoiceGstModel({
+    lineItems: [{ item: "E-Scooter", qty: 1, salePrice: 52270, costPrice: 40000, gstRate: 5, hsn: "8711" }],
+    discount: 1000,
+    additionalCharges: 0,
+    customerState: "West Bengal",
+    businessState: "West Bengal",
+    gstSettings: { gstEnabled: true, businessState: "West Bengal", defaultProductGstRate: 5 },
+  });
+  for (const line of model.lines) {
+    assert.equal(line.cgst, line.sgst, `line cgst ${line.cgst} !== sgst ${line.sgst}`);
+  }
+  assert.equal(model.cgst, model.sgst, `total cgst ${model.cgst} !== sgst ${model.sgst}`);
+});
+
+// ─── Regression: inventory whitespace key collision ──────────────────────────
+ok("computeInvRowsAggregated: trailing-space item merges into same row", () => {
+  const entries = [
+    { id: "e1", item: "Activa ",  type: "in",  qty: 5, costPerUnit: 80000, date: "2026-01-01" },
+    { id: "e2", item: "Activa",   type: "in",  qty: 3, costPerUnit: 80000, date: "2026-01-02" },
+    { id: "e3", item: "Activa  ", type: "out", qty: 2, costPerUnit: 80000, date: "2026-01-03" },
+  ];
+  const rows = computeInvRowsAggregated(entries);
+  assert.equal(rows.length, 1, "should be exactly one Activa row");
+  assert.equal(rows[0].currentQty, 6, `expected currentQty 6, got ${rows[0].currentQty}`);
+});
+
+// ─── Regression: isIncomeTaxExpense must not match plain "Tax" ───────────────
+ok("isIncomeTaxExpense: 'Tax' alone is NOT income tax; 'income tax' IS", () => {
+  assert.equal(isIncomeTaxExpense({ category: "Tax" }), false, "'Tax' should not be income tax");
+  assert.equal(isIncomeTaxExpense({ category: "income tax" }), true);
+  assert.equal(isIncomeTaxExpense({ category: "Income Tax" }), true);
+  assert.equal(isIncomeTaxExpense({ category: "TDS" }), true);
+  assert.equal(isIncomeTaxExpense({ category: "tds" }), true);
+  assert.equal(isIncomeTaxExpense({ category: "Road Tax" }), false, "'Road Tax' should not be income tax");
+  assert.equal(isIncomeTaxExpense({ category: "GST" }), false);
+  assert.equal(isIncomeTaxExpense({ category: "advance tax" }), true);
+});
+
+console.log("  ✓ CGST === SGST for odd-paisa intra-state line");
+console.log("  ✓ computeInvRowsAggregated: trailing-space item merges into same row");
+console.log("  ✓ isIncomeTaxExpense: plain 'Tax' excluded, income tax / TDS included");
+
 console.log("domain-sanity: all checks passed — ok");

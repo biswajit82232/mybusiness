@@ -8,6 +8,7 @@ import {
   formatMonthLabel,
   money,
   moneyFull,
+  normalizeItemKey,
   num,
   normBranchesList,
   stockInCashAmount,
@@ -56,10 +57,10 @@ export function InventoryItemDetailScreen({
   let summaryRow = null;
   if (branchId) {
     const rows = computeInvRowsForBranch(inventoryEntries, branchId, branches);
-    summaryRow = rows.find((r) => r.item.toLowerCase() === itemKey) ?? null;
+    summaryRow = rows.find((r) => normalizeItemKey(r.item) === normalizeItemKey(itemKey)) ?? null;
   } else {
     const rows = computeInvRowsAggregated(inventoryEntries);
-    summaryRow = rows.find((r) => r.item.toLowerCase() === itemKey) ?? null;
+    summaryRow = rows.find((r) => normalizeItemKey(r.item) === normalizeItemKey(itemKey)) ?? null;
   }
 
   const k = String(itemKey || "").toLowerCase();

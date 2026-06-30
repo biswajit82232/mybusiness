@@ -2,6 +2,22 @@
 
 All notable changes are tracked here. The Settings screen shows **Version** from `package.json`.
 
+## [8.4.8] — 2026-06-30
+
+### Fixes
+
+- **GST invoices** — CGST and SGST are now always exactly equal on intra-state invoices. Previously, whenever the total tax had an odd number of paise (e.g. ₹2,489.03 → was splitting ₹1,244.52 / ₹1,244.51), the printed invoice showed a ₹0.01 discrepancy — which is not legally valid under GST (CGST and SGST must be equal). Fixed by setting `sgst = cgst` instead of `sgst = totalTax − cgst`.
+- **GST invoices** — `roundMoney2` in `invoiceGst.js` now includes `Number.EPSILON` like the copy in `appModel.js`, keeping both in sync and preventing future float-rounding drift between the two independent copies.
+- **Inventory** — Products entered with different whitespace (e.g. `"Activa "` vs `"Activa"`) no longer silently split into two separate stock rows with independent quantities. `computeInvRowsAggregated` and `computeInvRowsForBranch` now use `normalizeItemKey()` (trim + collapse spaces) as the map key, matching how all lookups already work.
+- **Inventory** — `InventoryItemDetailScreen` stock-summary lookup also uses `normalizeItemKey()`, so the detail screen correctly finds items that were entered with stray whitespace.
+- **P&L reports** — `isIncomeTaxExpense` no longer matches expenses categorised as plain `"Tax"`. Only `"income tax"`, `"advance tax"`, and `"tds"` trigger the PBT add-back. This prevents road tax / GST payments / professional tax (all commonly logged as `"Tax"`) from inflating Profit Before Tax.
+- **Banking** — Bank account transaction register now shows correct running balances when viewing a past month. Previously, the register was seeded with the current book balance for all months, making past-month reconciliation unreadable. Now the register is seeded with the book balance at end of the selected month.
+- **Balance sheet** — GST payable line now shows a hint noting the ITC rate used (e.g. "ITC estimated at 5% for all purchases") so users with mixed-GST-rate stock know to update their default rate in Settings.
+
+App version **8.4.8**; service worker cache **v138**.
+
+---
+
 ## [8.4.7] — 2026-06-30
 
 ### Fixes

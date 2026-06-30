@@ -24,7 +24,10 @@ const CONFLICT_QUEUE_MAX = 500;
 export function isIncomeTaxExpense(e) {
   if (!e || typeof e !== "object") return false;
   const c = String(e.category ?? "").trim().toLowerCase();
-  return c === "income tax" || c === "tax" || c.includes("income tax") || c === "tds";
+  // Only match direct income-tax / advance-tax / TDS categories.
+  // Generic "Tax" is intentionally excluded: road tax, GST payments, professional tax all use
+  // that name and must NOT inflate the PBT add-back in P&L.
+  return c === "income tax" || c.includes("income tax") || c === "advance tax" || c === "tds";
 }
 
 /**
@@ -3405,7 +3408,7 @@ export function computeInvRowsForBranch(entries, branchId, branches) {
   for (const e of entries || []) {
     if (!e || typeof e !== "object") continue;
     if (effectiveEntryBranchId(e, branches) !== bid) continue;
-    const key = (e.item || "").toLowerCase();
+    const key = normalizeItemKey(e.item);
     if (!key) continue;
     if (!map[key]) map[key] = { item: e.item, qtyIn: 0, qtyOut: 0, totalCost: 0, salesPrice: 0, category: "", hsn: "", gstRate: 0 };
     const cat = String(e.category || "").trim();
@@ -3438,7 +3441,7 @@ export function computeInvRowsAggregated(entries) {
   const map = {};
   for (const e of entries || []) {
     if (!e || typeof e !== "object") continue;
-    const key = (e.item || "").toLowerCase();
+    const key = normalizeItemKey(e.item);
     if (!key) continue;
     if (!map[key]) map[key] = { item: e.item, qtyIn: 0, qtyOut: 0, totalCost: 0, salesPrice: 0, category: "", hsn: "", gstRate: 0 };
     const cat = String(e.category || "").trim();
