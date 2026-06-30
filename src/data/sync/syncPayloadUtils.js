@@ -104,6 +104,16 @@ export function remoteWinsLocalRow(localRow, remoteIso, hasPendingLocalChange) {
   return rt > lt;
 }
 
+/**
+ * Advance incremental pull cursor only when no rows were blocked by a pending outbox.
+ * `maxProcessedIso` is the max `updated_at` among rows that were merged or safely skipped (local newer).
+ */
+export function computePullCursorAdvance({ blockedByOutbox, maxProcessedIso }) {
+  if (blockedByOutbox) return null;
+  if (typeof maxProcessedIso === "string" && maxProcessedIso.length > 0) return maxProcessedIso;
+  return null;
+}
+
 /** Network / 5xx / rate-limit — worth retrying the whole sync or an outbox row. */
 export function isTransientSyncError(e) {
   if (!e || typeof e !== "object") {

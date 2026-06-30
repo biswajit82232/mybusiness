@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { isCloudAuthEnabled } from "@/data/auth/auth.js";
 
+const SYNC_INTERVAL_MS = 10000;
 const EVENT_DEBOUNCE_MS = 450;
 
 /** When cloud auth is on and user is signed in, run sync on an interval and when back online / tab visible. */
@@ -52,7 +53,7 @@ export function useCloudSyncWhenReady({ authState, currentUserIdRef, executeClou
     };
 
     run();
-    const id = setInterval(run, 20000);
+    const id = setInterval(run, SYNC_INTERVAL_MS);
     const onOnline = () => scheduleAfterEvents();
     const onVis = () => {
       if (document.visibilityState === "visible") scheduleAfterEvents();

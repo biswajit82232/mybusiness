@@ -8,6 +8,7 @@ import {
   isTransientSyncError,
   remoteWinsLocalRow,
   settingsMetaForOutboxDiff,
+  computePullCursorAdvance,
 } from "../src/data/sync/syncPayloadUtils.js";
 
 console.log("sync-sanity:");
@@ -33,6 +34,16 @@ assert.equal(
   remoteWinsLocalRow({ updatedAt: "2026-01-01T00:00:00Z" }, "2026-01-02T00:00:00Z", false),
   true,
 );
+
+assert.equal(
+  computePullCursorAdvance({ blockedByOutbox: true, maxProcessedIso: "2026-01-02T00:00:00Z" }),
+  null,
+);
+assert.equal(
+  computePullCursorAdvance({ blockedByOutbox: false, maxProcessedIso: "2026-01-02T00:00:00Z" }),
+  "2026-01-02T00:00:00Z",
+);
+assert.equal(computePullCursorAdvance({ blockedByOutbox: false, maxProcessedIso: null }), null);
 
 const rows = [
   {

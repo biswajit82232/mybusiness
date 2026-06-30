@@ -118,7 +118,9 @@ export function useCloudSyncExecutor({
         const r = await runCloudSyncPass({
           forceFullReconcile: forceFullReconcile || shouldForceOnStartup,
         });
-        if (shouldForceOnStartup) didStartupFullReconcileRef.current = true;
+        if (shouldForceOnStartup && r.ok && !r.skipped) {
+          didStartupFullReconcileRef.current = true;
+        }
         if (!r.ok) {
           const err = r.error ? `Sync: ${withSupabaseSyncHint(r.error)}` : "Sync failed";
           setCloudSyncMeta({ at: Date.now(), ok: false, detail: err, errors: [] });
@@ -161,6 +163,40 @@ export function useCloudSyncExecutor({
           return true;
         };
 
+        const scheduleDeferredRehydrate = () => {
+          if (!skipStateHydration || (r.remoteRowsApplied ?? 0) < 1) return;
+          void (async () => {
+            try {
+              await waitForPersistIdle();
+              if (pendingWritesRef?.current > 0 || isPersistLocked()) return;
+              if (persistTimerRef?.current) return;
+              const freshPayload = await loadUserLocalState(uid);
+              const merged = mergePersistedPayload(freshPayload) || defaultState;
+              const withConflicts = appendConflictRowsLocal(merged, r.conflictRows);
+              if (
+                shouldSkipSyncStateHydration({
+                  pendingWrites: pendingWritesRef?.current ?? 0,
+                  persistLocked: isPersistLocked(),
+                  debouncePending: !!persistTimerRef?.current,
+                  liveState: latestStateRef?.current,
+                  persistedState: lastPersistedStateRef?.current,
+                })
+              ) {
+                return;
+              }
+              suppressPersistRef.current = true;
+              setState(withConflicts);
+              lastPersistedStateRef.current = withConflicts;
+              await writeAppCache(withConflicts).catch(() => {});
+              Promise.resolve().then(() => {
+                suppressPersistRef.current = false;
+              });
+            } catch (e) {
+              console.warn("[sync] deferred rehydrate failed:", e?.message || e);
+            }
+          })();
+        };
+
         if (r.fullRestore && r.pullPayload) {
           let merged = mergePersistedPayload(r.pullPayload) || defaultState;
           merged = appendConflictRowsLocal(merged, r.conflictRows);
@@ -173,7 +209,8 @@ export function useCloudSyncExecutor({
           const freshPayload = await loadUserLocalState(uid);
           let merged = mergePersistedPayload(freshPayload) || defaultState;
           merged = appendConflictRowsLocal(merged, r.conflictRows);
-          await hydrateReactFromMerged(merged);
+          const hydrated = await hydrateReactFromMerged(merged);
+          if (!hydrated) scheduleDeferredRehydrate();
         } else if ((r.conflictRows?.length ?? 0) > 0) {
           setState((prev) => appendConflictRowsLocal(prev, r.conflictRows));
         }

@@ -13,6 +13,7 @@ import {
   normalizeEntityPayloadWithRecordId,
   parseUpdatedAtMs,
   remoteWinsLocalRow,
+  computePullCursorAdvance,
 } from "./syncPayloadUtils.js";
 
 export {
@@ -359,6 +360,14 @@ function isSafeEntityPayload(t, row) {
 async function mergeRemoteRowsIntoLocal(userId, rows) {
   return withPersistLock(async () => {
     let applied = 0;
+    let blockedByOutbox = false;
+    let maxProcessedIso = null;
+    const bumpProcessedIso = (iso) => {
+      if (typeof iso === "string" && iso && (!maxProcessedIso || iso > maxProcessedIso)) {
+        maxProcessedIso = iso;
+      }
+    };
+
     for (const row of rows || []) {
       const t = row?.entity_type;
       if (!t || !ENTITY_TYPES.includes(t)) continue;
@@ -373,7 +382,14 @@ async function mergeRemoteRowsIntoLocal(userId, rows) {
         entityType: t,
         serverRecordId: recordKey,
       });
-      if (!remoteWinsLocalRow(local, row.updated_at, hasPendingLocalChange)) continue;
+      if (hasPendingLocalChange) {
+        blockedByOutbox = true;
+        continue;
+      }
+      if (!remoteWinsLocalRow(local, row.updated_at, false)) {
+        bumpProcessedIso(row.updated_at);
+        continue;
+      }
 
       if (t === "settings" || t === "balance") {
       const currentSettingsRow = await getLocalEntityRecord({
@@ -405,6 +421,14 @@ async function mergeRemoteRowsIntoLocal(userId, rows) {
         servicingCompletions: nextCompletions,
         servicingWaSent: nextWaSent,
       };
+      const nextRevision =
+        t === "settings"
+          ? row.version ?? currentSettingsRow?.revision ?? null
+          : currentSettingsRow?.revision ?? null;
+      const nextBalanceRevision =
+        t === "balance"
+          ? row.version ?? currentSettingsRow?.balanceRevision ?? null
+          : currentSettingsRow?.balanceRevision ?? null;
       await putLocalEntityRowWithoutOutbox({
         userId,
         entityType: "settings",
@@ -412,7 +436,8 @@ async function mergeRemoteRowsIntoLocal(userId, rows) {
         payload,
         deleted: false,
         updatedAt: row.updated_at,
-        revision: row.version ?? null,
+        revision: nextRevision,
+        balanceRevision: nextBalanceRevision,
       });
     } else if (t === "dismissedAlertIds") {
       const normalized = normalizeEntityPayloadWithRecordId(t, row.record_id, row.payload ?? null);
@@ -448,10 +473,16 @@ async function mergeRemoteRowsIntoLocal(userId, rows) {
         entityType: t,
         recordId: recordKey,
       });
+      bumpProcessedIso(row.updated_at);
       applied += 1;
     }
-    return applied;
+    return { applied, blockedByOutbox, maxProcessedIso };
   });
+}
+
+async function advancePullCursorAfterMerge(userId, mergeResult) {
+  const nextCursor = computePullCursorAdvance(mergeResult);
+  if (nextCursor) await setRemotePullCursor(userId, nextCursor);
 }
 
 export async function ensureBusinessId(client) {
@@ -537,15 +568,14 @@ async function pullRemoteIntoLocal(client, userId, businessId, { forceFullReconc
         pullCursorMaxIso: null,
       };
     }
-    const applied = await mergeRemoteRowsIntoLocal(userId, rows);
-    const maxIso = maxUpdatedAtIso(rows);
-    if (maxIso) await setRemotePullCursor(userId, maxIso);
+    const mergeResult = await mergeRemoteRowsIntoLocal(userId, rows);
+    await advancePullCursorAfterMerge(userId, mergeResult);
     const pullPayload = await loadUserLocalState(userId);
     return {
       didPull: true,
       pullPayload,
       fullRestore: false,
-      remoteRowsApplied: applied,
+      remoteRowsApplied: mergeResult.applied,
       pullCursorMaxIso: null,
     };
   }
@@ -584,12 +614,10 @@ async function pullRemoteIntoLocal(client, userId, businessId, { forceFullReconc
     return { didPull: false, pullPayload: null, fullRestore: false, remoteRowsApplied: 0, pullCursorMaxIso: null };
   }
 
-  const applied = await mergeRemoteRowsIntoLocal(userId, rows);
-  const maxIso = maxUpdatedAtIso(rows);
-  /* Cursor advances only after merge writes succeed — avoids skipping rows if merge throws mid-batch. */
-  if (maxIso) await setRemotePullCursor(userId, maxIso);
+  const mergeResult = await mergeRemoteRowsIntoLocal(userId, rows);
+  await advancePullCursorAfterMerge(userId, mergeResult);
 
-  if (applied === 0) {
+  if (mergeResult.applied === 0) {
     return { didPull: false, pullPayload: null, fullRestore: false, remoteRowsApplied: 0, pullCursorMaxIso: null };
   }
 
@@ -598,7 +626,7 @@ async function pullRemoteIntoLocal(client, userId, businessId, { forceFullReconc
     didPull: true,
     pullPayload,
     fullRestore: false,
-    remoteRowsApplied: applied,
+    remoteRowsApplied: mergeResult.applied,
     pullCursorMaxIso: null,
   };
 }

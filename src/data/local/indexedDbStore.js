@@ -565,14 +565,28 @@ export async function putLocalEntityRowWithoutOutbox({
   deleted,
   updatedAt,
   revision = null,
+  balanceRevision = undefined,
 }) {
   const db = await getDb();
   const entity = normalizeEntityType(entityType);
   const storeName = makeEntityStore(entity);
   const key = entity === "settings" || entity === "balance" ? userId : makeEntityKey(userId, recordId);
+  const existing = entity === "settings" || entity === "balance" ? await db.get(storeName, key) : null;
   const row =
     entity === "settings" || entity === "balance"
-      ? { key, userId, deleted: false, updatedAt, revision, payload }
+      ? {
+          key,
+          userId,
+          deleted: false,
+          updatedAt,
+          revision,
+          payload,
+          ...(balanceRevision !== undefined
+            ? { balanceRevision }
+            : existing?.balanceRevision != null
+              ? { balanceRevision: existing.balanceRevision }
+              : {}),
+        }
       : {
           key,
           userId,

@@ -2,6 +2,20 @@
 
 All notable changes are tracked here. The Settings screen shows **Version** from `package.json`.
 
+## [8.5.0] — 2026-06-30
+
+### Fixes
+
+- **Cloud sync (all modules)** — Incremental pull no longer advances the cursor past rows blocked by a pending local outbox entry. Previously, remote changes could be permanently skipped on a device until a manual full reconcile, which looked like “data not syncing” across phones/PCs.
+- **Cloud sync** — Pull merge now stores `balanceRevision` separately when the remote `balance` entity arrives, matching the independent server version counters (pairs with the 8.4.9 push fix).
+- **Cloud sync** — Startup full reconcile retries on the next sync pass if the first attempt was skipped (offline, session timeout, persist busy) instead of marking reconcile complete.
+- **Cloud sync** — When cloud data lands in IndexedDB during an active local edit, the UI rehydrates from local storage once the edit finishes instead of staying stale until reload.
+- **Cloud sync** — Background sync interval reduced from 20s to 10s for faster cross-device updates.
+
+App version **8.5.0**; service worker cache **v140**.
+
+---
+
 ## [8.4.9] — 2026-06-30
 
 ### Fixes
