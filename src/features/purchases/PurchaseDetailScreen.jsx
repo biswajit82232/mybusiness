@@ -55,6 +55,7 @@ export function PurchaseDetailScreen({
   const recv = num(purchase.received);
   const total = roundMoney2(num(purchase.totalAmount));
   const discount = roundMoney2(Math.max(0, num(purchase.discount)));
+  const lines = Array.isArray(purchase.lines) ? purchase.lines : [];
   const lineSubtotal = roundMoney2(
     lines.reduce((s, line) => s + num(line.qty) * num(line.costPerUnit), 0),
   );
@@ -66,7 +67,6 @@ export function PurchaseDetailScreen({
   const brList = normBranchesList(branches);
   const brName = (brList.find((b) => b && b.id === purchase.branchId)?.name || "").trim() || "—";
   const acctName = (id) => bankAccountLabel(bankAccounts, id);
-  const lines = Array.isArray(purchase.lines) ? purchase.lines : [];
 
   const coName = String(printCompany.businessName || "").trim() || "Purchase";
   const coPhone = String(printCompany.businessPhone || "").trim();

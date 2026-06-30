@@ -2896,8 +2896,9 @@ export function computeAccountActivityNet(
         if (!activityDateOnOrBefore(pe.date, s.date, asOf)) continue;
         net += num(pe.amount);
       }
-    } else if (num(s.received) > 0 && String(s.bankAccountId || "").trim() === id) {
-      if (activityDateOnOrBefore(s.date, null, asOf)) net += num(s.received);
+    } else if (num(s.received) > 0) {
+      const legacyBank = String(s.receivedBankAccountId || s.bankAccountId || "").trim();
+      if (legacyBank === id && activityDateOnOrBefore(s.date, null, asOf)) net += num(s.received);
     }
   }
   for (const t of transfers || []) {
@@ -2973,15 +2974,10 @@ export function computeBankAccountBookBalance(
     ),
   );
   const adjRaw = account.balanceAdjustment;
-  let adj;
-  if (adjRaw !== null && adjRaw !== undefined && adjRaw !== "") {
-    adj = roundMoney2(adjRaw);
-  } else if (asOfDate) {
-    adj = 0;
-  } else {
-    const stored = roundMoney2(account.amount);
-    adj = roundMoney2(stored - opening - activity);
-  }
+  const adj =
+    adjRaw !== null && adjRaw !== undefined && adjRaw !== ""
+      ? roundMoney2(adjRaw)
+      : 0;
   return roundMoney2(opening + activity + adj);
 }
 
@@ -3041,18 +3037,6 @@ export function applyComputedBankBalances(state) {
   const bankAccounts = (state.balance.bankAccounts || []).map((a) => {
     if (!a || !a.id) return a;
     const opening = roundMoney2(a.openingBalance);
-    const amount = computeBankAccountBookBalance(
-      a,
-      expenses,
-      sales,
-      transfers,
-      inventoryEntries,
-      otherIncomes,
-      purchases,
-      loansGiven,
-      null,
-      customerAdvancePayments,
-    );
     const activity = roundMoney2(
       computeAccountActivityNet(
         a.id,
@@ -3071,8 +3055,9 @@ export function applyComputedBankBalances(state) {
     if (adjRaw !== null && adjRaw !== undefined && adjRaw !== "") {
       adj = roundMoney2(adjRaw);
     } else {
-      adj = roundMoney2(amount - opening - activity);
+      adj = roundMoney2(roundMoney2(a.amount) - opening - activity);
     }
+    const amount = roundMoney2(opening + activity + adj);
     return {
       ...a,
       openingBalance: opening,
@@ -4609,9 +4594,7 @@ export function applySyncConflictPreview(state, conflict) {
   };
   const normFn = normalized[listKey];
   const next = { ...state, [listKey]: normFn ? normFn() : arr };
-  return listKey === "sales" || listKey === "purchases" || listKey === "customerAdvancePayments"
-    ? applyComputedBankBalances(next)
-    : next;
+  return applyComputedBankBalances(next);
 }
 
 export function normSyncConflictQueue(raw) {

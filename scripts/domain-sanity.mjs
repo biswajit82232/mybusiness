@@ -25,6 +25,7 @@ import {
   classifyEmiReminderDiff,
   EMI_REMINDER_DAYS_BEFORE,
   computeAccountActivityNet,
+  computeBankAccountBookBalance,
   computeInvRowsAggregated,
   computeInvRowsForBranch,
   compareSalesByInvoiceNo,
@@ -51,6 +52,7 @@ import {
   isIncomeTaxExpense,
   allocateLoanGivenPaymentInterestFirst,
   applyLoanGivenTypedPayment,
+  applyComputedBankBalances,
   reconcileLoanGivenRepayments,
   loanGivenInterestOutstandingReconciled,
   deleteLoanGivenRepaymentEntry,
@@ -1946,6 +1948,125 @@ ok("computeBalanceSheetSummary: historical bank total from transactions, not sto
     asOfDate: "2020-01-01",
   });
   assert.equal(bs.bankTotal, 1000);
+});
+
+ok("computeBalanceSheetSummary: live bank total matches transaction book balance", () => {
+  const bankId = "cash-live";
+  const sales = [
+    {
+      id: "s1",
+      date: "2026-06-01",
+      totalSale: 1000,
+      paymentEntries: [{ id: "p1", date: "2026-06-01", amount: 400, bankAccountId: bankId }],
+    },
+  ];
+  const balance = {
+    bankAccounts: [
+      {
+        id: bankId,
+        name: "Cash",
+        openingBalance: 1000,
+        amount: 99999,
+        balanceAdjustment: 0,
+        excludeFromBalanceSheet: false,
+      },
+    ],
+    bankTransfers: [],
+  };
+  const bs = computeBalanceSheetSummary({
+    sales,
+    purchases: [],
+    inventoryEntries: [],
+    expenses: [],
+    otherIncomes: [],
+    loansGiven: [],
+    balance,
+    settings: {},
+    asOfDate: todayStr(),
+  });
+  const book = computeBankAccountBookBalance(
+    balance.bankAccounts[0],
+    [],
+    sales,
+    [],
+    [],
+    [],
+    [],
+    [],
+    null,
+    [],
+  );
+  assert.equal(book, 1400);
+  assert.equal(bs.bankTotal, 1400);
+});
+
+ok("applyComputedBankBalances: amount tracks new sale payments with fixed adjustment", () => {
+  const bankId = "bk-sync";
+  const base = {
+    ...mergePersistedPayload({
+      settings: {},
+      balance: {
+        bankAccounts: [
+          {
+            id: bankId,
+            name: "Cash",
+            openingBalance: 1000,
+            amount: 1000,
+            balanceAdjustment: 0,
+          },
+        ],
+        bankTransfers: [],
+      },
+      sales: [],
+      expenses: [],
+      purchases: [],
+      inventoryEntries: [],
+      otherIncomes: [],
+      loansGiven: [],
+      customerAdvancePayments: [],
+    }),
+  };
+  const withSale = applyComputedBankBalances({
+    ...base,
+    sales: [
+      {
+        id: "s1",
+        date: "2026-06-10",
+        totalSale: 500,
+        paymentEntries: [{ id: "p1", date: "2026-06-10", amount: 200, bankAccountId: bankId }],
+      },
+    ],
+  });
+  const acct = withSale.balance.bankAccounts.find((a) => a.id === bankId);
+  assert.equal(acct.amount, 1200);
+  assert.equal(
+    computeBankAccountBookBalance(
+      acct,
+      withSale.expenses,
+      withSale.sales,
+      withSale.balance.bankTransfers,
+      withSale.inventoryEntries,
+      withSale.otherIncomes,
+      withSale.purchases,
+      withSale.loansGiven,
+      null,
+      withSale.customerAdvancePayments,
+    ),
+    1200,
+  );
+});
+
+ok("computeAccountActivityNet: legacy received uses receivedBankAccountId", () => {
+  const bankId = "bk-legacy";
+  const net = computeAccountActivityNet(
+    bankId,
+    [],
+    [{ id: "s1", date: "2026-06-01", received: 250, receivedBankAccountId: bankId, paymentEntries: [] }],
+    [],
+    [],
+    [],
+  );
+  assert.equal(net, 250);
 });
 
 ok("isInterStateSale: explicit override when customer state blank", () => {

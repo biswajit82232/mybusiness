@@ -2,6 +2,18 @@
 
 All notable changes are tracked here. The Settings screen shows **Version** from `package.json`.
 
+## [8.4.6] — 2026-06-30
+
+### Fixes
+- **Banking** — Bank balances and balance sheet now derive from transactions (opening + activity + adjustment), fixing cross-device drift when stored `amount` disagreed with linked payments.
+- **Banking** — Legacy sale `received` rows credit `receivedBankAccountId` when set.
+- **Sync** — Recomputed bank balances after any entity merge, not only sales/purchases/advances.
+- **Purchases** — Purchase detail subtotal no longer references line items before they are defined.
+
+App version **8.4.6**; service worker cache **v136**.
+
+---
+
 ## [8.4.5] — 2026-06-30
 
 ### Features

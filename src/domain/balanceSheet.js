@@ -6,7 +6,6 @@ import {
   advanceUnappliedAmount,
   num,
   roundMoney2,
-  sumBankAccountBalances,
   sumBankAccountBalancesAsOf,
   bankAccountCountsInBalanceSheet,
   sumPurchaseCreditOutstanding,
@@ -270,21 +269,19 @@ export function computeBalanceSheetSummary({
   });
 
   const bankAccounts = balance.bankAccounts || [];
-  const bankTotal = isLive
-    ? sumBankAccountBalances(bankAccounts, bankAccountCountsInBalanceSheet)
-    : sumBankAccountBalancesAsOf({
-        bankAccounts,
-        expenses: filterEntriesOnOrBefore(expenses, asOf),
-        sales: filterSalesOnOrBefore(sales, asOf),
-        transfers: filterTransfersOnOrBefore(balance.bankTransfers, asOf),
-        inventoryEntries: entriesForStock,
-        otherIncomes: filterEntriesOnOrBefore(otherIncomes, asOf),
-        purchases: filterPurchasesOnOrBefore(purchases, asOf),
-        loansGiven: filterLoansGivenOnOrBefore(loansGiven, asOf),
-        customerAdvancePayments: advancesForBs,
-        asOfDate: asOf,
-        predicate: bankAccountCountsInBalanceSheet,
-      });
+  const bankTotal = sumBankAccountBalancesAsOf({
+    bankAccounts,
+    expenses: isLive ? expenses : filterEntriesOnOrBefore(expenses, asOf),
+    sales: isLive ? sales : filterSalesOnOrBefore(sales, asOf),
+    transfers: isLive ? balance.bankTransfers : filterTransfersOnOrBefore(balance.bankTransfers, asOf),
+    inventoryEntries: entriesForStock,
+    otherIncomes: isLive ? otherIncomes : filterEntriesOnOrBefore(otherIncomes, asOf),
+    purchases: isLive ? purchases : filterPurchasesOnOrBefore(purchases, asOf),
+    loansGiven: isLive ? loansGiven : filterLoansGivenOnOrBefore(loansGiven, asOf),
+    customerAdvancePayments: advancesForBs,
+    asOfDate: asOf,
+    predicate: bankAccountCountsInBalanceSheet,
+  });
   const fixedAssetAccounts = balance.fixedAssetAccounts || [];
   const fixedAssetsGross = sumFixedAssetsGross(fixedAssetAccounts);
   const fixedAssets = sumFixedAssetsNetBook(fixedAssetAccounts, asOf);
