@@ -21,6 +21,33 @@ import {
 } from "./appModel.js";
 import { signedSaleAmount } from "./saleDocuments.js";
 import { isDateInReportPeriod, normalizeReportPeriod } from "./reportPeriod.js";
+import { affectsPL, getPLAccount } from "../utils/bankingCategories.js";
+import { BANK_EXTERNAL_SOURCE_ID } from "./appModel.js";
+
+function bankingPlAdjustments(bankTransfers, period, fsm, fyYear) {
+  const filt = (bankTransfers || []).filter(
+    (t) => t && isDateInReportPeriod(t.date, period, fsm, fyYear),
+  );
+  let revenue = 0;
+  let otherIncome = 0;
+  let operatingExpenses = 0;
+  let cogs = 0;
+  for (const t of filt) {
+    if (!affectsPL(t.category)) continue;
+    const acct = getPLAccount(t.category);
+    const isCredit =
+      t.kind === "deposit" || String(t.fromAccountId || "") === BANK_EXTERNAL_SOURCE_ID;
+    const amt = num(t.amount);
+    if (isCredit) {
+      if (acct === "Revenue") revenue += amt;
+      else if (acct === "Other income") otherIncome += amt;
+    } else {
+      if (acct === "COGS") cogs += amt;
+      else if (acct === "Operating expenses") operatingExpenses += amt;
+    }
+  }
+  return { revenue, otherIncome, operatingExpenses, cogs };
+}
 
 function filterByPeriod(rows, period, fsm, fyYear, dateKey = "date") {
   return (rows || []).filter((r) => r && isDateInReportPeriod(r[dateKey], period, fsm, fyYear));
@@ -34,6 +61,7 @@ export function computePlSnapshot({
   sales,
   expenses,
   otherIncomes,
+  bankTransfers,
   accountingBasis,
   period,
   fsm,
@@ -94,6 +122,12 @@ export function computePlSnapshot({
     }
     cogs = recognizedCogsForSales(filtSales.filter((s) => isDateInReportPeriod(s.date, p, fsm, fyYear)), false);
   }
+
+  const banking = bankingPlAdjustments(bankTransfers, p, fsm, fyYear);
+  revenue = roundMoney2(revenue + banking.revenue);
+  cogs = roundMoney2(cogs + banking.cogs);
+  expenseTotal = roundMoney2(expenseTotal + banking.operatingExpenses);
+  oiTotal = roundMoney2(oiTotal + banking.otherIncome);
 
   const grossProfit = revenue - cogs;
   const netProfit = revenue - cogs - expenseTotal + oiTotal;

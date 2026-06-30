@@ -1,16 +1,44 @@
 import { useEffect } from "react";
-import { buildSaleDraftEnvelope, saleEntryHasDraftContent } from "@/domain/index.js";
+import { buildSaleDraftEnvelope, saleEntryHasDraftContent, normSalesList, saleToEntry } from "@/domain/index.js";
 
 /**
- * Debounced autosave of in-progress new-sale form into settings.saleDraft.
- * Skips while editing an existing sale.
+ * Debounced autosave of in-progress sale form.
+ * When editing a draft sale (status draft), updates the sales record directly.
+ * Otherwise falls back to settings.saleDraft for legacy form-only drafts.
  */
-export function useSaleDraftAutosave({ screen, editingSaleId, saleEntry, setState }) {
+export function useSaleDraftAutosave({ screen, editingSaleId, saleEntry, setState, state }) {
   useEffect(() => {
-    if (screen !== "newSale" || editingSaleId) return undefined;
-    if (!saleEntryHasDraftContent(saleEntry)) return undefined;
+    if (screen !== "newSale" || !saleEntryHasDraftContent(saleEntry)) return undefined;
 
     const timer = setTimeout(() => {
+      if (editingSaleId) {
+        const existing = (state?.sales || []).find((s) => s && s.id === editingSaleId);
+        if (existing?.status === "draft") {
+          setState((prev) => {
+            const draftPatch = saleToEntry(saleEntry, null);
+            const merged = normSalesList(
+              [
+                {
+                  ...existing,
+                  ...draftPatch,
+                  id: editingSaleId,
+                  status: "draft",
+                  invoiceNo: "",
+                },
+              ],
+              prev.balance?.bankAccounts || [],
+            )[0];
+            return {
+              ...prev,
+              sales: (prev.sales || []).map((s) => (s?.id === editingSaleId ? merged : s)),
+            };
+          });
+          return;
+        }
+      }
+
+      if (editingSaleId) return;
+
       const envelope = buildSaleDraftEnvelope(saleEntry);
       if (!envelope) return;
       setState((prev) => {
@@ -30,5 +58,5 @@ export function useSaleDraftAutosave({ screen, editingSaleId, saleEntry, setStat
     }, 600);
 
     return () => clearTimeout(timer);
-  }, [screen, editingSaleId, saleEntry, setState]);
+  }, [screen, editingSaleId, saleEntry, setState, state?.sales]);
 }

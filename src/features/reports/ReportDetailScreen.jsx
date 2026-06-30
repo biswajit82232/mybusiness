@@ -61,6 +61,7 @@ export function ReportDetailScreen({
   inventoryEntries,
   invRows,
   balSum,
+  bankTransfers = [],
   settings,
   accountingBasis,
   fsm,
@@ -128,7 +129,7 @@ export function ReportDetailScreen({
       case "companyOutstanding":
         return buildCompanyOutstandingReport(sales, purchases, balSum);
       case "profitLoss":
-        return computePlSnapshot({ sales, expenses, otherIncomes, accountingBasis, period, fsm, fyYear });
+        return computePlSnapshot({ sales, expenses, otherIncomes, bankTransfers, accountingBasis, period, fsm, fyYear });
       case "billWisePl":
         return buildBillWisePlReport(sales, period, fsm, fyYear);
       case "stock":

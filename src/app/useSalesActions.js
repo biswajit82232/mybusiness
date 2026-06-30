@@ -17,6 +17,7 @@ import {
   normBundlesList,
   normEmiPaidDates,
   normalizePaymentEntries,
+  normSalesList,
   num,
   roundMoney2,
   toPaise,
@@ -33,6 +34,8 @@ import {
   saleDocUsesAutoStockOut,
   saleDocNextNumberSettingKey,
 } from "@/domain/saleDocuments.js";
+import { getNextInvoiceNumber, salesAsInvoiceRecords } from "@/utils/invoiceNumber.js";
+import { validateChassisNumbers } from "@/utils/chassisValidation.js";
 
 /**
  * Save-sale handler (new + edit), including stock-out automation and EMI capture.
@@ -54,27 +57,15 @@ export function useSalesActions({
   emi2,
   emi3,
   emi4,
+  setSaleChassisErrors,
 }) {
   const openNewSale = useCallback(
     (opts) => {
-      setEditingSaleId(null);
       if (!opts?.fresh) {
         const draft = normSaleDraft(state.settings?.saleDraft);
         if (draft?.entry) {
-          const base = { ...defSale(), ...draft.entry };
-          const docType = normalizeDocType(base.docType);
-          if (!String(base.invoiceNo || "").trim()) {
-            const prefix = saleDocPrefix(state.settings, docType);
-            const nextNo = state.settings?.[saleDocNextNumberSettingKey(docType)];
-            base.invoiceNo = genInvoiceNo(state.sales, prefix, nextNo);
-          }
-          if (!String(base.dueDate || "").trim()) {
-            base.dueDate = addDaysStr(
-              base.date || todayStr(),
-              num(state.settings?.defaultDueDays) || 30,
-            );
-          }
-          setSaleEntry(base);
+          setEditingSaleId(null);
+          setSaleEntry({ ...defSale(), ...draft.entry, status: "draft", invoiceNo: "" });
           setScreen("newSale");
           return;
         }
@@ -85,19 +76,50 @@ export function useSalesActions({
           settings: clearSaleDraftSettings(prev.settings),
         }));
       }
+
+      const draftId = makeId();
       const base = defSale();
       const docType = normalizeDocType(base.docType);
-      const prefix = saleDocPrefix(state.settings, docType);
-      const nextNo = state.settings?.[saleDocNextNumberSettingKey(docType)];
-      setSaleEntry({
-        ...base,
-        docType,
-        invoiceNo: genInvoiceNo(state.sales, prefix, nextNo),
-        dueDate: addDaysStr(base.date, num(state.settings?.defaultDueDays) || 30),
-      });
+      const draftSale = normSalesList(
+        [
+          {
+            ...base,
+            id: draftId,
+            docType,
+            status: "draft",
+            invoiceNo: "",
+            dueDate: addDaysStr(base.date, num(state.settings?.defaultDueDays) || 30),
+            customerName: "",
+            lineItems: base.lineItems,
+            totalSale: 0,
+            totalCost: 0,
+            received: 0,
+            outstanding: 0,
+            paymentEntries: [],
+          },
+        ],
+        state.balance?.bankAccounts || [],
+      )[0];
+
+      setEditingSaleId(draftId);
+      setSaleEntry(saleToEntry(draftSale, null));
       setScreen("newSale");
+
+      setState((prev) => ({
+        ...prev,
+        sales: [draftSale, ...(prev.sales || []).filter((s) => s?.id !== draftId)],
+      }));
+      void persistSaleImmediate(draftSale, null);
     },
-    [setEditingSaleId, setSaleEntry, setScreen, setState, state.sales, state.settings],
+    [
+      persistSaleImmediate,
+      setEditingSaleId,
+      setSaleEntry,
+      setScreen,
+      setState,
+      state.balance?.bankAccounts,
+      state.settings,
+    ],
   );
 
   const discardSaleDraft = useCallback(() => {
@@ -176,6 +198,10 @@ export function useSalesActions({
         showToast("Add at least one line item");
         return;
       }
+      if (!(saleEntry.customerName || "").trim()) {
+        showToast("Customer name is required");
+        return;
+      }
       for (const li of lineItemsCoerced) {
         if (num(li.qty) < 0 || num(li.salePrice) < 0 || num(li.costPrice) < 0) {
           showToast("Quantity and prices cannot be negative");
@@ -210,21 +236,47 @@ export function useSalesActions({
       }
       const paymentEntriesFromForm = payBuild.entries;
       const receivedFromForm = payBuild.received;
-      const oldSale = editingSaleId
-        ? state.sales.find((s) => s && s.id === editingSaleId)
-        : null;
 
       const docType = normalizeDocType(saleEntry.docType);
       if (isGstEnabled(state.settings) && docType !== "billOfSupply" && !(saleEntry.customerState || "").trim()) {
         showToast("Customer state is required for GST tax invoices");
         return;
       }
+      const oldSale = editingSaleId
+        ? state.sales.find((s) => s && s.id === editingSaleId)
+        : null;
+      const isDraftConfirm = oldSale?.status === "draft";
+
+      const chassisErrors = validateChassisNumbers(
+        lineItemsCoerced,
+        { sales: state.sales },
+        editingSaleId,
+      );
+      if (isDraftConfirm && chassisErrors.length > 0) {
+        setSaleChassisErrors?.(chassisErrors);
+        showToast("Fix chassis / serial number errors below");
+        return;
+      }
+      setSaleChassisErrors?.([]);
+
       const docPrefix = saleDocPrefix(state.settings, docType);
       const docNextSetting = state.settings?.[saleDocNextNumberSettingKey(docType)];
-      const invoiceNo =
+      let invoiceNo =
         (saleEntry.invoiceNo || "").trim() ||
         oldSale?.invoiceNo ||
-        genInvoiceNo(state.sales, docPrefix, docNextSetting);
+        "";
+      if (isDraftConfirm || (!invoiceNo && !editingSaleId)) {
+        if (docType === "invoice") {
+          invoiceNo = getNextInvoiceNumber(
+            salesAsInvoiceRecords(
+              (state.sales || []).filter((s) => s?.status === "confirmed" && s?.invoiceNo),
+            ),
+            saleEntry.date,
+          );
+        } else {
+          invoiceNo = genInvoiceNo(state.sales, docPrefix, docNextSetting);
+        }
+      }
       const usedSeq = invoiceSequenceForPrefix(invoiceNo, docPrefix);
       const advanceSettingsNext = (settingsObj) => {
         const s2 = { ...settingsObj };
@@ -286,6 +338,10 @@ export function useSalesActions({
         bundleId: String(saleEntry.bundleId || "").trim(),
         linkedSaleId: String(saleEntry.linkedSaleId || "").trim(),
         linkedInvoiceNo: String(saleEntry.linkedInvoiceNo || "").trim(),
+        status: isDraftConfirm ? "confirmed" : oldSale?.status || "confirmed",
+        confirmedAt: isDraftConfirm
+          ? new Date().toISOString()
+          : oldSale?.confirmedAt || (oldSale?.invoiceNo ? oldSale?.date : null),
       };
 
       const bundleList = normBundlesList(state.settings?.bundles);
@@ -512,6 +568,7 @@ export function useSalesActions({
       setScreen,
       setState,
       showToast,
+      setSaleChassisErrors,
       state,
     ],
   );

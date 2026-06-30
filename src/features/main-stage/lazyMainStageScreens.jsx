@@ -98,6 +98,8 @@ export function prefetchMainStagePage(pageId) {
 export const LazySalesTab = L(() => MAIN_STAGE_TAB_IMPORTS.invoices().then((m) => ({ default: m.SalesTab })));
 export const LazyNewSaleScreen = L(() => import("@/features/invoices/NewSaleScreen.jsx").then((m) => ({ default: m.NewSaleScreen })));
 export const LazySaleDetailScreen = L(() => import("@/features/invoices/SaleDetailScreen.jsx").then((m) => ({ default: m.SaleDetailScreen })));
+export const LazyIssueCreditNoteScreen = L(() => import("@/features/invoices/IssueCreditNoteScreen.jsx").then((m) => ({ default: m.IssueCreditNoteScreen })));
+export const LazyCreditNoteDetailScreen = L(() => import("@/features/invoices/CreditNoteDetailScreen.jsx").then((m) => ({ default: m.CreditNoteDetailScreen })));
 
 export const LazyBranchScreen = L(() => MAIN_STAGE_TAB_IMPORTS.branch().then((m) => ({ default: m.BranchScreen })));
 export const LazyInventoryTab = L(() => MAIN_STAGE_TAB_IMPORTS.inventory().then((m) => ({ default: m.InventoryTab })));

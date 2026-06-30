@@ -2,6 +2,22 @@
 
 All notable changes are tracked here. The Settings screen shows **Version** from `package.json`.
 
+## [8.6.0] — 2026-06-30
+
+### Features
+- **Invoices** — Draft state with gapless BPH/FY numbering; confirm assigns `BPH/2425/NNNN`; confirmed invoices cannot be deleted.
+- **Credit notes** — Issue credit note flow against confirmed invoices; original invoice marked cancelled; credit note list tab.
+- **Payments** — Split payment tracking with method, reference, and UNPAID/PARTIAL/PAID status on list and detail.
+- **Banking** — Transaction categories for P&amp;L linkage; categorized bank transfers feed profit &amp; loss reports.
+- **Validation** — Chassis/serial number uniqueness check on invoice confirm with inline errors.
+
+### Improvements
+- **Data** — Schema v3 migration (invoice status, payments, credit notes, banking categories on legacy data).
+
+App version **8.6.0**; service worker cache **v134**.
+
+---
+
 ## [8.5.0] — 2026-06-30
 
 ### Improvements

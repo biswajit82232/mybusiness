@@ -33,6 +33,7 @@ import { IcPlus } from "@/shared/ui/icons/AppIcons.jsx";
 import { InventoryItemPickField } from "@/features/inventory/index.js";
 import { SaleDraftBanner } from "./SaleDraftBanner.jsx";
 import { saleDraftSummary } from "@/domain/index.js";
+import { COLORS, FONT_SIZE, SPACING } from "@/tokens.js";
 
 /** Build a fresh blank line — `id` keeps React keys stable across re-renders. */
 function blankLine() {
@@ -129,7 +130,9 @@ export function NewSaleScreen({
   onClose,
   draftSavedAt = null,
   onDiscardDraft,
+  chassisErrors = [],
 }) {
+  const isDraft = entry.status === "draft" || (!entry.invoiceNo && !isEdit);
   const lineItems = useMemo(() => hydrateLineItems(entry), [entry]);
   const lastSalePriceByKey = useMemo(
     () => buildLastSalePriceByItemKey(sales, isEdit ? editingSaleId : ""),
@@ -370,13 +373,13 @@ export function NewSaleScreen({
     return sales.some((s) => s && s.invoiceNo === no && s.id !== editingSaleId);
   }, [entry.invoiceNo, sales, editingSaleId]);
 
-  /** Auto-fill from Settings when opening new sale (incl. session restore / PWA shortcut). */
+  /** Auto-fill from Settings when opening new sale (skip for persisted drafts). */
   useEffect(() => {
-    if (isEdit) return;
+    if (isEdit || isDraft) return;
     if (invoiceManualRef.current) return;
     if (String(entry.invoiceNo || "").trim()) return;
     upd("invoiceNo", suggestedInvoiceNo);
-  }, [isEdit, entry.invoiceNo, suggestedInvoiceNo, upd]);
+  }, [isEdit, isDraft, entry.invoiceNo, suggestedInvoiceNo, upd]);
 
   return (
     <OverlayScreen className="overlay-screen--form-footer overlay-screen--new-sale">
@@ -402,21 +405,39 @@ export function NewSaleScreen({
                   onChange={(e) => upd("date", e.target.value)}
                 />
               </Field>
-              <Field label="Invoice No">
-                <input
-                  type="text"
-                  value={entry.invoiceNo ?? ""}
-                  onChange={(e) => {
-                    invoiceManualRef.current = true;
-                    upd("invoiceNo", e.target.value);
-                  }}
-                  autoComplete="off"
-                />
-                {invoiceDuplicate ? (
-                  <p className="form-hint form-hint--warn" role="status">
-                    This invoice number is already used on another sale.
-                  </p>
-                ) : null}
+              <Field label={isDraft ? "Invoice status" : "Invoice No"}>
+                {isDraft ? (
+                  <span
+                    style={{
+                      display: "inline-block",
+                      backgroundColor: COLORS.warningBg,
+                      color: COLORS.warning,
+                      fontSize: FONT_SIZE.label,
+                      fontWeight: 600,
+                      padding: `${SPACING.xs}px ${SPACING.md}px`,
+                      borderRadius: 4,
+                    }}
+                  >
+                    DRAFT — number assigned on confirm
+                  </span>
+                ) : (
+                  <>
+                    <input
+                      type="text"
+                      value={entry.invoiceNo ?? ""}
+                      onChange={(e) => {
+                        invoiceManualRef.current = true;
+                        upd("invoiceNo", e.target.value);
+                      }}
+                      autoComplete="off"
+                    />
+                    {invoiceDuplicate ? (
+                      <p className="form-hint form-hint--warn" role="status">
+                        This invoice number is already used on another sale.
+                      </p>
+                    ) : null}
+                  </>
+                )}
               </Field>
               <Field label="Document type">
                 <MenuSelect
@@ -667,6 +688,7 @@ export function NewSaleScreen({
                     bundleGroupSize={groupSize}
                     onUpdate={(patch) => updLine(idx, patch)}
                     onRemove={() => removeLine(idx)}
+                    fieldErrors={chassisErrors.filter((e) => e.itemIndex === idx)}
                   />
                 );
               })}
@@ -941,7 +963,7 @@ export function NewSaleScreen({
       </div>
       <div className="overlay-form-footer">
         <button type="submit" form="form-new-sale" className="primary-btn submit-btn">
-          {isEdit ? "Save changes" : "Save Sale"}
+          {isDraft ? "Confirm Invoice" : isEdit ? "Save changes" : "Save Sale"}
         </button>
       </div>
     </OverlayScreen>
@@ -970,6 +992,7 @@ function LineItemRow({
   bundleGroupSize = 0,
   onUpdate,
   onRemove,
+  fieldErrors = [],
 }) {
   const lineSubtotal = num(line.qty) * num(line.salePrice);
   const pickRows = showStockItemPick ? stockPickRows : invRows;
@@ -1123,6 +1146,11 @@ function LineItemRow({
               onChange={(e) => onUpdate({ chassisNo: e.target.value })}
               placeholder="Optional"
             />
+            {fieldErrors.filter((e) => e.field === "chassisNo").map((e) => (
+              <p key={e.message} className="form-hint form-hint--warn" style={{ color: COLORS.danger }}>
+                {e.message}
+              </p>
+            ))}
           </Field>
           <Field label="Motor No">
             <input
@@ -1131,6 +1159,11 @@ function LineItemRow({
               onChange={(e) => onUpdate({ motorNo: e.target.value })}
               placeholder="Optional"
             />
+            {fieldErrors.filter((e) => e.field === "motorNo").map((e) => (
+              <p key={e.message} className="form-hint form-hint--warn" style={{ color: COLORS.danger }}>
+                {e.message}
+              </p>
+            ))}
           </Field>
           <Field label="Battery serial no.">
             <textarea
@@ -1140,6 +1173,11 @@ function LineItemRow({
               onChange={(e) => onUpdate({ batterySerialNo: e.target.value })}
               placeholder="One per line if multiple"
             />
+            {fieldErrors.filter((e) => e.field === "batterySerialNo").map((e) => (
+              <p key={e.message} className="form-hint form-hint--warn" style={{ color: COLORS.danger }}>
+                {e.message}
+              </p>
+            ))}
           </Field>
         </div>
       </div>

@@ -2,6 +2,23 @@ import { IcX } from "@/shared/ui/icons/AppIcons.jsx";
 import { MenuSelect } from "@/shared/ui/inputs/MenuSelect.jsx";
 import { Field } from "@/shared/ui/layout/AppChrome.jsx";
 import { moneyFull, num, todayStr } from "@/domain/index.js";
+import { COLORS } from "@/tokens.js";
+
+const METHODS = [
+  { value: "cash", label: "💵 Cash" },
+  { value: "upi", label: "📱 UPI" },
+  { value: "bank_transfer", label: "🏦 Bank transfer" },
+  { value: "cheque", label: "📝 Cheque" },
+  { value: "other", label: "Other" },
+];
+
+const REF_LABELS = {
+  upi: "UPI Txn ID",
+  cheque: "Cheque No.",
+  bank_transfer: "Reference",
+  cash: "Reference (optional)",
+  other: "Reference (optional)",
+};
 
 /** Record customer receipt (`sale`) or supplier payment (`purchase`) — pass exactly one. */
 export function RecordPaymentModal({
@@ -15,15 +32,20 @@ export function RecordPaymentModal({
   onPayAmtChange,
   payDate,
   onPayDateChange,
+  payMethod = "cash",
+  onPayMethodChange,
+  payReference = "",
+  onPayReferenceChange,
   onSubmit,
   onDismiss,
 }) {
   const row = purchase || sale;
   if (!row) return null;
   const isSupplier = !!purchase;
-  const outstanding = num(row.outstanding);
+  const outstanding = num(row.balanceDuePaise ?? row.outstanding);
   const banks = bankAccounts || [];
   const ariaLabel = isSupplier ? "Record supplier payment" : "Record payment";
+  const refLabel = REF_LABELS[payMethod] || "Reference";
 
   return (
     <div
@@ -39,9 +61,12 @@ export function RecordPaymentModal({
           </button>
         </div>
         <p className="modal-sub">
-          Balance due: <strong>{moneyFull(outstanding)}</strong>
+          Balance due: <strong style={{ color: outstanding > 0 ? COLORS.amountNegative : COLORS.amountPositive }}>{moneyFull(outstanding)}</strong>
         </p>
         <form onSubmit={onSubmit}>
+          <Field label="Payment method">
+            <MenuSelect value={payMethod} onChange={onPayMethodChange} options={METHODS} />
+          </Field>
           <Field label={isSupplier ? "Pay from (bank / cash)" : "Deposit to (bank / cash)"}>
             <MenuSelect
               value={payBankAccountId}
@@ -65,6 +90,14 @@ export function RecordPaymentModal({
               value={payAmt}
               onChange={(e) => onPayAmtChange(e.target.value)}
               required
+            />
+          </Field>
+          <Field label={refLabel}>
+            <input
+              type="text"
+              value={payReference}
+              onChange={(e) => onPayReferenceChange?.(e.target.value)}
+              placeholder={payMethod === "upi" ? "e.g. 123456789012" : ""}
             />
           </Field>
           <Field label="Payment date">

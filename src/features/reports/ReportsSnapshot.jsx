@@ -75,6 +75,7 @@ export function ReportsSnapshot({
   otherIncomes = [],
   purchases = [],
   balSum = {},
+  bankTransfers = [],
   period,
   fsm,
   fyYear,
@@ -91,12 +92,13 @@ export function ReportsSnapshot({
         sales,
         expenses,
         otherIncomes,
+        bankTransfers,
         accountingBasis,
         period,
         fsm,
         fyYear,
       }),
-    [sales, expenses, otherIncomes, accountingBasis, period, fsm, fyYear],
+    [sales, expenses, otherIncomes, bankTransfers, accountingBasis, period, fsm, fyYear],
   );
 
   const filtSales = useMemo(

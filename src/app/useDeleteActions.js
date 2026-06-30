@@ -55,6 +55,16 @@ export function useDeleteActions({
 
     if (type === "sale") {
       const sale = state.sales.find((s) => s.id === id);
+      if (sale?.status === "confirmed") {
+        setDelConfirm(null);
+        showToast("Confirmed invoices cannot be deleted. Issue a credit note instead.");
+        return;
+      }
+      if (sale?.status === "cancelled") {
+        setDelConfirm(null);
+        showToast("This invoice is already cancelled.");
+        return;
+      }
       let next = {
         ...state,
         sales: (state.sales || []).filter((s) => s.id !== id),

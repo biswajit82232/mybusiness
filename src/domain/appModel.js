@@ -13,8 +13,10 @@ import {
   multiplyMoney,
   sumMoney,
   percentage,
+  calcPaymentStatus,
 } from "../utils/money.js";
 import { migrateData, CURRENT_SCHEMA_VERSION } from "../utils/schema.js";
+import { categoryFromTransferKind } from "../utils/bankingCategories.js";
 
 export const MAX_DISMISSED_ALERTS = 500;
 /** Chunk size for long scrolling lists (sales, ledger, etc.). */
@@ -552,6 +554,8 @@ export const SS_NAV = "mb_nav_v1";
 export const VALID_SESSION_SCREENS = new Set([
   "newSale",
   "saleDetail",
+  "issueCreditNote",
+  "creditNoteDetail",
   "addStock",
   "newExpense",
   "expenseDetail",
@@ -1246,6 +1250,12 @@ export function saleMatchesSearch(s, queryRaw) {
   for (const f of textFields) {
     if (String(f ?? "").toLowerCase().includes(q)) return true;
   }
+  const lines = Array.isArray(s.lineItems) ? s.lineItems : [];
+  for (const li of lines) {
+    for (const cf of [li.chassisNo, li.motorNo, li.batterySerialNo]) {
+      if (String(cf ?? "").trim().toUpperCase().includes(q.toUpperCase())) return true;
+    }
+  }
   const qDigits = digitsOnly(queryRaw);
   if (qDigits.length >= 2) {
     const d1 = digitsOnly(s.customerNo1);
@@ -1444,6 +1454,7 @@ export function defSale() {
   const d = todayStr();
   return {
     docType: "invoice",
+    status: "draft",
     date: d,
     invoiceNo: "",
     dueDate: "",
@@ -1555,8 +1566,9 @@ export function saleToEntry(sale, emi) {
   const first = lineItems[0];
   return {
     docType: normalizeSaleDocType(sale.docType),
+    status: sale.status || (sale.invoiceNo ? "confirmed" : "draft"),
     date: sale.date,
-    invoiceNo: sale.invoiceNo || "",
+    invoiceNo: sale.status === "draft" ? "" : sale.invoiceNo || "",
     dueDate: sale.dueDate || "",
     customerName: sale.customerName || "",
     customerNo1: sale.customerNo1 || "",
@@ -1772,6 +1784,10 @@ export function normBankTransfers(raw) {
         amount: num(x.amount),
         note: String(x.note ?? "").trim(),
         kind,
+        category: String(x.category || "").trim() || categoryFromTransferKind(kind, kind === "deposit" || fromAccountId === BANK_EXTERNAL_SOURCE_ID),
+        subcategory: String(x.subcategory || "").trim(),
+        linkedDocumentId: String(x.linkedDocumentId || "").trim(),
+        linkedDocumentType: String(x.linkedDocumentType || "").trim() || "other",
       };
     })
     .filter((x) => x.amount > 0 && x.fromAccountId && x.toAccountId && x.fromAccountId !== x.toAccountId);
@@ -1787,6 +1803,9 @@ export function normalizePaymentEntries(sale) {
       date: String(p.date || sale?.date || todayStr()).slice(0, 10),
       amount: num(p.amount),
       bankAccountId: String(p.bankAccountId || "").trim(),
+      method: String(p.method || "").trim() || (p.bankAccountId ? "bank_transfer" : "cash"),
+      reference: String(p.reference || "").trim(),
+      note: String(p.note || "").trim(),
       ...(String(p.sourceAdvanceId || "").trim() ? { sourceAdvanceId: String(p.sourceAdvanceId).trim() } : {}),
     }))
     .filter((p) => p.amount > 0 && p.bankAccountId);
@@ -3262,13 +3281,30 @@ export function normSalesList(raw, bankAccountsForDefault = null) {
       const totalCost = totalsFromLines.totalCost > 0 ? totalsFromLines.totalCost : num(x.totalCost);
       const grossProfit = roundMoney2(totalSale - totalCost);
       const outstanding = roundMoney2(Math.max(0, totalSale - received));
+      const payments = (paymentEntries || []).map((p) => ({
+        id: p.id,
+        date: p.date,
+        amountPaise: num(p.amount),
+        method: p.method || (p.bankAccountId ? "bank_transfer" : "cash"),
+        reference: p.reference || "",
+        note: p.note || "",
+      }));
+      const paySummary = calcPaymentStatus(totalSale, payments);
+      const status =
+        x.status ||
+        (x.cancelledAt || x.creditNoteId ? "cancelled" : x.invoiceNo ? "confirmed" : "draft");
       return {
         ...x,
         docType: normalizeSaleDocType(x.docType),
         id: String(x.id || makeId()),
+        status,
         date: String(x.date || todayStr()).slice(0, 10),
         dueDate: x.dueDate ? String(x.dueDate).slice(0, 10) : "",
-        invoiceNo: String(x.invoiceNo || ""),
+        invoiceNo: status === "draft" ? "" : String(x.invoiceNo || ""),
+        confirmedAt: x.confirmedAt || null,
+        cancelledAt: x.cancelledAt || null,
+        creditNoteId: String(x.creditNoteId || "").trim(),
+        creditNoteNumber: String(x.creditNoteNumber || "").trim(),
         linkedSaleId: String(x.linkedSaleId || "").trim(),
         linkedInvoiceNo: String(x.linkedInvoiceNo || "").trim(),
         customerName: String(x.customerName || ""),
@@ -3292,8 +3328,12 @@ export function normSalesList(raw, bankAccountsForDefault = null) {
         totalCost,
         grossProfit,
         received,
-        outstanding,
+        outstanding: roundMoney2(Math.max(0, paySummary.balanceDuePaise)),
         paymentEntries,
+        payments,
+        totalPaidPaise: paySummary.totalPaidPaise,
+        balanceDuePaise: paySummary.balanceDuePaise,
+        paymentStatus: paySummary.paymentStatus,
         bundleId: String(x.bundleId || "").trim(),
       };
     });
@@ -4863,6 +4903,7 @@ export const defaultState = applyComputedBankBalances({
   },
   balance:normBalance({}),
   sales:[],
+  creditNotes:[],
   expenses:[],
   otherIncomes:[],
   recurringExpenses:[],
@@ -4967,6 +5008,7 @@ export function mergePersistedPayload(p) {
       },
       balance: balanceMerged,
       sales: normSalesList(migrated.sales, balanceMerged.bankAccounts),
+      creditNotes: Array.isArray(migrated.creditNotes) ? migrated.creditNotes : [],
       expenses: normExpensesList(migrated.expenses),
       otherIncomes: normOtherIncomesList(migrated.otherIncomes),
       recurringExpenses: normRecurringList(migrated.recurringExpenses),

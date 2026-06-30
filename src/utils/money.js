@@ -146,3 +146,51 @@ export function sumMoney(paiseArray) {
 export function percentage(paise, percent) {
   return Math.round(paise * percent / 100);
 }
+
+/**
+ * Calculate payment summary for an invoice.
+ * Call whenever payments array changes.
+ */
+export function calcPaymentStatus(grandTotalPaise, payments = []) {
+  const totalPaid = sumMoney((payments || []).map((p) => p.amountPaise || p.amount || 0));
+  const balance = grandTotalPaise - totalPaid;
+
+  let status;
+  if (totalPaid === 0) status = 'unpaid';
+  else if (balance > 0) status = 'partial';
+  else if (balance === 0) status = 'paid';
+  else status = 'overpaid';
+
+  return {
+    totalPaidPaise: totalPaid,
+    balanceDuePaise: balance,
+    paymentStatus: status,
+  };
+}
+
+/**
+ * Validate a single payment entry before adding.
+ */
+export function validatePayment(payment, invoice) {
+  const amount = payment.amountPaise || payment.amount || 0;
+  if (!amount || amount <= 0) {
+    return { valid: false, error: 'Payment amount must be greater than zero.' };
+  }
+  if (!payment.date) {
+    return { valid: false, error: 'Payment date is required.' };
+  }
+  if (!payment.method && !payment.bankAccountId) {
+    return { valid: false, error: 'Payment method is required.' };
+  }
+  const grandTotal = invoice.grandTotalPaise ?? invoice.totalSale ?? 0;
+  const currentPaid = sumMoney((invoice.payments || invoice.paymentEntries || []).map((p) => p.amountPaise || p.amount || 0));
+  const afterThis = currentPaid + amount;
+  if (afterThis > grandTotal) {
+    const overpay = afterThis - grandTotal;
+    return {
+      valid: false,
+      error: `This payment exceeds invoice total by ${formatINR(overpay)}. Reduce the amount.`,
+    };
+  }
+  return { valid: true, error: null };
+}

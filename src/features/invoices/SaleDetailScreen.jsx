@@ -22,6 +22,15 @@ import { IcEdit, IcEye, IcPrint, IcServicing, IcTrash, IcWhatsApp } from "@/shar
 import { ContactIcons, OverlayScreen, PageHeader } from "@/shared/ui/layout/AppChrome.jsx";
 import { InvoicePreviewModal } from "./InvoicePreviewModal.jsx";
 import { InvoicePrintSheet } from "./InvoicePrintSheet.jsx";
+import { COLORS, FONT_SIZE, SPACING } from "@/tokens.js";
+
+const METHOD_LABELS = {
+  cash: "💵 Cash",
+  upi: "📱 UPI",
+  bank_transfer: "🏦 Bank",
+  cheque: "📝 Cheque",
+  other: "Other",
+};
 
 /**
  * @param {object} [invoiceCompany] — from settings: businessName, businessPhone, businessWhatsapp
@@ -48,6 +57,8 @@ export function SaleDetailScreen({
 }) {
   const docType = normalizeDocType(sale?.docType);
   const isBos = docType === "billOfSupply";
+  const isDraft = sale?.status === "draft";
+  const isCancelled = sale?.status === "cancelled";
   const docLabel = saleDocLabel(docType);
   const linkedRef = String(sale?.linkedInvoiceNo || "").trim();
   const st = saleStatus(sale, defaultDueDays);
@@ -137,10 +148,31 @@ export function SaleDetailScreen({
         <section className="detail-hero detail-hero-v2">
           <div className="dh-topline">
             <div className="dh-topline-left">
-              <span className="dh-inv">{sale.invoiceNo || "—"}</span>
+              {isDraft ? (
+                <span
+                  style={{
+                    backgroundColor: COLORS.warningBg,
+                    color: COLORS.warning,
+                    fontSize: FONT_SIZE.section,
+                    fontWeight: 600,
+                    padding: `${SPACING.xs}px ${SPACING.md}px`,
+                    borderRadius: 4,
+                  }}
+                >
+                  DRAFT
+                </span>
+              ) : (
+                <span className="dh-inv">{sale.invoiceNo || "—"}</span>
+              )}
               <span className="dh-doc-type">{docLabel}</span>
             </div>
-            <span className={`status-badge ${st.cls}`}>{st.text}</span>
+            {isCancelled ? (
+              <span className="status-badge" style={{ backgroundColor: COLORS.dangerBg, color: COLORS.danger }}>
+                Cancelled
+              </span>
+            ) : (
+              <span className={`status-badge ${st.cls}`}>{isDraft ? "Draft" : st.text}</span>
+            )}
           </div>
           <h2 className="dh-name">{sale.customerName || "Customer"}</h2>
           <div className="detail-kpi-grid detail-kpi-grid--3">
@@ -359,7 +391,67 @@ export function SaleDetailScreen({
           </section>
         )}
 
-        {payRows.length > 0 && (
+        {sale.status !== "draft" && (
+          <section className="detail-card detail-card-v2">
+            <div className="dc-title">Payments</div>
+            <div className="dc-totals">
+              <div>
+                <span>Invoice total</span>
+                <span>{moneyFull(sale.totalSale)}</span>
+              </div>
+              <div>
+                <span>Amount paid</span>
+                <span style={{ color: COLORS.amountPositive }}>{moneyFull(sale.totalPaidPaise ?? sale.received)}</span>
+              </div>
+              <div>
+                <span>Balance due</span>
+                <span style={{ color: (sale.balanceDuePaise ?? sale.outstanding) > 0 ? COLORS.amountNegative : COLORS.amountPositive }}>
+                  {moneyFull(sale.balanceDuePaise ?? sale.outstanding)}
+                </span>
+              </div>
+            </div>
+            {sale.paymentStatus ? (
+              <span
+                className="status-badge"
+                style={{
+                  marginTop: SPACING.sm,
+                  backgroundColor:
+                    sale.paymentStatus === "paid"
+                      ? COLORS.successBg
+                      : sale.paymentStatus === "partial"
+                        ? COLORS.warningBg
+                        : COLORS.dangerBg,
+                  color:
+                    sale.paymentStatus === "paid"
+                      ? COLORS.success
+                      : sale.paymentStatus === "partial"
+                        ? COLORS.warning
+                        : COLORS.danger,
+                }}
+              >
+                {(sale.paymentStatus || "unpaid").toUpperCase()}
+              </span>
+            ) : null}
+            {payRows.length > 0 ? (
+              <ul className="sale-pay-list" role="list" style={{ marginTop: SPACING.md }}>
+                {payRows.map((pe) => (
+                  <li key={pe.id} className="sale-pay-row">
+                    <span className="sale-pay-date">{dateSlash(pe.date)}</span>
+                    <span className="sale-pay-acct">
+                      {METHOD_LABELS[pe.method] || pe.method || acctName(pe.bankAccountId)}
+                      {pe.reference ? ` · ${pe.reference}` : ""}
+                    </span>
+                    <strong className="sale-pay-amt" style={{ color: COLORS.amountPositive }}>
+                      {moneyFull(pe.amount)}
+                    </strong>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </section>
+        )}
+
+        {payRows.length > 0 && sale.status === "draft" && (
           <section className="detail-card detail-card-v2">
             <div className="dc-title">Payments received</div>
             <ul className="sale-pay-list" role="list">

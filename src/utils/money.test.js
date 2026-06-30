@@ -2,7 +2,8 @@ import { describe, test, expect } from 'vitest';
 import {
   toPaise, toRupees, formatINR, calcGST,
   calcTaxableFromInclusive, splitGST, calcLineTotal,
-  roundOff, sumMoney, addMoney, subtractMoney
+  roundOff, sumMoney, addMoney, subtractMoney,
+  calcPaymentStatus, validatePayment,
 } from './money';
 
 describe('money utils — paise arithmetic', () => {
@@ -63,5 +64,19 @@ describe('money utils — paise arithmetic', () => {
   test('no float arithmetic errors', () => {
     expect(addMoney(10, 20)).toBe(30);
     expect(calcGST(847, 18)).toBe(152);
+  });
+
+  test('calcPaymentStatus — unpaid, partial, paid', () => {
+    expect(calcPaymentStatus(100000, []).paymentStatus).toBe('unpaid');
+    expect(calcPaymentStatus(100000, [{ amountPaise: 50000 }]).paymentStatus).toBe('partial');
+    expect(calcPaymentStatus(100000, [{ amountPaise: 100000 }]).paymentStatus).toBe('paid');
+    expect(calcPaymentStatus(100000, [{ amountPaise: 110000 }]).paymentStatus).toBe('overpaid');
+  });
+
+  test('validatePayment — rejects overpay', () => {
+    const invoice = { totalSale: 100000, payments: [{ amountPaise: 80000 }] };
+    const result = validatePayment({ amountPaise: 30000, date: '2024-06-01', method: 'cash' }, invoice);
+    expect(result.valid).toBe(false);
+    expect(result.error).toContain('exceeds invoice total');
   });
 });

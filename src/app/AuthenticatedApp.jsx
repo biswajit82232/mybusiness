@@ -53,6 +53,7 @@ import {
   useInventoryActions,
   useAppNavigation,
   useConfirmDialog,
+  useCreditNoteActions,
 } from "./hooks.js";
 
 import {
@@ -145,12 +146,16 @@ export default function AuthenticatedApp() {
   const [payAmt, setPayAmt] = useState("");
   const [payDate, setPayDate] = useState(() => todayStr());
   const [payBankAccountId, setPayBankAccountId] = useState("");
+  const [payMethod, setPayMethod] = useState("cash");
+  const [payReference, setPayReference] = useState("");
   const [delConfirm, setDelConfirm] = useState(null); // {type:"sale"|"expense"|"stock"|"recurring"|"customerDirectory"|"vendorDirectory"|"bankAccount", id}
   /** In-app confirm: import backup or two-step reset (replaces window.confirm). */
   const [actionConfirm, setActionConfirm] = useState(null);
   const { simpleConfirm, requestConfirm, cancelSimpleConfirm, onSimpleConfirm } = useConfirmDialog();
   const [welcomeOpen, setWelcomeOpen] = useState(false);
   const [editingSaleId, setEditingSaleId] = useState(null);
+  const [saleChassisErrors, setSaleChassisErrors] = useState([]);
+  const [selCreditNoteId, setSelCreditNoteId] = useState(null);
   const [editingCustomerId, setEditingCustomerId] = useState(null);
   const [vendorEntry, setVendorEntry] = useState(defVendor);
   const [editingVendorId, setEditingVendorId] = useState(null);
@@ -597,11 +602,52 @@ export default function AuthenticatedApp() {
     if (searchTerm.trim()) {
       list = list.filter((s) => saleMatchesSearch(s, searchTerm));
     }
-    if (saleView==="unpaid")  return list.filter((s) => s.outstanding > 0 && !isOverdue(resolveSaleDueDate(s, state.settings?.defaultDueDays)));
-    if (saleView==="overdue") return list.filter((s) => s.outstanding > 0 && isOverdue(resolveSaleDueDate(s, state.settings?.defaultDueDays)));
-    if (saleView==="bos") return list.filter((s) => s?.docType === "billOfSupply");
+    if (saleView === "drafts") return list.filter((s) => s.status === "draft");
+    if (saleView === "paid") return list.filter((s) => s.status !== "draft" && s.paymentStatus === "paid");
+    if (saleView === "partial") return list.filter((s) => s.status !== "draft" && s.paymentStatus === "partial");
+    if (saleView === "balanceDue") {
+      return list
+        .filter((s) => s.status !== "draft" && (s.balanceDuePaise ?? s.outstanding) > 0)
+        .sort((a, b) => (b.balanceDuePaise ?? b.outstanding) - (a.balanceDuePaise ?? a.outstanding));
+    }
+    if (saleView === "unpaid") {
+      return list.filter(
+        (s) =>
+          s.status !== "draft" &&
+          (s.outstanding > 0 || s.paymentStatus === "unpaid") &&
+          !isOverdue(resolveSaleDueDate(s, state.settings?.defaultDueDays)),
+      );
+    }
+    if (saleView === "overdue") {
+      return list.filter(
+        (s) =>
+          s.status !== "draft" &&
+          s.outstanding > 0 &&
+          isOverdue(resolveSaleDueDate(s, state.settings?.defaultDueDays)),
+      );
+    }
+    if (saleView === "bos") return list.filter((s) => s?.docType === "billOfSupply");
     return list;
   }, [safeSales, saleView, searchTerm, businessMonth, state.settings?.defaultDueDays, state.settings]);
+
+  const filteredCreditNotes = useMemo(() => {
+    let list = [...(state.creditNotes || [])].sort((a, b) =>
+      String(b.creditNoteDate || "").localeCompare(String(a.creditNoteDate || "")),
+    );
+    if (businessMonth) {
+      list = list.filter((cn) => String(cn.creditNoteDate || "").startsWith(businessMonth));
+    }
+    if (searchTerm.trim()) {
+      const q = searchTerm.trim().toLowerCase();
+      list = list.filter(
+        (cn) =>
+          String(cn.creditNoteNumber || "").toLowerCase().includes(q) ||
+          String(cn.partyName || "").toLowerCase().includes(q) ||
+          String(cn.originalInvoiceNumber || "").toLowerCase().includes(q),
+      );
+    }
+    return list;
+  }, [state.creditNotes, businessMonth, searchTerm]);
 
   const invRows = useMemo(() => computeInvRowsAggregated(state.inventoryEntries || []), [state.inventoryEntries]);
 
@@ -1036,9 +1082,27 @@ export default function AuthenticatedApp() {
     emi2,
     emi3,
     emi4,
+    setSaleChassisErrors,
   });
 
-  useSaleDraftAutosave({ screen, editingSaleId, saleEntry, setState });
+  useSaleDraftAutosave({ screen, editingSaleId, saleEntry, setState, state });
+
+  const { openIssueCreditNote, openCreditNoteDetail, closeCreditNoteFlow, issueCreditNote } =
+    useCreditNoteActions({
+      state,
+      showToast,
+      setState,
+      setScreen,
+      setSelSaleId,
+      setSelCreditNoteId,
+      persistWholeStateImmediate,
+      appendAuditEvent,
+    });
+
+  const selCreditNote = useMemo(
+    () => (selCreditNoteId ? (state.creditNotes || []).find((cn) => cn?.id === selCreditNoteId) : null),
+    [selCreditNoteId, state.creditNotes],
+  );
 
   const saleDraftResume = useMemo(
     () => saleDraftSummary(state.settings?.saleDraft),
@@ -1065,6 +1129,8 @@ export default function AuthenticatedApp() {
     payAmt,
     payDate,
     payBankAccountId,
+    payMethod,
+    payReference,
     showToast,
     setState,
     setPayModal,
@@ -1072,6 +1138,8 @@ export default function AuthenticatedApp() {
     setPayAmt,
     setPayDate,
     setPayBankAccountId,
+    setPayMethod,
+    setPayReference,
     persistWholeStateImmediate,
     appendAuditEvent,
   });
@@ -1360,6 +1428,7 @@ export default function AuthenticatedApp() {
     dashExp,
     dashOtherIncome,
     filteredSales,
+    filteredCreditNotes,
     saleView,
     setSaleView,
     searchTerm,
@@ -1383,6 +1452,10 @@ export default function AuthenticatedApp() {
     actionConfirm,
     welcomeOpen,
     payBankAccountId,
+    payMethod,
+    payReference,
+    setPayMethod,
+    setPayReference,
     payAmt,
     payDate,
     editingSaleId,
@@ -1391,6 +1464,7 @@ export default function AuthenticatedApp() {
     editingExpenseId,
     editingOtherIncomeId,
     saleEntry,
+    saleChassisErrors,
     updSale,
     emi2,
     emi3,
@@ -1414,6 +1488,7 @@ export default function AuthenticatedApp() {
     selExpenseCategory,
     selEmiDetail,
     selSale,
+    selCreditNote,
     selEmi,
     selExpense,
     selOtherIncome,
@@ -1490,6 +1565,10 @@ export default function AuthenticatedApp() {
     openEditSale,
     openDuplicateSale,
     openCreditNoteFromSale,
+    openIssueCreditNote,
+    issueCreditNote,
+    openCreditNoteDetail,
+    closeCreditNoteFlow,
     openDebitNoteFromSale,
     openPayModal,
     openPayPurchaseModal,

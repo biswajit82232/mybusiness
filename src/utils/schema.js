@@ -3,17 +3,19 @@
 // CURRENT_SCHEMA_VERSION must be bumped every time the data
 // structure changes. Never break old data silently.
 
-export const CURRENT_SCHEMA_VERSION = 2;
+export const CURRENT_SCHEMA_VERSION = 3;
 // Version history:
 // 1 — original schema (money stored as rupee floats)
 // 2 — Phase 1: money converted to integer paise, tokens applied
+// 3 — Phase 2: invoice drafts, credit notes, split payments,
+//             banking categories, chassis validation
 
 /**
  * The shape of a valid v2 data object.
  * Used to validate imported data and new data.
  */
-export const DEFAULT_DATA_V2 = {
-  schemaVersion: 2,
+export const DEFAULT_DATA_V3 = {
+  schemaVersion: 3,
   lastMigrated: null,
   business: {
     name: 'Biswajit Power Hub',
@@ -24,6 +26,7 @@ export const DEFAULT_DATA_V2 = {
     stateCode: '19', // West Bengal
   },
   invoices: [],
+  creditNotes: [],
   purchases: [],
   products: [],
   customers: [],
@@ -38,6 +41,9 @@ export const DEFAULT_DATA_V2 = {
     defaultState: 'West Bengal',
   },
 };
+
+/** @deprecated alias */
+export const DEFAULT_DATA_V2 = DEFAULT_DATA_V3;
 
 function toP(v) {
   if (v === null || v === undefined) return 0;
@@ -338,7 +344,7 @@ function migrateV1toV2(data) {
   });
 
   return {
-    ...DEFAULT_DATA_V2,
+    ...DEFAULT_DATA_V3,
     ...data,
     schemaVersion: 2,
     lastMigrated: new Date().toISOString(),
@@ -363,6 +369,59 @@ function migrateV1toV2(data) {
 }
 
 /**
+ * Migration from v2 to v3:
+ * Invoice status, payments, credit notes, banking categories.
+ */
+function migrateV2toV3(data) {
+  const invoices = (data.invoices || []).map((inv) => ({
+    ...inv,
+    status: inv.status || 'confirmed',
+    payments: inv.payments || [],
+    totalPaidPaise: inv.totalPaidPaise ?? inv.grandTotalPaise ?? 0,
+    balanceDuePaise: inv.balanceDuePaise ?? 0,
+    paymentStatus: inv.paymentStatus || 'paid',
+  }));
+
+  const sales = migrateSales(data.sales).map((s) => ({
+    ...s,
+    status: s.status || (s.invoiceNo ? 'confirmed' : 'draft'),
+    payments: s.payments || [],
+    totalPaidPaise: s.totalPaidPaise ?? s.received ?? 0,
+    balanceDuePaise: s.balanceDuePaise ?? s.outstanding ?? 0,
+    paymentStatus:
+      s.paymentStatus ||
+      (s.outstanding > 0 ? (s.received > 0 ? 'partial' : 'unpaid') : 'paid'),
+  }));
+
+  const banking = (data.banking || []).map((entry) => ({
+    ...entry,
+    category: entry.category || (entry.type === 'credit' ? 'OTHER_INCOME' : 'OTHER_EXPENSE'),
+  }));
+
+  const balance = migrateBalance(data.balance);
+  if (balance?.bankTransfers) {
+    balance.bankTransfers = balance.bankTransfers.map((t) => {
+      const isDeposit = t.kind === 'deposit' || t.fromAccountId === '__bank_external_source__';
+      return {
+        ...t,
+        category: t.category || (isDeposit ? 'OTHER_INCOME' : 'OTHER_EXPENSE'),
+      };
+    });
+  }
+
+  return {
+    ...data,
+    schemaVersion: 3,
+    lastMigrated: new Date().toISOString(),
+    invoices,
+    sales,
+    banking,
+    balance,
+    creditNotes: data.creditNotes || [],
+  };
+}
+
+/**
  * Run all necessary migrations on data to bring it to current version.
  * Always safe to call — if already current version, returns data unchanged.
  *
@@ -371,7 +430,7 @@ function migrateV1toV2(data) {
 export function migrateData(data) {
   if (!data || typeof data !== 'object') {
     console.warn('[schema] No data or invalid data — returning defaults');
-    return { ...DEFAULT_DATA_V2 };
+    return { ...DEFAULT_DATA_V3 };
   }
 
   const version = data.schemaVersion || 1;
@@ -392,6 +451,7 @@ export function migrateData(data) {
   let migrated = { ...data };
 
   if (version < 2) migrated = migrateV1toV2(migrated);
+  if (version < 3) migrated = migrateV2toV3(migrated);
 
   console.log('[schema] Migration complete');
   return migrated;

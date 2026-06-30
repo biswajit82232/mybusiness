@@ -35,5 +35,6 @@ export { useBalanceSheetActions } from "./useBalanceSheetActions.js";
 export { useSyncConflictActions } from "./useSyncConflictActions.js";
 export { useInventoryActions } from "./useInventoryActions.js";
 export { useAppNavigation } from "./useAppNavigation.js";
+export { useCreditNoteActions } from "./useCreditNoteActions.js";
 export { useConfirmDialog } from "./useConfirmDialog.js";
 export { useGlobalShortcuts } from "./useGlobalShortcuts.js";
