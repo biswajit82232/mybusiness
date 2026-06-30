@@ -1,0 +1,427 @@
+/* Business polish layer.
+   Loaded last to make the app feel calmer, denser, and more consistent without
+   changing screen structure or adding runtime work. */
+
+:root {
+  --business-surface-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  --business-floating-shadow: 0 10px 28px rgba(15, 23, 42, 0.12), 0 2px 8px rgba(15, 23, 42, 0.06);
+  --business-card-radius: var(--radius-lg);
+  --business-row-pad-x: clamp(14px, 2.4vw, 18px);
+  --business-row-pad-y: 12px;
+  --business-hover-bg: color-mix(in srgb, var(--primary) 3%, var(--card));
+}
+
+[data-theme="dark"] {
+  --business-surface-shadow: 0 1px 0 rgba(255, 255, 255, 0.02);
+  --business-floating-shadow: 0 14px 36px rgba(0, 0, 0, 0.42), 0 2px 8px rgba(0, 0, 0, 0.28);
+  --business-hover-bg: color-mix(in srgb, var(--primary) 7%, var(--card));
+}
+
+/* Typography: compact accounting-app rhythm, consistent across modules. */
+.app-md3 {
+  letter-spacing: 0;
+}
+
+.app-md3 :is(.tab-title, .page-hdr-title, .mobile-appbar-title, .home-md3-section-title, .form-card-title, .rep-section-title, .bs-section-hd) {
+  font-family: var(--font-display);
+  font-weight: var(--fw-bold);
+  letter-spacing: -0.012em;
+  color: var(--text);
+}
+
+.app-md3 :is(.tab-title, .page-hdr-title, .mobile-appbar-title) {
+  font-size: clamp(0.98rem, 2.1vw, 1.08rem);
+}
+
+.app-md3 :is(.field-lbl, .login-label, .dc-title, .banking-sum-lbl, .inv-sum-lbl, .recv-kpi-lbl, .ledger-sum-lbl, .rep-kpi-l, .kpi-lbl) {
+  font-size: 0.68rem;
+  font-weight: var(--fw-semibold);
+  letter-spacing: 0.045em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.app-md3 :is(.home-md3-kpi-val, .banking-sum-val, .inv-sum-val, .recv-kpi-val, .ledger-sum-val, .rep-kpi-v, .detail-kpi-val, .dh-bal-amt, .activity-amount, .sr-amt, .customer-kpi-val, .bs-row__val, .cg-num, .rep-num) {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1, "lnum" 1;
+}
+
+/* Headers: solid, readable, and fast to paint. */
+.app-md3 :is(.tab-appbar, .mobile-appbar, .page-hdr) {
+  background: var(--card);
+  border-bottom: 1px solid var(--line);
+  box-shadow: 0 1px 0 var(--line2);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.app-md3 .tab-appbar {
+  min-height: var(--hdr-h);
+  padding-inline: var(--page-pad);
+}
+
+.app-md3 .home-hdr,
+.app-md3 .rep-hdr,
+.app-md3 .detail-hero-v2,
+.app-md3 .customer-detail-hero,
+.app-md3 .banking-hero,
+.app-md3 .inv-hero {
+  background: var(--card);
+}
+
+/* Shared surfaces: one restrained card system across lists, forms, details, reports. */
+.app-md3 :is(
+  .home-md3-section,
+  .form-card,
+  .detail-card,
+  .detail-card-v2,
+  .detail-hero-v2,
+  .customer-detail-hero,
+  .customer-kpi-card,
+  .rep-section,
+  .rep-kpi,
+  .cg-section,
+  .bs-section,
+  .bs-hdr-card,
+  .settings-hub-section .settings-hub-list,
+  .exp-recurring-block,
+  .banking-acct-list,
+  .bank-tx-list,
+  .inv-list-card,
+  .list-area,
+  .banking-hero,
+  .inv-hero
+) {
+  border: 1px solid var(--line);
+  border-radius: var(--business-card-radius);
+  background: var(--card);
+  box-shadow: var(--business-surface-shadow);
+}
+
+.app-md3 :is(.home-md3-section, .form-card, .detail-card, .detail-card-v2, .rep-section, .cg-section, .bs-section, .bs-hdr-card, .exp-recurring-block) {
+  overflow: hidden;
+}
+
+@media (min-width: 900px) {
+  .app-md3 :is(.tab-page-scroll, .overlay-scroll, .detail-scroll) {
+    padding-top: 10px;
+  }
+
+  .app-md3 .main-stage {
+    background:
+      linear-gradient(180deg, color-mix(in srgb, var(--primary) 3%, var(--bg)) 0, var(--bg) 180px);
+  }
+
+  .app-md3 :is(.home-md3-section, .form-card, .detail-card, .detail-card-v2, .rep-section, .cg-section, .bs-section, .bs-hdr-card, .banking-acct-list, .bank-tx-list, .inv-list-card, .list-area) {
+    max-width: var(--content-max);
+  }
+}
+
+/* KPI cards: consistent business tiles, no glow or oversized Material look. */
+.app-md3 :is(
+  .home-md3-kpi,
+  .recv-kpi,
+  .cg-kpi,
+  .banking-sum-cell,
+  .inv-sum-card,
+  .ledger-sum-kpi,
+  .rep-kpi,
+  .detail-kpi,
+  .customer-kpi-card,
+  .kpi-grid-loans-given .kpi-card,
+  .inv-kpi,
+  .banking-kpi
+) {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--card);
+  box-shadow: var(--business-surface-shadow);
+}
+
+.app-md3 .home-md3-kpi--hero {
+  background: color-mix(in srgb, var(--primary) 7%, var(--card));
+  border-color: color-mix(in srgb, var(--primary) 16%, var(--line));
+}
+
+.app-md3 .home-md3-kpi--hero.tone-bad {
+  background: color-mix(in srgb, var(--danger) 6%, var(--card));
+  border-color: color-mix(in srgb, var(--danger) 16%, var(--line));
+}
+
+.app-md3 .home-md3-kpi--hero .home-md3-kpi-val {
+  font-size: clamp(1.42rem, 5vw, 2rem);
+}
+
+.app-md3 :is(.banking-sum-val, .inv-sum-val, .recv-kpi-val, .ledger-sum-val, .rep-kpi-v, .customer-kpi-val) {
+  font-size: clamp(0.9rem, 2.6vw, 1.06rem);
+  font-weight: var(--fw-bold);
+  letter-spacing: -0.018em;
+  line-height: 1.2;
+}
+
+/* Lists and rows: invoice/accounting density with clear separators. */
+.app-md3 :is(.sale-row, .customer-row, .activity-row, .exp-cat-nav-row, .exp-row, .svc-row, .product-row, .inv-row, .loan-given-list-row, .banking-acct-row, .bank-tx-row-btn, .home-md3-list-row, .settings-hub-row) {
+  min-height: var(--tap-min);
+  padding: var(--business-row-pad-y) var(--business-row-pad-x);
+  border-bottom: 1px solid var(--line2);
+  background: transparent;
+  transition:
+    background-color var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out);
+}
+
+.app-md3 :is(.sale-row, .customer-row, .activity-row, .exp-cat-nav-row, .exp-row, .svc-row, .product-row, .inv-row, .loan-given-list-row, .banking-acct-row, .bank-tx-row-btn, .home-md3-list-row, .settings-hub-row):last-child {
+  border-bottom: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .app-md3 :is(.sale-row, .customer-row, .activity-row, .exp-cat-nav-row, .exp-row, .svc-row, .product-row, .inv-row, .loan-given-list-row-main, .banking-acct-row, .bank-tx-row-btn, .home-md3-list-row, .settings-hub-row):hover {
+    background: var(--business-hover-bg);
+  }
+}
+
+.app-md3 :is(.sale-row, .customer-row, .activity-row, .exp-cat-nav-row, .exp-row, .svc-row, .product-row, .inv-row, .loan-given-list-row-main, .banking-acct-row, .bank-tx-row-btn, .home-md3-list-row, .settings-hub-row):active {
+  background: color-mix(in srgb, var(--primary) 6%, var(--card));
+  transform: none;
+}
+
+.app-md3 :is(.activity-title, .product-name, .ledger-title, .customer-name, .banking-acct-row-name, .home-md3-list-title, .sr-name, .exp-desc) {
+  font-size: clamp(0.9rem, 2.5vw, 0.96rem);
+  font-weight: var(--fw-semibold);
+  letter-spacing: -0.006em;
+  color: var(--text);
+}
+
+.app-md3 :is(.activity-sub, .product-sub, .ledger-sub, .customer-sub, .home-md3-list-sub, .sr-sub, .exp-sub, .banking-acct-row-meta) {
+  font-size: clamp(0.76rem, 2.1vw, 0.82rem);
+  line-height: 1.35;
+  color: var(--muted);
+}
+
+/* Buttons and chips: consistent heights, restrained active states. */
+.app-md3 :is(.primary-btn, .action-btn, .login-submit, .qa-primary, .home-md3-action--filled, .fab) {
+  background: var(--primary);
+  color: var(--on-primary);
+  box-shadow: none;
+}
+
+.app-md3 :is(.ghost-btn, .edit-entry-btn, .qa-secondary, .home-md3-action--tonal) {
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--text);
+  box-shadow: none;
+}
+
+.app-md3 :is(.primary-btn, .ghost-btn, .danger-btn, .action-btn, .edit-entry-btn, .delete-btn, .qa-btn, .home-md3-action, .settings-action-btn) {
+  border-radius: var(--radius-md);
+  transition:
+    background-color var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-fast) var(--ease-out);
+}
+
+.app-md3 :is(.primary-btn, .ghost-btn, .danger-btn, .action-btn, .edit-entry-btn, .delete-btn, .qa-btn, .home-md3-action, .settings-action-btn):active {
+  transform: none;
+}
+
+.app-md3 :is(.seg-bar, .sort-bar, .sub-tabs, .stock-toggle, .theme-mode-group) {
+  gap: 6px;
+}
+
+.app-md3 :is(.seg-btn, .sort-chip, .sub-tab, .stt-btn, .theme-mode-btn) {
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--text2);
+  box-shadow: none;
+  transition:
+    background-color var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out);
+}
+
+.app-md3 :is(.seg-btn.active, .sort-chip.active, .sub-tab.active, .stt-btn.active, .theme-mode-btn.active) {
+  background: var(--primary-bg);
+  border-color: color-mix(in srgb, var(--primary) 30%, var(--line));
+  color: var(--primary);
+  box-shadow: none;
+}
+
+/* Forms: one control scale for all entry overlays and settings. */
+.app-md3 :is(input, select, textarea, .input-compact, .textarea-compact, .menu-select-btn, .search-box) {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--card);
+  color: var(--text);
+  box-shadow: none;
+}
+
+.app-md3 :is(input, select, textarea, .input-compact, .textarea-compact, .menu-select-btn, .search-box)::placeholder {
+  color: var(--muted2);
+}
+
+.app-md3 :is(input, select, textarea, .input-compact, .textarea-compact, .menu-select-btn, .search-box):focus,
+.app-md3 :is(input, select, textarea, .input-compact, .textarea-compact, .menu-select-btn, .search-box):focus-visible {
+  border-color: color-mix(in srgb, var(--primary) 55%, var(--line));
+  box-shadow: var(--focus-ring);
+  outline: none;
+}
+
+.app-md3 .field-row {
+  gap: clamp(10px, 2vw, 14px);
+}
+
+.app-md3 .form-card {
+  padding: clamp(14px, 2.8vw, 18px);
+}
+
+/* Tables/reports: calmer headers and better scanability. */
+.app-md3 :is(.rep-table, .cg-table, .fixed-assets-table) {
+  border-collapse: separate;
+  border-spacing: 0;
+  background: var(--card);
+}
+
+.app-md3 :is(.rep-table, .cg-table, .fixed-assets-table) :is(th, td) {
+  border-bottom: 1px solid var(--line2);
+}
+
+.app-md3 :is(.rep-table, .cg-table, .fixed-assets-table) th {
+  background: var(--card-2);
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: var(--fw-bold);
+  letter-spacing: 0.045em;
+  text-transform: uppercase;
+}
+
+.app-md3 :is(.rep-table, .cg-table, .fixed-assets-table) tr:last-child td {
+  border-bottom: none;
+}
+
+/* Modals, toasts, and overlays: premium but restrained. */
+.modal-overlay {
+  background: rgba(15, 23, 42, 0.38);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.modal {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--business-floating-shadow);
+}
+
+.toast,
+.sw-update-banner {
+  box-shadow: var(--business-floating-shadow);
+}
+
+.app-md3 :is(.home-kpi-spark-tip, .notif-panel) {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.app-md3 .notif-panel {
+  border: 1px solid var(--line);
+  box-shadow: var(--business-floating-shadow);
+}
+
+/* Remove legacy glows/flashy effects that read consumer-grade. */
+.app-md3 :is(.fab, .qa-primary, .home-md3-action--filled, .empty-icon, .settings-hub-row-ic, .home-md3-kpi, .rep-kpi, .detail-hero-v2, .banking-hero, .inv-hero) {
+  box-shadow: var(--business-surface-shadow);
+}
+
+.app-md3 .home-kpi-spark-tip {
+  background: var(--card);
+  border: 1px solid var(--line);
+  box-shadow: var(--business-surface-shadow);
+}
+
+.app-md3 .empty-icon,
+.app-md3 .settings-hub-row-ic,
+.app-md3 .theme-mode-sw {
+  background: var(--primary-bg);
+  color: var(--primary);
+  box-shadow: none;
+}
+
+/* Responsive density: edge-to-edge on phones, cards on larger screens. */
+@media (max-width: 599px) {
+  .app-md3 {
+    --business-card-radius: 0;
+    --business-row-pad-x: var(--page-pad);
+    --business-row-pad-y: 11px;
+  }
+
+  .app-md3 :is(.tab-page-scroll, .overlay-scroll, .detail-scroll) {
+    padding-bottom: max(16px, env(safe-area-inset-bottom, 0px));
+  }
+
+  .app-md3 :is(.home-md3-section, .form-card, .detail-card, .detail-card-v2, .rep-section, .cg-section, .bs-section, .bs-hdr-card, .settings-hub-section .settings-hub-list, .exp-recurring-block, .banking-acct-list, .bank-tx-list, .inv-list-card, .list-area) {
+    margin-left: 0;
+    margin-right: 0;
+    border-left: none;
+    border-right: none;
+    box-shadow: none;
+  }
+
+  .app-md3 :is(.home-md3-kpi-grid, .receivables-summary, .purchases-kpi-strip, .payments-kpi-strip, .cashflow-kpi-strip, .banking-summary, .bs-summary-strip, .nw-snapshot, .nw-invest-strip, .rep-kpi-grid, .customer-detail-kpis, .kpi-grid-loans-given) {
+    gap: 8px;
+  }
+
+  .app-md3 .home-md3-actions,
+  .app-md3 .quick-actions,
+  .app-md3 .banking-quick-actions,
+  .app-md3 .inv-quick-actions {
+    gap: 8px;
+  }
+}
+
+@media (min-width: 600px) {
+  .app-md3 .tab-page > .list-area,
+  .app-md3 .tab-page .list-area,
+  .app-md3 .tab-page-scroll > .list-area,
+  .app-md3 .tab-page-scroll .list-area,
+  .app-md3 .banking-acct-list,
+  .app-md3 .bank-tx-list,
+  .app-md3 .inv-list-card,
+  .app-md3 .settings-hub-section .settings-hub-list,
+  .app-md3 .home-md3-section,
+  .app-md3 .form-card,
+  .app-md3 .detail-card,
+  .app-md3 .detail-card-v2,
+  .app-md3 .detail-hero-v2,
+  .app-md3 .rep-section,
+  .app-md3 .cg-section,
+  .app-md3 .bs-section,
+  .app-md3 .bs-hdr-card {
+    margin-left: var(--page-pad);
+    margin-right: var(--page-pad);
+  }
+}
+
+@media (min-width: 1100px) {
+  .app-md3 .main-content {
+    background: var(--bg);
+  }
+
+  .app-md3 :is(.tab-page, .overlay-screen) {
+    max-width: 100%;
+  }
+
+  .app-md3 :is(.home-md3-kpi-grid, .receivables-summary, .purchases-kpi-strip, .payments-kpi-strip, .cashflow-kpi-strip, .banking-summary, .bs-summary-strip, .nw-snapshot, .nw-invest-strip, .rep-kpi-grid, .customer-detail-kpis, .kpi-grid-loans-given) {
+    gap: 10px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-md3 *,
+  .app-md3 *::before,
+  .app-md3 *::after {
+    animation: none !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

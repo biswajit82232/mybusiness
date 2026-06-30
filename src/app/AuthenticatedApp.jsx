@@ -601,7 +601,7 @@ export default function AuthenticatedApp() {
     if (saleView==="overdue") return list.filter((s) => s.outstanding > 0 && isOverdue(resolveSaleDueDate(s, state.settings?.defaultDueDays)));
     if (saleView==="bos") return list.filter((s) => s?.docType === "billOfSupply");
     return list;
-  }, [safeSales, saleView, searchTerm, businessMonth, state.settings?.defaultDueDays, state.settings]);
+  }, [safeSales, saleView, searchTerm, businessMonth, state.settings]);
 
   const invRows = useMemo(() => computeInvRowsAggregated(state.inventoryEntries || []), [state.inventoryEntries]);
 
@@ -993,10 +993,10 @@ export default function AuthenticatedApp() {
 
   /* ── update helpers ── */
   const updSale = useCallback((k, v) => setSaleEntry((p) => ({ ...p, [k]: v })), []);
-  const updStock = (k,v) => setStockEntry(p=>({...p,[k]:v}));
-  const updPurchase = (k, v) => setPurchaseEntry((p) => ({ ...p, [k]: v }));
-  const updExp   = (k,v) => setExpEntry(p=>({...p,[k]:v}));
-  const updOi    = (k,v) => setOiEntry((p) => ({ ...p, [k]: v }));
+  const updStock = useCallback((k, v) => setStockEntry((p) => ({ ...p, [k]: v })), []);
+  const updPurchase = useCallback((k, v) => setPurchaseEntry((p) => ({ ...p, [k]: v })), []);
+  const updExp = useCallback((k, v) => setExpEntry((p) => ({ ...p, [k]: v })), []);
+  const updOi = useCallback((k, v) => setOiEntry((p) => ({ ...p, [k]: v })), []);
 
   /* ── handlers ── */
   const { persistSaleImmediate, persistWholeStateImmediate } = useImmediatePersistence({
@@ -1325,7 +1325,6 @@ export default function AuthenticatedApp() {
   useBootVisibleWhenAuthChecking(authState, setBootVisible);
 
   /* Bundle maps values to MainStage props only; trap refs are passed separately below (react-hooks/refs). */
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   const mergedMainStageProps = useMemo(() => mergeAuthenticatedMainStageProps({
     screen,
     page,
@@ -1580,7 +1579,8 @@ export default function AuthenticatedApp() {
     clearResolvedConflicts, onSaveSale, closeNewSale,
     onSaveCustomer, closeNewCustomer, onSaveVendor, closeNewVendor,
     toggleEmiDuePaid, closeSaleDetailNav, openEmiDetail, closeEmiDetailNav,
-    openEditSale, openPayModal, openPayPurchaseModal,
+    openEditSale, openDuplicateSale, openCreditNoteFromSale,
+    openDebitNoteFromSale, openPayModal, openPayPurchaseModal,
     onStockProductPick, onStockTypeChange, onSaveStock, closeAddStock,
     editingInventoryId, openEditInventoryEntry, onSavePurchase,
     closeBankAccountDetail, openBankAccountFromSearch,
@@ -1596,7 +1596,7 @@ export default function AuthenticatedApp() {
     dismissWelcome, reloadWithNewVersion, requestConfirm,
     cancelSimpleConfirm, onSimpleConfirm,
     setDarkModeAndPersist,
-  ]); // eslint-disable-line react-hooks/exhaustive-deps
+  ]);
 
   useLayoutEffect(() => {
     detailScreenClosersRef.current = {

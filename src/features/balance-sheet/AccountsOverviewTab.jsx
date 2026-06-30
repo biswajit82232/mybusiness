@@ -2,12 +2,14 @@ import { useMemo, useState } from "react";
 import {
   addDaysStr,
   bankAccountCountsInBalanceSheet,
+  computeBankAccountBookBalance,
   computeBalanceSheetSummary,
   computeFixedAssetDepreciation,
   dateHuman,
   dateSlash,
   isGstEnabled,
   moneyFull,
+  normBankTransfers,
   num,
   todayStr,
 } from "@/domain/index.js";
@@ -45,8 +47,10 @@ function BsLineGroup({ title, hint, total, children, defaultOpen = false }) {
 export function AccountsOverviewTab({ state, saveOtherBalance, onOpenSidebar }) {
   const [asOfDate, setAsOfDate] = useState(() => todayStr());
   const balance = state.balance || {};
-  const bankAccounts = balance.bankAccounts || [];
-  const bankAccountsOnSheet = bankAccounts.filter(bankAccountCountsInBalanceSheet);
+  const bankAccountsOnSheet = useMemo(
+    () => (balance.bankAccounts || []).filter(bankAccountCountsInBalanceSheet),
+    [balance.bankAccounts],
+  );
   const fixedAssetAccounts = balance.fixedAssetAccounts || [];
   const loanSchedule = balance.loanSchedule || [];
 
@@ -71,6 +75,36 @@ export function AccountsOverviewTab({ state, saveOtherBalance, onOpenSidebar }) 
   const hasLoanSchedule = loanSchedule.length > 0;
   const branchStock = (balSum.inventoryByBranch || []).filter((b) => hasAmount(b.stockValue));
   const showBranchStock = branchStock.length > 1;
+  const bankAccountSheetRows = useMemo(
+    () =>
+      bankAccountsOnSheet.map((account) => ({
+        ...account,
+        sheetAmount: computeBankAccountBookBalance(
+          account,
+          state.expenses,
+          state.sales,
+          normBankTransfers(balance.bankTransfers),
+          state.inventoryEntries,
+          state.otherIncomes,
+          state.purchases,
+          state.loansGiven,
+          asOfDate,
+          state.customerAdvancePayments,
+        ),
+      })),
+    [
+      bankAccountsOnSheet,
+      state.expenses,
+      state.sales,
+      balance.bankTransfers,
+      state.inventoryEntries,
+      state.otherIncomes,
+      state.purchases,
+      state.loansGiven,
+      asOfDate,
+      state.customerAdvancePayments,
+    ],
+  );
   const loansLiabManual = hasLoanSchedule
     ? loanSchedule.reduce((s, ln) => s + num(ln?.balance), 0)
     : num(balance.loans);
@@ -128,7 +162,7 @@ export function AccountsOverviewTab({ state, saveOtherBalance, onOpenSidebar }) 
         <p className="bs-doc">Balance sheet · {dateSlash(asOfDate)}</p>
         {!balSum.isLive ? (
           <p className="bs-historical-note">
-            Banks: current book · receivables, stock, GST &amp; assets: this date
+            Banks, receivables, stock, GST &amp; assets: this date
           </p>
         ) : null}
       </div>
@@ -159,14 +193,14 @@ export function AccountsOverviewTab({ state, saveOtherBalance, onOpenSidebar }) 
             </h2>
 
             <p className="bs-sub-hd">Ready to use</p>
-            {bankAccountsOnSheet.length === 0 ? (
+            {bankAccountSheetRows.length === 0 ? (
               <BsRow label="Money in bank" value={0} />
-            ) : bankAccountsOnSheet.length === 1 ? (
-              <BsRow label={bankAccountsOnSheet[0].name || "Money in bank"} value={balSum.bankTotal} />
+            ) : bankAccountSheetRows.length === 1 ? (
+              <BsRow label={bankAccountSheetRows[0].name || "Money in bank"} value={balSum.bankTotal} />
             ) : (
               <BsLineGroup title="Money in bank" hint="Included accounts" total={balSum.bankTotal}>
-                {bankAccountsOnSheet.map((a) => (
-                  <BsRow key={a.id} indent label={a.name} value={a.amount} />
+                {bankAccountSheetRows.map((a) => (
+                  <BsRow key={a.id} indent label={a.name} value={a.sheetAmount} />
                 ))}
               </BsLineGroup>
             )}

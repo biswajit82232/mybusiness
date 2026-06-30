@@ -2560,6 +2560,7 @@ export function recognizedCogsForPaymentsInMonth(sales, monthKey) {
     const pes = normalizePaymentEntries(s);
     if (pes.length > 0) {
       for (const pe of pes) {
+        if (String(pe.sourceAdvanceId || "").trim()) continue;
         if (String(pe.date || "").slice(0, 7) !== mk) continue;
         const amt = num(pe.amount);
         if (amt <= 0) continue;
@@ -2600,6 +2601,7 @@ export function recognizedCogsForPaymentsInFy(sales, fsm, fyYear) {
     const pes = normalizePaymentEntries(s);
     if (pes.length > 0) {
       for (const pe of pes) {
+        if (String(pe.sourceAdvanceId || "").trim()) continue;
         if (!isDateInFy(pe.date, fsm, fyYear)) continue;
         const amt = num(pe.amount);
         if (amt <= 0) continue;
@@ -2637,6 +2639,7 @@ export function sumSalePaymentsInFy(sales, fsm, fyYear) {
     const pes = normalizePaymentEntries(s);
     if (pes.length > 0) {
       for (const pe of pes) {
+        if (String(pe.sourceAdvanceId || "").trim()) continue;
         if (isDateInFy(pe.date, fsm, fyYear)) t += num(pe.amount);
       }
     } else if (num(s.received) > 0 && isDateInFy(s.date, fsm, fyYear)) {
@@ -2654,6 +2657,7 @@ export function sumSalePaymentsAll(sales) {
     const pes = normalizePaymentEntries(s);
     if (pes.length > 0) {
       for (const pe of pes) {
+        if (String(pe.sourceAdvanceId || "").trim()) continue;
         t += num(pe.amount);
       }
     } else {
@@ -2674,6 +2678,7 @@ export function recognizedCogsForPaymentsAll(sales) {
     const pes = normalizePaymentEntries(s);
     if (pes.length > 0) {
       for (const pe of pes) {
+        if (String(pe.sourceAdvanceId || "").trim()) continue;
         const amt = num(pe.amount);
         if (amt <= 0) continue;
         if (ts <= 0) {

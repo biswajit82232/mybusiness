@@ -2,6 +2,16 @@
 
 All notable changes are tracked here. The Settings screen shows **Version** from `package.json`.
 
+## [8.4.2] — 2026-06-30
+
+### Fixes
+- **Cash basis reports** — Advance-applied invoice payment rows no longer inflate cash receipts or payment-weighted COGS.
+- **Release metadata** — Package, README, changelog, and service worker cache metadata are back in sync.
+
+App version **8.4.2**; service worker cache **v132**.
+
+---
+
 ## [8.4.1] — 2026-06-24
 
 ### Features

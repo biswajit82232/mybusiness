@@ -91,7 +91,7 @@ export function BankAccountDetailScreen({
       customerAdvancePayments,
     );
     return bal;
-  }, [account, expenses, sales, bankTransfers, inventoryEntries, otherIncomes, purchases, loansGiven, customerAdvancePayments, txs.length]);
+  }, [account, expenses, sales, bankTransfers, inventoryEntries, otherIncomes, purchases, loansGiven, customerAdvancePayments]);
 
   const filteredTxs = useMemo(() => {
     if (activityShowAll) return txs;

@@ -2010,6 +2010,8 @@ ok("sumSalePaymentsInMonth: skips advance-applied payment lines", () => {
     {
       id: "x",
       date: "2026-04-01",
+      totalSale: 100,
+      totalCost: 50,
       paymentEntries: [
         { id: "p1", date: "2026-04-15", amount: 40, bankAccountId: "b" },
         { id: "p2", date: "2026-04-20", amount: 60, bankAccountId: "b", sourceAdvanceId: "adv1" },
@@ -2017,6 +2019,11 @@ ok("sumSalePaymentsInMonth: skips advance-applied payment lines", () => {
     },
   ];
   assert.equal(sumSalePaymentsInMonth(sales, "2026-04"), 40);
+  assert.equal(sumSalePaymentsInFy(sales, 4, 2026), 40);
+  assert.equal(sumSalePaymentsAll(sales), 40);
+  assert.equal(recognizedCogsForPaymentsInMonth(sales, "2026-04"), 20);
+  assert.equal(recognizedCogsForPaymentsInFy(sales, 4, 2026), 20);
+  assert.equal(recognizedCogsForPaymentsAll(sales), 20);
 });
 
 ok("sumCustomerAdvanceReceiptsInMonth: advance receipt by date", () => {
