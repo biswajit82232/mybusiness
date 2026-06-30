@@ -512,6 +512,7 @@ export async function updateLocalEntityAfterCloudPush({
   recordId,
   revision,
   updatedAt,
+  balanceRevision,
 }) {
   const db = await getDb();
   const entity = normalizeEntityType(entityType);
@@ -525,6 +526,9 @@ export async function updateLocalEntityAfterCloudPush({
   }
   if (typeof updatedAt === "string" && updatedAt.length > 0) {
     row.updatedAt = updatedAt;
+  }
+  if (balanceRevision != null && Number.isFinite(Number(balanceRevision))) {
+    row.balanceRevision = Number(balanceRevision);
   }
   await db.put(storeName, row);
 }

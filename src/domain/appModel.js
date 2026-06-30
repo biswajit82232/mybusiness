@@ -4602,7 +4602,7 @@ export function applySyncConflictPreview(state, conflict) {
 
 export function normSyncConflictQueue(raw) {
   if (!Array.isArray(raw)) return [];
-  return raw
+  const mapped = raw
     .filter((x) => x && typeof x === "object")
     .map((x) => {
       const out = {
@@ -4628,8 +4628,17 @@ export function normSyncConflictQueue(raw) {
       if (x.op === "delete" || x.op === "upsert") out.op = x.op;
       return out;
     })
-    .filter((x) => x.entityType && x.recordId)
-    .slice(-CONFLICT_QUEUE_MAX);
+    .filter((x) => x.entityType && x.recordId);
+  // Deduplicate by entityType+recordId: keep the newest (latest `at`) per logical record.
+  // Duplicates can accumulate when multiple devices each record the same conflict and
+  // those rows sync to other devices via the syncConflictQueue entity.
+  const seen = new Map();
+  for (const row of mapped) {
+    const key = `${row.entityType}::${row.recordId}`;
+    const prev = seen.get(key);
+    if (!prev || row.at > prev.at) seen.set(key, row);
+  }
+  return [...seen.values()].slice(-CONFLICT_QUEUE_MAX);
 }
 
 export function defVendor() {

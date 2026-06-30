@@ -83,7 +83,19 @@ async function freshenOutboxRowForPush(userId, syncRow) {
       : local?.revision != null && Number.isFinite(Number(local.revision))
         ? Number(local.revision)
         : null;
-  return { ...syncRow, updatedAt, revision };
+  // Balance entity has its own independent version counter on the server.
+  // Track it separately so the balance sub-upsert uses the correct base version.
+  const balanceRevision =
+    entityType === "settings"
+      ? syncRow?.balanceRevision != null && Number.isFinite(Number(syncRow.balanceRevision))
+        ? Number(syncRow.balanceRevision)
+        : local?.balanceRevision != null && Number.isFinite(Number(local.balanceRevision))
+          ? Number(local.balanceRevision)
+          : null
+      : null;
+  const out = { ...syncRow, updatedAt, revision };
+  if (entityType === "settings" && balanceRevision != null) out.balanceRevision = balanceRevision;
+  return out;
 }
 
 function prepareOutboxRowForCloud(row) {
@@ -596,7 +608,15 @@ async function upsertEntityRow(client, businessId, row) {
     typeof row.updatedAt === "string" && row.updatedAt.length > 0 ? row.updatedAt : new Date().toISOString();
   const baseVersion =
     row?.revision != null && Number.isFinite(Number(row.revision)) ? Number(row.revision) : null;
-  const upsertViaRpc = async (entityType, recordId, payload) => {
+  // settings and balance have independent version counters on the server.
+  // Use the separate balanceRevision for the balance sub-upsert to avoid
+  // a permanent version_mismatch loop when only one of the two rows was ahead.
+  const baseBalanceVersion =
+    row?.balanceRevision != null && Number.isFinite(Number(row.balanceRevision))
+      ? Number(row.balanceRevision)
+      : null;
+  const upsertViaRpc = async (entityType, recordId, payload, overrideBaseVersion) => {
+    const pBaseVersion = overrideBaseVersion !== undefined ? overrideBaseVersion : baseVersion;
     const { data, error } = await client.rpc("sync_upsert_entity_record", {
       p_business_id: businessId,
       p_entity_type: entityType,
@@ -604,7 +624,7 @@ async function upsertEntityRow(client, businessId, row) {
       p_payload: payload ?? {},
       p_deleted: row.op === "delete",
       p_client_updated_at: updatedAt,
-      p_base_version: baseVersion,
+      p_base_version: pBaseVersion,
     });
     if (error) throw error;
     const info = Array.isArray(data) && data.length > 0 ? data[0] : null;
@@ -633,10 +653,12 @@ async function upsertEntityRow(client, businessId, row) {
             servicingWaSent: Array.isArray(row.payload?.servicingWaSent) ? row.payload.servicingWaSent : [],
           },
     );
+    // Pass the balance entity's own base version (may differ from settings version).
     const b = await upsertViaRpc(
       "balance",
       recordId,
       row.op === "delete" ? {} : { balance: row.payload?.balance ?? null },
+      baseBalanceVersion,
     );
     const conflict = a.conflict || b.conflict;
     const applied = !conflict && a.applied && b.applied;
@@ -644,7 +666,9 @@ async function upsertEntityRow(client, businessId, row) {
       conflict,
       applied,
       reason: a.reason || b.reason || "",
-      currentVersion: Math.max(a.currentVersion ?? 0, b.currentVersion ?? 0) || null,
+      // Return both versions separately so the caller can store them independently.
+      currentVersion: a.currentVersion,
+      balanceVersion: b.currentVersion,
       currentUpdatedAt:
         parseUpdatedAtMs(b.currentUpdatedAt) >= parseUpdatedAtMs(a.currentUpdatedAt)
           ? b.currentUpdatedAt
@@ -680,6 +704,9 @@ async function applyCloudPushResultToLocal(userId, syncRow, result) {
     recordId,
     revision: result.currentVersion,
     updatedAt: result.currentUpdatedAt,
+    ...(entityType === "settings" && result.balanceVersion != null
+      ? { balanceRevision: result.balanceVersion }
+      : {}),
   });
 }
 
@@ -722,6 +749,11 @@ async function pushOutboxBatch(client, businessId, userId) {
               recordId: localRecordId,
               revision: result.currentVersion,
               updatedAt: result.currentUpdatedAt,
+              // Store the balance entity's version independently so the next push
+              // uses the correct base version for each sub-upsert.
+              ...(entityType === "settings" && result.balanceVersion != null
+                ? { balanceRevision: result.balanceVersion }
+                : {}),
             });
           }
           await removeOutboxEntryById(syncRow.id);

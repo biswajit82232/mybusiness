@@ -2,6 +2,19 @@
 
 All notable changes are tracked here. The Settings screen shows **Version** from `package.json`.
 
+## [8.4.9] — 2026-06-30
+
+### Fixes
+
+- **Cloud sync** — Fixed a permanent `version_mismatch` loop for `settings/__settings__`. The push path sends two separate RPCs (one for the `settings` entity, one for `balance`), but both were using the same `p_base_version` even though the server tracks independent version counters for each. The balance upsert always sent the wrong version, causing it to conflict on every sync while settings quietly succeeded — inflating the settings version counter indefinitely and making the balance entity on the server stale. Fixed by tracking `balanceRevision` separately in the local IDB settings row and using it only for the balance sub-upsert.
+- **Cloud sync** — `normSyncConflictQueue` now deduplicates rows with the same `entityType + recordId`, keeping the newest by timestamp. Previously, duplicate conflict rows could accumulate from multi-device sync pulls (each device records the same conflict as a separate `syncConflictQueue` entity and syncs it — the other device then has two rows for the same logical conflict). This is why you saw "Sync conflicts (2 open)" both for `settings / __settings__`.
+
+**For the existing 2 open conflicts**: they will collapse to 1 on next load (dedup fix), and will not recur (version tracking fix). You can dismiss the remaining one — there is no data loss; settings and balance data is correct.
+
+App version **8.4.9**; service worker cache **v139**.
+
+---
+
 ## [8.4.8] — 2026-06-30
 
 ### Fixes

@@ -2412,4 +2412,17 @@ console.log("  ✓ CGST === SGST for odd-paisa intra-state line");
 console.log("  ✓ computeInvRowsAggregated: trailing-space item merges into same row");
 console.log("  ✓ isIncomeTaxExpense: plain 'Tax' excluded, income tax / TDS included");
 
+// ─── Regression: normSyncConflictQueue deduplicates same entityType+recordId ─
+ok("normSyncConflictQueue: deduplicates same entityType+recordId, keeps newest", () => {
+  const older = { id: "c1", at: "2026-06-30T10:00:00Z", entityType: "settings", recordId: "__settings__", reason: "version_mismatch", source: "sync", status: "open" };
+  const newer = { id: "c2", at: "2026-06-30T11:00:00Z", entityType: "settings", recordId: "__settings__", reason: "version_mismatch", source: "sync", status: "open" };
+  const other = { id: "c3", at: "2026-06-30T09:00:00Z", entityType: "sales", recordId: "sale1", reason: "version_mismatch", source: "sync", status: "open" };
+  const result = normSyncConflictQueue([older, newer, other]);
+  assert.equal(result.length, 2, "should collapse two settings/__settings__ rows into one");
+  const settingsRow = result.find((r) => r.entityType === "settings");
+  assert.equal(settingsRow?.id, "c2", "should keep the newer row (c2)");
+  assert.ok(result.some((r) => r.entityType === "sales"), "unrelated row should remain");
+});
+console.log("  ✓ normSyncConflictQueue: deduplicates same entityType+recordId, keeps newest");
+
 console.log("domain-sanity: all checks passed — ok");
