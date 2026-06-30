@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { APP_VERSION } from "@/appVersion.js";
 import { getThemeMode, setThemeMode } from "@/app/useDarkModeDocument.js";
 import { getResolvedUserId, getSupabaseSessionUser } from "@/data/auth/auth.js";
@@ -75,6 +75,14 @@ export function SettingsScreen({
   const [sessionEmail, setSessionEmail] = useState(null);
   const [fyYearDraft, setFyYearDraft] = useState(settings.fyYear);
   const [fyStartMonthDraft, setFyStartMonthDraft] = useState(settings.financialYearStartMonth);
+  const openSyncConflicts = useMemo(
+    () => (syncConflictQueue || []).filter((x) => x && x.status !== "resolved"),
+    [syncConflictQueue],
+  );
+  const resolvedSyncConflictCount = useMemo(
+    () => (syncConflictQueue || []).filter((x) => x && x.status === "resolved").length,
+    [syncConflictQueue],
+  );
 
   useEffect(() => {
     if (sub !== "fy") return;
@@ -880,10 +888,22 @@ export function SettingsScreen({
             </div>
             <div className="form-card">
               <div className="form-card-title">
-                Sync conflicts ({(syncConflictQueue || []).filter((x) => x?.status !== "resolved").length} open)
+                Sync conflicts ({openSyncConflicts.length} open)
               </div>
-              {(syncConflictQueue || []).length === 0 ? (
+              {openSyncConflicts.length === 0 && resolvedSyncConflictCount === 0 ? (
                 <p className="settings-outbox-empty">No conflicts queued.</p>
+              ) : openSyncConflicts.length === 0 ? (
+                <>
+                  <p className="settings-outbox-empty">
+                    No open conflicts. {resolvedSyncConflictCount} resolved row
+                    {resolvedSyncConflictCount === 1 ? "" : "s"} can be cleared.
+                  </p>
+                  <div className="settings-cloud-actions">
+                    <button type="button" className="settings-cloud-secondary-btn" onClick={() => onClearResolvedConflicts?.()}>
+                      Clear resolved ({resolvedSyncConflictCount})
+                    </button>
+                  </div>
+                </>
               ) : (
                 <>
                   <div className="settings-outbox-wrap">
@@ -899,7 +919,7 @@ export function SettingsScreen({
                         </tr>
                       </thead>
                       <tbody>
-                        {syncConflictQueue
+                        {openSyncConflicts
                           .slice()
                           .reverse()
                           .slice(0, 100)
@@ -937,28 +957,22 @@ export function SettingsScreen({
                                 ) : null}
                               </td>
                               <td className="settings-conflict-actions">
-                                {row.status === "resolved" ? (
-                                  "—"
-                                ) : (
-                                  <>
-                                    {hasPreview ? (
-                                      <button
-                                        type="button"
-                                        className="settings-cloud-secondary-btn"
-                                        onClick={() => onRestoreSyncConflict?.(row.id)}
-                                      >
-                                        Restore local
-                                      </button>
-                                    ) : null}
-                                    <button
-                                      type="button"
-                                      className="settings-cloud-secondary-btn"
-                                      onClick={() => onResolveSyncConflict?.(row.id)}
-                                    >
-                                      Mark resolved
-                                    </button>
-                                  </>
-                                )}
+                                {hasPreview ? (
+                                  <button
+                                    type="button"
+                                    className="settings-cloud-secondary-btn"
+                                    onClick={() => onRestoreSyncConflict?.(row.id)}
+                                  >
+                                    Restore local
+                                  </button>
+                                ) : null}
+                                <button
+                                  type="button"
+                                  className="settings-cloud-secondary-btn"
+                                  onClick={() => onResolveSyncConflict?.(row.id)}
+                                >
+                                  Dismiss
+                                </button>
                               </td>
                             </tr>
                           );
@@ -966,11 +980,13 @@ export function SettingsScreen({
                       </tbody>
                     </table>
                   </div>
-                  <div className="settings-cloud-actions">
-                    <button type="button" className="settings-cloud-secondary-btn" onClick={() => onClearResolvedConflicts?.()}>
-                      Clear resolved
-                    </button>
-                  </div>
+                  {resolvedSyncConflictCount > 0 ? (
+                    <div className="settings-cloud-actions">
+                      <button type="button" className="settings-cloud-secondary-btn" onClick={() => onClearResolvedConflicts?.()}>
+                        Clear resolved ({resolvedSyncConflictCount})
+                      </button>
+                    </div>
+                  ) : null}
                 </>
               )}
             </div>

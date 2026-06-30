@@ -2,6 +2,17 @@
 
 All notable changes are tracked here. The Settings screen shows **Version** from `package.json`.
 
+## [8.4.7] — 2026-06-30
+
+### Fixes
+- **Cloud sync** — Settings uploads no longer fire when only derived bank `amount` fields change, reducing `stale_client_timestamp` conflicts on `settings` / `__settings__`.
+- **Cloud sync** — Outbox push uses fresher local timestamps/revisions after pull; on conflict, local version metadata is refreshed from the server.
+- **Settings** — Sync conflict list shows open items only; dismissing removes the row (legacy resolved rows can still be cleared).
+
+App version **8.4.7**; service worker cache **v137**.
+
+---
+
 ## [8.4.6] — 2026-06-30
 
 ### Fixes

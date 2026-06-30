@@ -7,6 +7,7 @@ import {
   isPayloadEffectivelyEmpty,
   isTransientSyncError,
   remoteWinsLocalRow,
+  settingsMetaForOutboxDiff,
 } from "../src/data/sync/syncPayloadUtils.js";
 
 console.log("sync-sanity:");
@@ -66,5 +67,20 @@ assert.equal(payload.servicingCompletions[0].serviceNum, 1);
 assert.equal(payload.sales.length, 1);
 assert.equal(payload.sales[0].id, "a");
 assert.equal(payload.sales[0].totalSale, 200);
+
+const metaA = {
+  settings: { businessName: "Co" },
+  balance: { bankAccounts: [{ id: "b1", openingBalance: 100, amount: 500 }] },
+  servicingCompletions: [],
+  servicingWaSent: [],
+};
+const metaB = {
+  ...metaA,
+  balance: { bankAccounts: [{ id: "b1", openingBalance: 100, amount: 999 }] },
+};
+assert.equal(
+  JSON.stringify(settingsMetaForOutboxDiff(metaA)),
+  JSON.stringify(settingsMetaForOutboxDiff(metaB)),
+);
 
 console.log("  ✓ sync payload + transient error helpers — ok");

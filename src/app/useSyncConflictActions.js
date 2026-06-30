@@ -15,15 +15,13 @@ export function useSyncConflictActions({
     async (conflictId) => {
       const cid = String(conflictId || "").trim();
       if (!cid) return;
-      const nextQueue = (state.syncConflictQueue || []).map((x) =>
-        x && x.id === cid ? { ...x, status: "resolved" } : x,
-      );
+      const nextQueue = (state.syncConflictQueue || []).filter((x) => !x || x.id !== cid);
       let next = { ...state, syncConflictQueue: nextQueue };
       next = appendAuditEvent(next, {
         entityType: "syncConflictQueue",
         recordId: cid,
         action: "resolve",
-        note: "Sync conflict marked resolved",
+        note: "Sync conflict dismissed",
       });
       const __p = await persistWholeStateImmediate(next);
       if (__p) setState(__p);
@@ -42,8 +40,8 @@ export function useSyncConflictActions({
         showToast("Cannot restore — preview missing or invalid");
         return;
       }
-      const nextQueue = (state.syncConflictQueue || []).map((x) =>
-        x && x.id === cid ? { ...x, status: "resolved" } : x,
+      const nextQueue = (applied.syncConflictQueue || state.syncConflictQueue || []).filter(
+        (x) => !x || x.id !== cid,
       );
       let next = { ...applied, syncConflictQueue: nextQueue };
       next = appendAuditEvent(next, {

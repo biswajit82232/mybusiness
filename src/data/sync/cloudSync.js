@@ -58,6 +58,34 @@ export const ENTITY_TYPES = [
 
 const SYNC_SESSION_TIMEOUT_MS = 3500;
 
+async function freshenOutboxRowForPush(userId, syncRow) {
+  const entityType = String(syncRow?.entityType || "");
+  const localEntityType = entityType === "balance" ? "settings" : entityType;
+  const localRecordId =
+    localEntityType === "settings" ? "settings" : String(syncRow?.recordId || "");
+  const local = await getLocalEntityRecord({
+    userId,
+    entityType: localEntityType,
+    recordId: localRecordId,
+  });
+  const outboxMs = parseUpdatedAtMs(syncRow?.updatedAt);
+  const localMs = parseUpdatedAtMs(local?.updatedAt);
+  const nowIso = new Date().toISOString();
+  const nowMs = parseUpdatedAtMs(nowIso);
+  const bestMs = Math.max(outboxMs, localMs, nowMs);
+  let updatedAt = syncRow?.updatedAt;
+  if (bestMs > outboxMs) {
+    updatedAt = bestMs === localMs ? local.updatedAt : nowIso;
+  }
+  const revision =
+    syncRow?.revision != null && Number.isFinite(Number(syncRow.revision))
+      ? Number(syncRow.revision)
+      : local?.revision != null && Number.isFinite(Number(local.revision))
+        ? Number(local.revision)
+        : null;
+  return { ...syncRow, updatedAt, revision };
+}
+
 function prepareOutboxRowForCloud(row) {
   const entityType = String(row?.entityType ?? "");
   if (!ENTITY_TYPES.includes(entityType)) {
@@ -669,7 +697,7 @@ async function pushOutboxBatch(client, businessId, userId) {
       errors.push(prepared.reason);
       continue;
     }
-    const syncRow = prepared.row;
+    const syncRow = await freshenOutboxRowForPush(userId, prepared.row);
     let attempt = 0;
     while (attempt < OUTBOX_MAX_ATTEMPTS) {
       try {
@@ -682,6 +710,19 @@ async function pushOutboxBatch(client, businessId, userId) {
             }
           } catch {
             /* unserializable payload — skip preview */
+          }
+          const entityType = String(syncRow.entityType || "");
+          const localEntityType = entityType === "balance" ? "settings" : entityType;
+          const localRecordId =
+            localEntityType === "settings" ? "settings" : String(syncRow.recordId || "");
+          if (result.currentUpdatedAt || result.currentVersion != null) {
+            await updateLocalEntityAfterCloudPush({
+              userId,
+              entityType: localEntityType,
+              recordId: localRecordId,
+              revision: result.currentVersion,
+              updatedAt: result.currentUpdatedAt,
+            });
           }
           await removeOutboxEntryById(syncRow.id);
           conflicts += 1;

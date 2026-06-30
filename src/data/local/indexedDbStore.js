@@ -260,20 +260,27 @@ export async function upsertLocalEntityRecord({
   const entity = normalizeEntityType(entityType);
   const storeName = makeEntityStore(entity);
   const key = entity === "settings" || entity === "balance" ? userId : makeEntityKey(userId, recordId);
+  const existing = await db.get(storeName, key);
+  const revisionToStore =
+    revision != null && Number.isFinite(Number(revision))
+      ? Number(revision)
+      : existing?.revision != null && Number.isFinite(Number(existing.revision))
+        ? Number(existing.revision)
+        : null;
 
   // Store object is per-store:
   // - settings: { key:userId, userId, deleted:false, updatedAt, payload:{settings,balance...} }
   // - others:  { key:"user::record", userId, recordId, deleted, updatedAt, payload }
   const row =
     entity === "settings" || entity === "balance"
-      ? { key, userId, deleted: false, updatedAt, revision: revision ?? null, payload }
+      ? { key, userId, deleted: false, updatedAt, revision: revisionToStore, payload }
       : {
           key,
           userId,
           recordId,
           deleted,
           updatedAt,
-          revision: revision ?? null,
+          revision: revisionToStore,
           payload,
         };
 
@@ -287,7 +294,7 @@ export async function upsertLocalEntityRecord({
     op: deleted ? "delete" : "put",
     payload: deleted ? null : payload,
     updatedAt,
-    revision: revision ?? null,
+    revision: revisionToStore,
     status: "pending",
     lastTouchedAt: Date.now(),
   };

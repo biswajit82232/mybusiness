@@ -2,6 +2,7 @@ import {
   upsertLocalEntityRecord,
   tombstoneLocalEntityRecord,
 } from "@/data/local/indexedDbStore.js";
+import { settingsMetaForOutboxDiff } from "@/data/sync/syncPayloadUtils.js";
 import { applyComputedBankBalances, runWithStableStringifyMemoAsync, stableStringify } from "@/domain/index.js";
 
 /**
@@ -39,7 +40,10 @@ export async function persistEntityStateDiff({ userId, prevState, nextState, upd
       servicingCompletions: prevState.servicingCompletions || [],
       servicingWaSent: prevState.servicingWaSent || [],
     };
-    if (stableStringify(prevMeta) !== stableStringify(nextMeta)) {
+    if (
+      stableStringify(settingsMetaForOutboxDiff(prevMeta)) !==
+      stableStringify(settingsMetaForOutboxDiff(nextMeta))
+    ) {
       await upsertLocalEntityRecord({
         userId,
         entityType: "settings",

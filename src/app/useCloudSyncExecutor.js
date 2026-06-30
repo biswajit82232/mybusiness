@@ -26,26 +26,30 @@ export function shouldSkipSyncStateHydration({
   return stableStringify(liveState) !== stableStringify(persistedState);
 }
 
+function conflictRowKey(row) {
+  return `${String(row?.entityType || "")}::${String(row?.recordId || "")}`;
+}
+
 function appendConflictRowsLocal(draft, conflictRows) {
   const rows = Array.isArray(conflictRows) ? conflictRows : [];
   if (!rows.length) return draft;
   const base = Array.isArray(draft.syncConflictQueue) ? draft.syncConflictQueue : [];
-  const next = [
-    ...base,
-    ...rows.map((r) => ({
-      id: makeId(),
-      at: new Date().toISOString(),
-      entityType: String(r.entityType || ""),
-      recordId: String(r.recordId || ""),
-      reason: String(r.reason || "version_conflict"),
-      source: "sync",
-      status: "open",
-      ...(r.op === "delete" || r.op === "upsert" ? { op: r.op } : {}),
-      ...(typeof r.localPayloadPreview === "string" && r.localPayloadPreview
-        ? { localPayloadPreview: r.localPayloadPreview.slice(0, 4000) }
-        : {}),
-    })),
-  ];
+  const incoming = rows.map((r) => ({
+    id: makeId(),
+    at: new Date().toISOString(),
+    entityType: String(r.entityType || ""),
+    recordId: String(r.recordId || ""),
+    reason: String(r.reason || "version_conflict"),
+    source: "sync",
+    status: "open",
+    ...(r.op === "delete" || r.op === "upsert" ? { op: r.op } : {}),
+    ...(typeof r.localPayloadPreview === "string" && r.localPayloadPreview
+      ? { localPayloadPreview: r.localPayloadPreview.slice(0, 4000) }
+      : {}),
+  }));
+  const incomingKeys = new Set(incoming.map(conflictRowKey));
+  const kept = base.filter((x) => x && !incomingKeys.has(conflictRowKey(x)));
+  const next = [...kept, ...incoming];
   return { ...draft, syncConflictQueue: next.slice(-500) };
 }
 

@@ -77,6 +77,21 @@ export function parseUpdatedAtMs(iso) {
   return Number.isFinite(t) ? t : 0;
 }
 
+/** Ignore derived bank `amount` when deciding whether settings meta needs a cloud upload. */
+export function settingsMetaForOutboxDiff(meta) {
+  if (!meta || typeof meta !== "object") return meta;
+  const balance = meta.balance;
+  if (!balance || typeof balance !== "object") return meta;
+  const bankAccounts = Array.isArray(balance.bankAccounts)
+    ? balance.bankAccounts.map((a) => {
+        if (!a || typeof a !== "object") return a;
+        const { amount: _amount, ...rest } = a;
+        return rest;
+      })
+    : balance.bankAccounts;
+  return { ...meta, balance: { ...balance, bankAccounts } };
+}
+
 /**
  * Conflict rule: last-write-wins by `updatedAt` timestamp.
  * When local has a pending outbox row, remote must not overwrite (unsynced edit).
