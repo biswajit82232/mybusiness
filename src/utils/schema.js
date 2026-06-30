@@ -3,19 +3,20 @@
 // CURRENT_SCHEMA_VERSION must be bumped every time the data
 // structure changes. Never break old data silently.
 
-export const CURRENT_SCHEMA_VERSION = 3;
+export const CURRENT_SCHEMA_VERSION = 4;
 // Version history:
 // 1 — original schema (money stored as rupee floats)
 // 2 — Phase 1: money converted to integer paise, tokens applied
 // 3 — Phase 2: invoice drafts, credit notes, split payments,
 //             banking categories, chassis validation
+// 4 — Fix v2→v3 migration that re-multiplied paise by 100 (one-time repair)
 
 /**
  * The shape of a valid v2 data object.
  * Used to validate imported data and new data.
  */
 export const DEFAULT_DATA_V3 = {
-  schemaVersion: 3,
+  schemaVersion: 4,
   lastMigrated: null,
   business: {
     name: 'Biswajit Power Hub',
@@ -50,50 +51,70 @@ function toP(v) {
   return Math.round(parseFloat(v) * 100);
 }
 
-function migratePaymentEntries(entries) {
-  return (entries || []).map((pe) => ({
-    ...pe,
-    amount: toP(pe.amount ?? pe.amountPaise),
-  }));
+/** Inverse of toP — repair accidental double paise migration. */
+function divP(v) {
+  if (v === null || v === undefined) return 0;
+  const n = parseFloat(String(v).replace(/,/g, ''));
+  if (!Number.isFinite(n)) return 0;
+  return Math.round(n / 100);
 }
 
-function migrateSaleLineItems(items) {
-  return (items || []).map((item) => ({
-    ...item,
-    salePrice: toP(item.salePrice ?? item.salePricePaise),
-    costPrice: toP(item.costPrice ?? item.costPricePaise),
-    unitPrice: undefined,
-    unitPricePaise: item.unitPricePaise != null ? toP(item.unitPricePaise) : undefined,
-    taxableAmount: undefined,
-    taxableAmountPaise: item.taxableAmountPaise != null ? toP(item.taxableAmountPaise) : undefined,
-    gstAmount: undefined,
-    gstAmountPaise: item.gstAmountPaise != null ? toP(item.gstAmountPaise) : undefined,
-    total: undefined,
-    totalPaise: item.totalPaise != null ? toP(item.totalPaise) : undefined,
-  }));
+function migrationFlags(settings) {
+  return settings?._migrationFlags && typeof settings._migrationFlags === 'object'
+    ? settings._migrationFlags
+    : {};
 }
 
-function migrateSales(sales) {
+function migrateSales(sales, convert = toP) {
   return (sales || []).map((inv) => ({
     ...inv,
-    salePrice: toP(inv.salePrice ?? inv.salePricePaise),
-    costPrice: toP(inv.costPrice ?? inv.costPricePaise),
-    discount: toP(inv.discount ?? inv.discountPaise),
-    additionalCharges: toP(inv.additionalCharges ?? inv.additionalChargesPaise),
-    totalSale: toP(inv.totalSale ?? inv.totalSalePaise ?? inv.grandTotal ?? inv.grandTotalPaise),
-    totalCost: toP(inv.totalCost ?? inv.totalCostPaise),
-    grossProfit: toP(inv.grossProfit ?? inv.grossProfitPaise),
-    received: toP(inv.received ?? inv.receivedPaise ?? inv.paidAmount ?? inv.paidAmountPaise),
-    outstanding: toP(inv.outstanding ?? inv.outstandingPaise ?? inv.balanceDue ?? inv.balanceDuePaise),
+    salePrice: convert(inv.salePrice ?? inv.salePricePaise),
+    costPrice: convert(inv.costPrice ?? inv.costPricePaise),
+    discount: convert(inv.discount ?? inv.discountPaise),
+    additionalCharges: convert(inv.additionalCharges ?? inv.additionalChargesPaise),
+    totalSale: convert(inv.totalSale ?? inv.totalSalePaise ?? inv.grandTotal ?? inv.grandTotalPaise),
+    totalCost: convert(inv.totalCost ?? inv.totalCostPaise),
+    grossProfit: convert(inv.grossProfit ?? inv.grossProfitPaise),
+    received: convert(inv.received ?? inv.receivedPaise ?? inv.paidAmount ?? inv.paidAmountPaise),
+    outstanding: convert(inv.outstanding ?? inv.outstandingPaise ?? inv.balanceDue ?? inv.balanceDuePaise),
+    totalPaidPaise: inv.totalPaidPaise != null ? convert(inv.totalPaidPaise) : inv.totalPaidPaise,
+    balanceDuePaise: inv.balanceDuePaise != null ? convert(inv.balanceDuePaise) : inv.balanceDuePaise,
     subtotal: undefined,
-    subtotalPaise: inv.subtotalPaise != null ? toP(inv.subtotalPaise) : undefined,
+    subtotalPaise: inv.subtotalPaise != null ? convert(inv.subtotalPaise) : undefined,
     totalGST: undefined,
-    totalGSTPaise: inv.totalGSTPaise != null ? toP(inv.totalGSTPaise) : undefined,
+    totalGSTPaise: inv.totalGSTPaise != null ? convert(inv.totalGSTPaise) : undefined,
     grandTotal: undefined,
-    grandTotalPaise: inv.grandTotalPaise != null ? toP(inv.grandTotalPaise) : undefined,
-    lineItems: migrateSaleLineItems(inv.lineItems ?? inv.items),
+    grandTotalPaise: inv.grandTotalPaise != null ? convert(inv.grandTotalPaise) : undefined,
+    lineItems: migrateSaleLineItems(inv.lineItems ?? inv.items, convert),
     items: undefined,
-    paymentEntries: migratePaymentEntries(inv.paymentEntries),
+    paymentEntries: migratePaymentEntries(inv.paymentEntries, convert),
+    payments: (inv.payments || []).map((p) => ({
+      ...p,
+      amountPaise: convert(p.amountPaise ?? p.amount),
+    })),
+  }));
+}
+
+function migrateSaleLineItems(items, convert = toP) {
+  return (items || []).map((item) => ({
+    ...item,
+    salePrice: convert(item.salePrice ?? item.salePricePaise),
+    costPrice: convert(item.costPrice ?? item.costPricePaise),
+    unitPrice: undefined,
+    unitPricePaise: item.unitPricePaise != null ? convert(item.unitPricePaise) : undefined,
+    taxableAmount: undefined,
+    taxableAmountPaise: item.taxableAmountPaise != null ? convert(item.taxableAmountPaise) : undefined,
+    gstAmount: undefined,
+    gstAmountPaise: item.gstAmountPaise != null ? convert(item.gstAmountPaise) : undefined,
+    total: undefined,
+    totalPaise: item.totalPaise != null ? convert(item.totalPaise) : undefined,
+  }));
+}
+
+function migratePaymentEntries(entries, convert = toP) {
+  return (entries || []).map((pe) => ({
+    ...pe,
+    amount: convert(pe.amount ?? pe.amountPaise),
   }));
 }
 
@@ -135,29 +156,29 @@ function migrateInventory(entries) {
   }));
 }
 
-function migrateBalance(balance) {
+function migrateBalance(balance, convert = toP) {
   if (!balance || typeof balance !== 'object') return balance;
   const bankAccounts = (balance.bankAccounts || []).map((x) => ({
     ...x,
-    amount: toP(x.amount ?? x.amountPaise),
-    openingBalance: toP(x.openingBalance ?? x.openingBalancePaise ?? x.amount),
+    amount: convert(x.amount ?? x.amountPaise),
+    openingBalance: convert(x.openingBalance ?? x.openingBalancePaise ?? x.amount),
     balanceAdjustment:
       x.balanceAdjustment != null && x.balanceAdjustment !== ''
-        ? toP(x.balanceAdjustment ?? x.balanceAdjustmentPaise)
+        ? convert(x.balanceAdjustment ?? x.balanceAdjustmentPaise)
         : x.balanceAdjustment,
   }));
   const fixedAssetAccounts = (balance.fixedAssetAccounts || []).map((x) => ({
     ...x,
-    amount: toP(x.amount ?? x.amountPaise),
-    accumulatedDepreciation: toP(x.accumulatedDepreciation ?? x.accumulatedDepreciationPaise),
+    amount: convert(x.amount ?? x.amountPaise),
+    accumulatedDepreciation: convert(x.accumulatedDepreciation ?? x.accumulatedDepreciationPaise),
   }));
   const loanSchedule = (balance.loanSchedule || []).map((r) => ({
     ...r,
-    balance: toP(r.balance ?? r.balancePaise),
+    balance: convert(r.balance ?? r.balancePaise),
   }));
   const bankTransfers = (balance.bankTransfers || []).map((t) => ({
     ...t,
-    amount: toP(t.amount ?? t.amountPaise),
+    amount: convert(t.amount ?? t.amountPaise),
   }));
   return {
     ...balance,
@@ -165,13 +186,13 @@ function migrateBalance(balance) {
     fixedAssetAccounts,
     loanSchedule,
     bankTransfers,
-    cashInHand: balance.cashInHand != null ? toP(balance.cashInHand) : balance.cashInHand,
-    bankBalance: balance.bankBalance != null ? toP(balance.bankBalance) : balance.bankBalance,
-    fixedAssets: balance.fixedAssets != null ? toP(balance.fixedAssets) : balance.fixedAssets,
-    otherAssets: toP(balance.otherAssets ?? balance.otherAssetsPaise),
-    supplierPayables: toP(balance.supplierPayables ?? balance.supplierPayablesPaise),
-    loans: toP(balance.loans ?? balance.loansPaise),
-    ownerCapitalInvested: toP(balance.ownerCapitalInvested ?? balance.ownerCapitalInvestedPaise),
+    cashInHand: balance.cashInHand != null ? convert(balance.cashInHand) : balance.cashInHand,
+    bankBalance: balance.bankBalance != null ? convert(balance.bankBalance) : balance.bankBalance,
+    fixedAssets: balance.fixedAssets != null ? convert(balance.fixedAssets) : balance.fixedAssets,
+    otherAssets: convert(balance.otherAssets ?? balance.otherAssetsPaise),
+    supplierPayables: convert(balance.supplierPayables ?? balance.supplierPayablesPaise),
+    loans: convert(balance.loans ?? balance.loansPaise),
+    ownerCapitalInvested: convert(balance.ownerCapitalInvested ?? balance.ownerCapitalInvestedPaise),
   };
 }
 
@@ -377,12 +398,13 @@ function migrateV2toV3(data) {
     ...inv,
     status: inv.status || 'confirmed',
     payments: inv.payments || [],
-    totalPaidPaise: inv.totalPaidPaise ?? inv.grandTotalPaise ?? 0,
-    balanceDuePaise: inv.balanceDuePaise ?? 0,
+    totalPaidPaise: inv.totalPaidPaise ?? inv.grandTotalPaise ?? inv.paidAmountPaise ?? 0,
+    balanceDuePaise: inv.balanceDuePaise ?? inv.balanceDue ?? 0,
     paymentStatus: inv.paymentStatus || 'paid',
   }));
 
-  const sales = migrateSales(data.sales).map((s) => ({
+  /* v2 money is already in paise — do NOT re-run migrateSales / migrateBalance here. */
+  const sales = (data.sales || []).map((s) => ({
     ...s,
     status: s.status || (s.invoiceNo ? 'confirmed' : 'draft'),
     payments: s.payments || [],
@@ -398,7 +420,7 @@ function migrateV2toV3(data) {
     category: entry.category || (entry.type === 'credit' ? 'OTHER_INCOME' : 'OTHER_EXPENSE'),
   }));
 
-  const balance = migrateBalance(data.balance);
+  const balance = data.balance ? { ...data.balance } : data.balance;
   if (balance?.bankTransfers) {
     balance.bankTransfers = balance.bankTransfers.map((t) => {
       const isDeposit = t.kind === 'deposit' || t.fromAccountId === '__bank_external_source__';
@@ -418,6 +440,45 @@ function migrateV2toV3(data) {
     banking,
     balance,
     creditNotes: data.creditNotes || [],
+    settings: {
+      ...(data.settings || {}),
+      _migrationFlags: {
+        ...migrationFlags(data.settings),
+        v3MoneyAlreadyPaise: true,
+      },
+    },
+  };
+}
+
+/**
+ * Migration from v3 to v4:
+ * One-time repair for data that hit the v2→v3 bug (sales/balance multiplied by 100 again).
+ */
+function migrateV3toV4(data) {
+  const flags = migrationFlags(data.settings);
+  const needsRepair = Boolean(data.lastMigrated) && !flags.v3MoneyAlreadyPaise;
+
+  let repaired = data;
+  if (needsRepair) {
+    console.warn('[schema] Repairing double paise migration on sales and balance');
+    repaired = {
+      ...data,
+      sales: migrateSales(data.sales, divP),
+      balance: migrateBalance(data.balance, divP),
+    };
+  }
+
+  return {
+    ...repaired,
+    schemaVersion: 4,
+    lastMigrated: new Date().toISOString(),
+    settings: {
+      ...(repaired.settings || {}),
+      _migrationFlags: {
+        ...migrationFlags(repaired.settings),
+        v3MoneyAlreadyPaise: true,
+      },
+    },
   };
 }
 
@@ -452,6 +513,7 @@ export function migrateData(data) {
 
   if (version < 2) migrated = migrateV1toV2(migrated);
   if (version < 3) migrated = migrateV2toV3(migrated);
+  if (version < 4) migrated = migrateV3toV4(migrated);
 
   console.log('[schema] Migration complete');
   return migrated;

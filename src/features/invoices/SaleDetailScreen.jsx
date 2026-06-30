@@ -22,7 +22,18 @@ import { IcEdit, IcEye, IcPrint, IcServicing, IcTrash, IcWhatsApp } from "@/shar
 import { ContactIcons, OverlayScreen, PageHeader } from "@/shared/ui/layout/AppChrome.jsx";
 import { InvoicePreviewModal } from "./InvoicePreviewModal.jsx";
 import { InvoicePrintSheet } from "./InvoicePrintSheet.jsx";
-import { COLORS, FONT_SIZE, SPACING } from "@/tokens.js";
+
+function sentenceCaseStatus(text) {
+  if (!text || typeof text !== "string") return text;
+  return text.charAt(0) + text.slice(1).toLowerCase();
+}
+
+const PAYMENT_PILL = {
+  paid: { cls: "pill-paid", text: "Paid" },
+  partial: { cls: "pill-partial", text: "Partial" },
+  unpaid: { cls: "pill-unpaid", text: "Unpaid" },
+  overpaid: { cls: "pill-overpaid", text: "Overpaid" },
+};
 
 const METHOD_LABELS = {
   cash: "💵 Cash",
@@ -149,29 +160,16 @@ export function SaleDetailScreen({
           <div className="dh-topline">
             <div className="dh-topline-left">
               {isDraft ? (
-                <span
-                  style={{
-                    backgroundColor: COLORS.warningBg,
-                    color: COLORS.warning,
-                    fontSize: FONT_SIZE.section,
-                    fontWeight: 600,
-                    padding: `${SPACING.xs}px ${SPACING.md}px`,
-                    borderRadius: 4,
-                  }}
-                >
-                  DRAFT
-                </span>
+                <span className="detail-hero-badge--draft">Draft</span>
               ) : (
                 <span className="dh-inv">{sale.invoiceNo || "—"}</span>
               )}
               <span className="dh-doc-type">{docLabel}</span>
             </div>
             {isCancelled ? (
-              <span className="status-badge" style={{ backgroundColor: COLORS.dangerBg, color: COLORS.danger }}>
-                Cancelled
-              </span>
+              <span className="status-badge pill-cancelled">Cancelled</span>
             ) : (
-              <span className={`status-badge ${st.cls}`}>{isDraft ? "Draft" : st.text}</span>
+              <span className={`status-badge ${st.cls}`}>{isDraft ? "Draft" : sentenceCaseStatus(st.text)}</span>
             )}
           </div>
           <h2 className="dh-name">{sale.customerName || "Customer"}</h2>
@@ -401,39 +399,22 @@ export function SaleDetailScreen({
               </div>
               <div>
                 <span>Amount paid</span>
-                <span style={{ color: COLORS.amountPositive }}>{moneyFull(sale.totalPaidPaise ?? sale.received)}</span>
+                <span className="amt-positive">{moneyFull(sale.totalPaidPaise ?? sale.received)}</span>
               </div>
               <div>
                 <span>Balance due</span>
-                <span style={{ color: (sale.balanceDuePaise ?? sale.outstanding) > 0 ? COLORS.amountNegative : COLORS.amountPositive }}>
+                <span className={(sale.balanceDuePaise ?? sale.outstanding) > 0 ? "amt-negative" : "amt-positive"}>
                   {moneyFull(sale.balanceDuePaise ?? sale.outstanding)}
                 </span>
               </div>
             </div>
             {sale.paymentStatus ? (
-              <span
-                className="status-badge"
-                style={{
-                  marginTop: SPACING.sm,
-                  backgroundColor:
-                    sale.paymentStatus === "paid"
-                      ? COLORS.successBg
-                      : sale.paymentStatus === "partial"
-                        ? COLORS.warningBg
-                        : COLORS.dangerBg,
-                  color:
-                    sale.paymentStatus === "paid"
-                      ? COLORS.success
-                      : sale.paymentStatus === "partial"
-                        ? COLORS.warning
-                        : COLORS.danger,
-                }}
-              >
-                {(sale.paymentStatus || "unpaid").toUpperCase()}
+              <span className={`status-badge payment-status-badge ${PAYMENT_PILL[sale.paymentStatus]?.cls || "pill-unpaid"}`}>
+                {PAYMENT_PILL[sale.paymentStatus]?.text || "Unpaid"}
               </span>
             ) : null}
             {payRows.length > 0 ? (
-              <ul className="sale-pay-list" role="list" style={{ marginTop: SPACING.md }}>
+              <ul className="sale-pay-list sale-pay-list--spaced" role="list">
                 {payRows.map((pe) => (
                   <li key={pe.id} className="sale-pay-row">
                     <span className="sale-pay-date">{dateSlash(pe.date)}</span>
@@ -441,7 +422,7 @@ export function SaleDetailScreen({
                       {METHOD_LABELS[pe.method] || pe.method || acctName(pe.bankAccountId)}
                       {pe.reference ? ` · ${pe.reference}` : ""}
                     </span>
-                    <strong className="sale-pay-amt" style={{ color: COLORS.amountPositive }}>
+                    <strong className="sale-pay-amt amt-positive">
                       {moneyFull(pe.amount)}
                     </strong>
                   </li>

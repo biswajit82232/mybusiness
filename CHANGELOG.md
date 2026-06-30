@@ -2,6 +2,28 @@
 
 All notable changes are tracked here. The Settings screen shows **Version** from `package.json`.
 
+## [8.7.1] — 2026-06-30
+
+### Fixes
+- **Money display** — Schema v4 repairs data where the v2→v3 migration accidentally multiplied sales and banking amounts by 100 again; v2→v3 no longer re-converts paise.
+
+App version **8.7.1**; service worker cache **v136**.
+
+---
+
+## [8.7.0] — 2026-06-30
+
+### Improvements
+- **UI polish (Phase 3)** — Foundation tokens (`--brand`, spacing, motion, status pills) in `app-tokens.css`; canonical component overrides in `premium-v7-polish.css` (KPI cards, 56px list rows, invoice accent bars, filter pills, FAB, toast, dark-mode pill pairs).
+- **Dashboard** — Net-profit hero with 4px brand border; sales-target progress bar; privacy eye 44×44px.
+- **Sales** — Filter pills (brand-light active state); invoice rows with semantic accent colors and sentence-case status pills; credit-note rows styled; inline token styles moved to CSS classes on list and detail screens.
+
+- **Inventory** — Low-stock (amber) and out-of-stock (red) 3px left accent bars on product rows.
+
+App version **8.7.0**; service worker cache **v135**.
+
+---
+
 ## [8.6.0] — 2026-06-30
 
 ### Features

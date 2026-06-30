@@ -1,14 +1,18 @@
 import { Virtuoso } from "react-virtuoso";
 import { saleStatus, money, dateHuman } from "@/domain/index.js";
-import { COLORS, FONT_SIZE, SPACING } from "@/tokens.js";
 import { avatarColor, avatarInitials } from "@/features/customers/avatarUtils.js";
 import { useMainStageScrollParent } from "@/features/main-stage/MainStageScrollContext.jsx";
 
+function sentenceCaseStatus(text) {
+  if (!text || typeof text !== "string") return text;
+  return text.charAt(0) + text.slice(1).toLowerCase();
+}
+
 const PAYMENT_BADGE = {
-  unpaid: { text: "UNPAID", bg: COLORS.dangerBg, color: COLORS.danger },
-  partial: { text: "PARTIAL", bg: COLORS.warningBg, color: COLORS.warning },
-  paid: { text: "PAID", bg: COLORS.successBg, color: COLORS.success },
-  overpaid: { text: "OVERPAID", bg: COLORS.infoBg, color: COLORS.info },
+  unpaid: { text: "Unpaid", cls: "pill-unpaid" },
+  partial: { text: "Partial", cls: "pill-partial" },
+  paid: { text: "Paid", cls: "pill-paid" },
+  overpaid: { text: "Overpaid", cls: "pill-overpaid" },
 };
 
 /** Resets visible count when `key` on parent changes (filter / period / search). */
@@ -16,7 +20,7 @@ export function PaginatedSaleList({ filteredSales = [], openSaleDetail, emptySta
   const scrollParent = useMainStageScrollParent();
   if (filteredSales.length === 0) return emptyState;
   if (!scrollParent) {
-    return <div className="sale-list-virtuoso-ph" aria-hidden style={{ minHeight: 1 }} />;
+    return <div className="sale-list-virtuoso-ph" aria-hidden />;
   }
   return (
     <Virtuoso
@@ -32,7 +36,7 @@ export function PaginatedSaleList({ filteredSales = [], openSaleDetail, emptySta
         const lineCount = Array.isArray(sale.lineItems) ? sale.lineItems.length : 0;
         const extraLines = lineCount > 1 ? lineCount - 1 : 0;
         return (
-          <button key={sale.id} type="button" className={`sale-row sale-row--${st?.cls || "draft"}`} onClick={() => openSaleDetail(sale.id)}>
+          <button key={sale.id} type="button" className={`sale-row sale-row--${isDraft ? "draft" : st?.cls || "draft"}`} onClick={() => openSaleDetail(sale.id)}>
             <div className={`avatar ${avatarColor(sale.customerName)}`}>
               {avatarInitials(sale.customerName)}
             </div>
@@ -53,32 +57,15 @@ export function PaginatedSaleList({ filteredSales = [], openSaleDetail, emptySta
             <div className="sr-right">
               <span className="sr-amount">{money(sale.totalSale)}</span>
               {isDraft ? (
-                <span
-                  className="status-badge"
-                  style={{
-                    backgroundColor: COLORS.warningBg,
-                    color: COLORS.warning,
-                    fontSize: FONT_SIZE.caption,
-                    fontWeight: 600,
-                  }}
-                >
-                  DRAFT
-                </span>
+                <span className="status-badge pill-draft">Draft</span>
               ) : isCancelled ? (
-                <span className="status-badge" style={{ backgroundColor: COLORS.dangerBg, color: COLORS.danger }}>
-                  CANCELLED
-                </span>
+                <span className="status-badge pill-cancelled">Cancelled</span>
               ) : (
                 <>
                   {payBadge ? (
-                    <span
-                      className="status-badge"
-                      style={{ backgroundColor: payBadge.bg, color: payBadge.color, fontSize: FONT_SIZE.caption }}
-                    >
-                      {payBadge.text}
-                    </span>
+                    <span className={`status-badge ${payBadge.cls}`}>{payBadge.text}</span>
                   ) : (
-                    <span className={`status-badge ${st.cls}`}>{st.text}</span>
+                    <span className={`status-badge ${st.cls}`}>{sentenceCaseStatus(st.text)}</span>
                   )}
                 </>
               )}

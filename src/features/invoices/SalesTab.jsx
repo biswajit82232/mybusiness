@@ -1,23 +1,14 @@
 import { addDaysStr, isOverdue, money } from "@/domain/index.js";
-import { COLORS, FONT_SIZE, SPACING } from "@/tokens.js";
 import { SaleDraftBanner } from "@/features/invoices/SaleDraftBanner.jsx";
 import { IcMenu, IcPlus, IcSales, IcSearch, IcX } from "@/shared/ui/icons/AppIcons.jsx";
 import { EmptyState } from "@/shared/ui/layout/AppChrome.jsx";
 import { MonthFilterCompact } from "@/shared/ui/shell/MonthFilterCompact.jsx";
 import { PaginatedSaleList } from "./PaginatedSaleList.jsx";
 
-const draftBadgeStyle = {
-  backgroundColor: COLORS.warningBg,
-  color: COLORS.warning,
-  fontSize: FONT_SIZE.caption,
-  fontWeight: 600,
-  padding: `${SPACING.xxs}px ${SPACING.sm}px`,
-  borderRadius: 4,
-};
 
 function CreditNoteRow({ cn, onOpen }) {
   return (
-    <button type="button" className="sale-row" onClick={() => onOpen(cn.id)}>
+    <button type="button" className="sale-row sale-row--credit" onClick={() => onOpen(cn.id)}>
       <div className="sr-left">
         <span className="sr-name">{cn.partyName || "Customer"}</span>
         <span className="sr-sub">
@@ -25,12 +16,8 @@ function CreditNoteRow({ cn, onOpen }) {
         </span>
       </div>
       <div className="sr-right">
-        <span className="sr-amount" style={{ color: COLORS.amountNegative }}>
-          {money(cn.grandTotalPaise)}
-        </span>
-        <span className="status-badge" style={{ backgroundColor: COLORS.dangerBg, color: COLORS.danger }}>
-          CN
-        </span>
+        <span className="sr-amount sr-amount--negative">{money(cn.grandTotalPaise)}</span>
+        <span className="status-badge pill-credit">Credit note</span>
       </div>
     </button>
   );
