@@ -2,6 +2,15 @@
 
 All notable changes are tracked here. The Settings screen shows **Version** from `package.json`.
 
+## [8.4.4] — 2026-06-30
+
+### Improvements
+- **Sidebar (mobile)** — Slightly larger menu rows, icons, labels, and drawer width for easier tapping and reading on phones.
+
+App version **8.4.4**; service worker cache **v134**.
+
+---
+
 ## [8.4.3] — 2026-06-30
 
 ### Improvements
